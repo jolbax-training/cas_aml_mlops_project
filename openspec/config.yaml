@@ -1,0 +1,28 @@
+schema: spec-driven
+
+context: |
+  This is a self-directed, course-related MLOps project with no formal rubric
+  and roughly four weeks from the 2026-10-16 scope review. Confirm the exact demo date.
+  Follow docs/project_spec.md for the current plan and docs/progress.md for dated status.
+  First deliver and understand a complete laptop generation/evaluation loop using
+  Podman, local run bundles, and offline replay. Live generation uses OpenRouter.
+  GitHub Actions and MLflow integration follow only after this local milestone passes.
+  Final evidence requires deterministic CI plus a complete baseline and one revised-prompt
+  live run tracked in MLflow, with a reasoned comparison and documented limitations.
+  Prioritize the complete workflow over size: minimum 10 independently reviewed tasks
+  across five categories, four cases each; 30 tasks is a stretch target.
+  Final deliverables are a repository, a continuously updated local-only HTML work log
+  generated from editable Markdown with one entry point, and a runnable demo.
+  No publishing or hosting is required. Deepchecks and DVC are optional.
+  Preserve historical decisions and never invent student learning reflections.
+
+rules:
+  proposal:
+    - Identify the local-loop prerequisite and current milestone; keep optional work separate.
+    - State the completion evidence and effect on the four-week scope.
+  design:
+    - Keep model credentials, expected answers, and scoring outside generated-code execution.
+    - Preserve local replay and complete evidence when API or tracking services fail.
+  tasks:
+    - Include appropriate verification and updates to editable status/report sources.
+    - Keep planned work distinct from implemented or verified behavior.

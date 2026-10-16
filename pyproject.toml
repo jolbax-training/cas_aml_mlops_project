@@ -1,0 +1,14 @@
+[project]
+name = "codegen-eval"
+version = "0.1.0"
+description = "Evaluation pipeline for a Python function generation course project"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["sandbox: runs a real generated function in a local Podman container"]

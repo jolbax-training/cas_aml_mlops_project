@@ -1,0 +1,50 @@
+# Python environments, caches, and build output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Credentials and local environment configuration
+.env
+.env.*
+!.env.example
+!.env.template
+.envrc
+secrets/
+.secrets/
+credentials/
+credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Generated evaluation bundles, tracking data, and HTML report
+# Keep editable Markdown, pilot data, and curated test fixtures in Git.
+/runs/
+/run_bundles/
+/artifacts/
+/outputs/
+/mlruns/
+/mlartifacts/
+/mlflow.db*
+/mlflow.sqlite*
+/report/
+*.log
+
+# Machine/editor state; shared .agents/skills are intentionally tracked
+.DS_Store
+.idea/
+.vscode/
+.codex/
+*.swp
+*.swo
