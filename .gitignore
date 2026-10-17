@@ -48,3 +48,6 @@ credentials*.json
 .codex/
 *.swp
 *.swo
+
+# Claude machine-local settings; shared skills remain tracked
+.claude/settings.local.json
