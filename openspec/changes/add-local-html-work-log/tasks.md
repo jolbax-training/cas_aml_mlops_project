@@ -1,35 +1,28 @@
 # Tasks
 
-All tasks are proposed and unstarted. Implement only after this change is reviewed and the user asks to apply it. The report foundation is independent of the local-loop milestone; CI/MLflow integration remains later work.
+Revised after Q37/Q42 on 2026-10-23. All implementation tasks are unstarted. The day-two foundation and day-four completion replace the previous report-first sequence. Build/report tooling is independent of agent execution, CI, and MLflow services; this change does not implement those systems.
 
-## 1. Source selection and local build boundary
+## 1. Small independent builder
 
-- [ ] 1.1 Add `docs/work_log.toml` with the ordered current-source selections, selected journal entries and supersession context, pending benchmark-review/results/CI/MLflow sections, planned change artifacts, and explicit safe text references from the design; verify each registered path/heading exists and no raw/private artifact is selected.
-- [ ] 1.2 Add the standalone Python builder entry point and lock its Markdown development dependency through uv; verify the environment can run the entry point without importing the evaluator or requiring service credentials.
-- [ ] 1.3 Implement manifest/path validation and privacy exclusions before content reads; test traversal, URL-encoded escapes, symlink escapes, credential files, raw bundles, private sources, and missing registered sources using synthetic fixtures.
-- [ ] 1.4 Document source registration, pending sections, private exclusions, and selected journal behavior in editable Markdown; verify a small new approved record is included while an unregistered sibling is not.
+- [ ] 1.1 Register an explicit ordered source list for authoritative documents, approved review/results/guide records, selected learning material, and pending sections; document registration and verify missing/forbidden/escaping/symlink inputs fail without harvesting neighbors.
+- [ ] 1.2 Add the standalone build/check entry point and locked Markdown dependency, source provenance/build time, and validation-before-atomic-replacement; test no writes in check mode, unchanged source files, and previous-output preservation on failure, and document the target commands.
 
-## 2. Faithful rendering, evidence, and navigation
+## 2. Rendering and evidence navigation
 
-- [ ] 2.1 Render selected Markdown with source/hash provenance, generation timestamp, tables, checklists, code blocks, and current/historical/personal labels; test that edits appear once, incomplete/pending evidence is honest, journal prompts remain unanswered, and source files remain unchanged.
-- [ ] 2.2 Add stable section/heading IDs, duplicate-heading disambiguation, in-page link rewriting, approved escaped-text appendices, and labeled omitted references; test cross-document fragments, omitted private headings, missing targets, and all current project document links.
-- [ ] 2.3 Enforce inert source HTML/code, external-image suppression, safe external evidence schemes, credential-pattern checks with location-only errors, and output CSP; test script/event-handler markup, a candidate sentinel write, remote image URLs, unsafe/credential-bearing links, and synthetic tokens without accessing real credentials.
-- [ ] 2.4 Add semantic navigation, skip link, focus styling, readable tables, and unchecked external/local-service evidence labels; verify keyboard destinations and document that external availability is never queried during build/view.
+- [ ] 2.1 Render Markdown tables/code/checklists/history with unique section/heading anchors, included-document rewrites, and validated rebased local references; add focused tests for current repository links, missing targets, inert HTML/code, unsafe links, and suppressed remote resources.
+- [ ] 2.2 Add pending evidence, honest implemented/planned/incomplete labels, local evidence/MLflow identifiers, and explicit journal selection; verify no fabricated metrics/reflections or raw-bundle/private-store inclusion and document how to add reviewed records after milestones.
 
-## 3. Opening architecture figure
+## 3. Opening architecture and accessibility
 
-- [ ] 3.1 Add `docs/architecture.json` with every component and flow listed in the design, local/external/later/report lanes, implementation-status labels, and the sandbox trust boundary; verify required nodes/edges and that expected answers and credentials have no path into generation or sandbox execution.
-- [ ] 3.2 Implement constrained inline SVG rendering and a text equivalent from the same graph; test escaping, duplicate IDs, dangling edges, unknown phases/layout values, and propagation of a label/edge change to both representations.
-- [ ] 3.3 Place the goal figure before visible narrative/navigation and add accessible title/description, non-color labels, and narrow-screen scrolling; verify DOM order and document how to maintain the graph without editing generated HTML.
+- [ ] 3.1 Add the small editable local diagram/text showing the agreed agent/development/hidden-grading/trust/evidence flows; verify architecture-first order, correct status, local-only assets, accessible explanation, and keyboard navigation, and document diagram maintenance without a generic graph engine.
 
-## 4. Build/check integration and documentation alignment
+## 4. Repository integration and observed evidence
 
-- [ ] 4.1 Complete the documented build and `--check` commands with full input/output validation, atomic output replacement, and no writes in check mode; test successful builds, preservation after failure, unchanged sources, and repeatability except the timestamp.
-- [ ] 4.2 Update README with setup/build/check/open instructions and `docs/project_spec.md`, `docs/progress.md`, and OpenSpec context with the user-directed report-first foundation, current origin configuration, and this change's status; verify current prose is consistent while historical entries and student reflections remain intact.
-- [ ] 4.3 Build and validate the report from the actual repository and run the offline test suite; verify `report/` is ignored and no evaluator/product behavior changed. Record exact commands and observed results in the progress log.
-- [ ] 4.4 Open `report/index.html` directly in a browser with network disabled and no required services; inspect the complete architecture at desktop width, 375-pixel width, and 200-percent zoom, check keyboard navigation and accessible text alternatives, verify no clipped labels/unreadable flows or automatic network requests, and record browser/version and evidence of the check.
+- [ ] 4.1 Build/check the actual repository, run focused tests and the offline suite, verify generated output is ignored, and update README/progress with exact working build/check/open commands and observed results; do not claim agent/CI/MLflow work this change does not implement.
+- [ ] 4.2 Open the entry point directly offline without required services; inspect desktop, 375-pixel width, 200-percent zoom, architecture labels/text, and keyboard links, and retain browser/version and verification evidence in progress.
 
 ## Workflow follow-up
 
-- Present the implemented result and validation evidence for review before archiving the completed change.
-- Keep the subsequent local agent-loop work as a separate change; do not fold CI, MLflow, or live generation into this report implementation.
+- Keep agent, benchmark, budget/API, CI/MLflow, and transfer-guide implementation separate; register their reviewed evidence when it actually exists.
+- Update source records and rebuild after meaningful milestones/runs. Report missing evidence as pending rather than waiting to fabricate a completed report.
+- Review the implemented output and verification before archiving; do not mark these tasks complete for planning revisions alone.

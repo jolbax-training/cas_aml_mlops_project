@@ -1,24 +1,62 @@
 # Project progress and decisions
 
-Updated 2026-10-16. This is an editable factual source for the planned local HTML work log. [The working specification](project_spec.md) defines acceptance criteria. Personal reflections belong in the [learning journal](learning_journal.md).
+Updated 2026-10-23. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
 
 ## Current status
 
-The project is at the offline pilot stage. The first major milestone is a complete laptop generation/evaluation loop with local evidence and offline replay, understood before adding GitHub Actions or MLflow. The report remains Markdown source material until its HTML generator is implemented.
+**Planning is consolidated; implementation remains the offline pilot.** The target is a bounded tool-using coding agent plus reproducible evaluation/MLOps evidence within 32 working hours. Start with the execution boundary, agent fixtures, local bundles, and grading replay; add the live smoke path and HTML foundation on day two, CI/MLflow/comparison on day three, then finish evidence, transfer design, and the demo. Personal explanations are encouraged and do not block delivery.
 
-| Area | Verified state as of this review | Next evidence needed |
+| Area | Observed state / provenance | Required next evidence |
 | --- | --- | --- |
-| Benchmark | Three tasks and 12 cases in [pilot data](../data/pilot_tasks.json) | Independent answer review and a frozen minimum of 10 tasks, 40 cases, 20 edge cases across five categories |
-| Evaluator | Dataset validation, static source contract, per-case Podman execution, and external scoring implemented | Local loop connected to generation, with complete saved request/response/result bundles |
-| Offline checks | Earlier check in this task: 21 passed, eight sandbox tests skipped | Retained run output for the next milestone; later deterministic CI evidence |
-| Podman | CLI 6.1.4 and VM reachable outside the task sandbox; pinned image absent on latest check | Acquire the documented image and rerun isolation/integration checks |
-| Container checks | Latest check: eight failed with infrastructure errors; a diagnostic case returned `image not known` | Successful execution after restoring the image; review worker-protocol scoring integrity before live candidates |
-| OpenSpec | Initialized with `spec-driven` configuration and six Codex skills; no changes/specs authored | Use for scoped implementation changes as needed |
-| Version control / CI | Local Git repository initialized; initial commit captures the pilot and planning baseline. No remote or Actions workflow | GitHub/CI integration after the laptop milestone |
-| Live generation / tracking | No OpenRouter client, saved live run workflow, or MLflow integration implemented | First a local pilot loop and replay; then tracking; finally two complete comparable experiments |
-| Report / demo | Markdown sources exist; HTML generator and `report/index.html` do not | Local report build after the loop works, then documented demo and replay |
+| Benchmark | Three tasks, twelve cases; re-counted during this review | Ten reviewed tasks, references/review records, forty checks; freeze before baseline |
+| Evaluator | Dataset/source validation, per-check Podman execution, external scoring implemented | Agent loop, development tool, durable bundles, distinct inspection/regrading commands |
+| Offline checks | Earlier in this conversation: `.venv/bin/pytest -q` gave 21 passed, eight skipped | New implementation checks and retained deterministic CI evidence |
+| Podman | Earlier in this conversation: CLI 6.1.4, running VM; pinned Python image absent | Restore the pinned image and rerun probes; no successful current integration run claimed |
+| Execution boundary | Current deadline eight seconds; worker and candidate share a Python process | Ten-second target; isolation plus forged-response/concealed-mutation probes and documented limitations |
+| Version control / CI | `origin` points to the project's GitHub repository; no Actions workflow | Required deterministic and Podman check groups on a verified compatible Linux runner |
+| OpenSpec | One planned HTML change, revised to the smaller scope; main specs empty | Implement the revised tasks separately; planning completion is not implementation completion |
+| Live generation / tracking | No OpenRouter client, budget ledger, agent traces, or MLflow integration | GLM/provider smoke; shared CHF controls; local bundles; containerized MLflow |
+| Report / demo | Markdown exists; no HTML builder/output or complete demo | Day-two HTML foundation, later evidence updates and offline/replay demo checks |
+| Transfer design | Coordinator/worker/verifier/final-check scope agreed | Reusable guide and six worked evaluation scenarios; no second system required |
 
-The test and connection observations above come from earlier checks in this task, not newly rerun checks during this documentation revision. Raw outputs are in the task conversation, not retained repository artifacts yet. No CI or MLflow result links exist yet. The September journal records an earlier successful container run; that historical result does not resolve the current missing-image condition.
+Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
+
+## 2026-10-23 — Wayfinder scope and delivery revision
+
+- **Evidence:** User confirmations Q1–Q42, retained in the [decision map](../.scratch/revise-project-spec/map.md) and its child tickets. The [specification](project_spec.md) is now authoritative.
+- **Goals:** Learn transferable agent-evaluation design and demonstrate an end-to-end reproducible MLOps workflow.
+- **Time:** Four eight-hour working days, replacing the earlier four-week plan. Relative day allocations and exit evidence are in the specification.
+- **Agent:** Optional agent-authored development checks and internal revisions, four logical model calls, three tool attempts, four checks per request, final-only fourth call. Final source retains the existing strict function contract.
+- **Execution:** Fresh restricted Podman containers for every development/acceptance check; ten-second target and mandatory isolation/scoring-integrity review before live comparison. The current worker has not been hardened by this planning revision.
+- **Experiment:** Ten reviewed tasks across five categories, three trials per task for each of two prompts: sixty task trials and 240 check outcomes overall. Fixed denominators, infrastructure-incomplete runs excluded, honest keep/reject decision; improvement is not required.
+- **Model:** User-selected `z-ai/glm-5.3-flash`, OpenInference `open-inference/fp4`, temperature 0.2/top-p 1/low reasoning, 12k-input/2k-output caps, 60-second API attempts. These are selected targets awaiting a functional smoke test.
+- **Budget:** One ledger across all paid calls. CHF 10 checkpoint continues automatically; CHF 15 ceiling blocks over-budget reservations. One retry per failed request and at most two per trial; uncertain charges retain reservations.
+- **Infrastructure/evidence:** Host CLI/uv, containerized local MLflow, durable bundles before upload, separate inspection/grading replay/interaction fixtures, and minimal deterministic CI including Podman checks.
+- **Report:** Keep the smaller local HTML work-log, first foundation on day two, generated from selected Markdown/reviewed summaries. This supersedes the October 16 report-first proposal and its larger engine scope.
+- **Transfer:** Design a research coordinator with one worker/fresh-context independent verifier per item and a final cross-item check. Include six scenarios and illustrative traces, never fabricated executed results.
+- **Research provenance:** The Wayfinder research skill used a background agent and retained primary-source findings on throwaway branch `research/openrouter-model-choice`, commit `44d1fff8e7d5c947c56c50e4fec355f47991f08a`, [findings file](https://github.com/jolbax-training/cas_aml_mlops_project/blob/44d1fff8e7d5c947c56c50e4fec355f47991f08a/docs/research/openrouter-model-choice.md). No paid calls, PR, or research-branch merge. Research establishes documented controls and a dated price snapshot, not tested live compatibility.
+- **Superseded:** Four-week schedule, larger benchmark stretch work, single-response/no-revision trials, single-trial comparisons, reflection-as-gate wording, earlier budgets/model proposals, and report-first sequencing. Earlier dated records below remain historical.
+- **Changes:** Planning/documentation only; no source, test, dataset, dependency, container, workflow, or service implementation changed.
+
+## 2026-10-23 — Planning validation
+
+- `openspec validate add-local-html-work-log --strict`: passed.
+- `openspec list --json`: the revised report change has zero of seven implementation tasks complete; its planning artifacts exist.
+- `git diff --check`: passed.
+- A local Python link check verified 55 local Markdown references across twenty documents, planning artifacts, glossary, and decision records. External research/source URLs were retained as references rather than fetched by this check.
+- A comparison with `git show HEAD:docs/learning_journal.md` confirmed all original dated entries and reflection prompts are unchanged; only the current supersession notice was updated.
+- `git diff --name-only -- src tests data pyproject.toml uv.lock` was empty. Application/container tests were not rerun for this documentation-only consolidation.
+
+## Next implementation milestone
+
+1. Restore the pinned image and verify the existing environment. Review/fix the execution and scoring boundary and add the required probes before live comparison.
+2. Implement the bounded interaction loop and development tool with deterministic fixtures, then durable bundles and grading replay. Keep expected answers/credentials outside candidate execution.
+3. Review/freeze the ten-task benchmark; implement the model interface, verified token/cost reservations, retry accounting, and retained functional smoke. Add the HTML foundation.
+4. Integrate local containerized MLflow and deterministic CI, complete both comparison runs, and finish the report, transfer guide, and demo. Exact commands are documented as implemented, not invented in advance.
+
+## Historical decisions
+
+The following October 16 entries preserve their original context. Their four-week schedule, one-candidate-per-task experiment, reflection/understanding gate, and no-remote statements are superseded above; no dates or personal reflections have been rewritten.
 
 ## 2026-10-16 — Scope and delivery decisions
 
@@ -33,7 +71,7 @@ The test and connection observations above come from earlier checks in this task
 - **Superseded:** Exactly 30 tasks as a completion gate; pending rubric/artifact questions; automatic paid CI as a required path; introducing CI/MLflow before the local breakthrough.
 - **Evidence:** User scope decisions recorded in this task; [working specification](project_spec.md) and [OpenSpec configuration](../openspec/config.yaml). This entry records decisions, not personal learning claims.
 
-## Next milestone: local loop
+## Historical 2026-10-16 next-milestone plan (superseded)
 
 1. Restore the pinned image using the [setup instructions](../README.md) and rerun the container checks. Distinguish task-sandbox socket restrictions from actual Podman availability.
 2. Review and document execution and scoring-integrity boundaries before live candidate execution.
@@ -51,4 +89,4 @@ No implementation or runtime changes were made by this planning revision. Valida
 
 ## Future evidence entries
 
-After each milestone or experiment, append the date, purpose, relevant versions, exact commands, observed result, local artifact paths and available CI/MLflow identifiers, limitations, decision, and next step. Update the status table and regenerate the report once the generator exists. Label incomplete runs explicitly; keep personal reflections in the student's own words.
+After each milestone or experiment, append the date, purpose, versions, exact commands, observed result, local artifacts and available CI/MLflow identifiers, limitations, decision, and next step. Update current status and rebuild the report once its generator exists. Label incomplete work explicitly and leave personal reflections in the student's own words.

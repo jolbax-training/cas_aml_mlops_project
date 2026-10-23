@@ -2,31 +2,31 @@
 
 ## Why
 
-Project goals, decisions, and evidence are spread across Markdown files, making it difficult to see the intended MLOps workflow and follow progress in one place. A locally generated work log with an opening architecture diagram gives the user a shared view before further evaluator work.
+The agent-evaluation/MLOps project needs one locally readable view of its architecture, decisions, progress, and experiment evidence. A small Markdown-to-HTML work-log keeps that evidence understandable within the user-confirmed four-day delivery window.
 
 ## What Changes
 
-- Generate `report/index.html` from an explicit selection of authoritative Markdown sources, with embedded content, section navigation, source provenance, and a build timestamp.
-- Make the first visible content an accessible offline architecture/goal diagram showing the local generation/evaluation/replay loop and later CI/tracking phase, with planned versus implemented status clearly distinguished.
-- Include status, plans, dated decisions, pilot/benchmark information, selected learning-journal material, historical context, and registered future review/result records; show absent evidence as pending.
-- Provide a repeatable local generation command and link/output validation, using no hosting, runtime web service, client-side fetching, or external assets.
-- Limit included files and links; render candidate code as inert text and exclude credentials, private files, and raw experiment bundles by default.
-- Update documentation during implementation to record the user-directed sequencing change: this focused report foundation comes first, while the laptop evaluation loop remains the first major functional milestone and a prerequisite for CI/MLflow integration.
+- Generate local `report/index.html` from explicitly selected Markdown and reviewed result summaries, with source provenance and build time.
+- Place an accessible architecture diagram first, distinguishing the implemented pilot, planned agent/development-check loop, hidden grading boundary, local persistence/regrading, CI, and containerized MLflow.
+- Include scope/status/milestones, dated decisions, benchmark review, results/comparison/limitations, local evidence references, MLflow identifiers, reproduction/demo instructions, and selected student-authored learning notes.
+- Use local assets, escaped source/code, validated internal links, and honest pending labels. Building/viewing requires no model API, Podman, MLflow, network, or hosting.
+- Provide one documented build command and validation mode; rebuild after meaningful milestones/runs while keeping the agent/evaluator independent of reporting.
+- Simplify the earlier extensive report-engine plan: no generic graph engine, automatic raw-source appendices, repository harvesting, private-journal selection framework, live dashboard, or publishing system is required.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `local-work-log`: Build and navigate an offline project work log from reviewed sources, including its opening architecture diagram, evidence handling, privacy boundary, and validation.
+- `local-work-log`: Generate and navigate an offline architecture, progress, and reviewed-evidence report from selected authoritative sources.
 
 ### Modified Capabilities
 
-None. The main OpenSpec capability inventory is empty.
+None. The main capability inventory is empty; this change remains unimplemented.
 
 ## Impact
 
-Proposed implementation affects a standalone report builder, report source manifest and diagram definition, tests, development dependencies/lockfile if needed, and project documentation. Generated `report/` remains ignored by Git. Product evaluator code, live generation, infrastructure integration, and benchmark expansion are outside this change.
+Implementation affects a small standalone builder, explicit source selection, a checked-in diagram asset, focused tests, a locked Markdown development dependency if needed, and reporting instructions/progress. Generated `report/` remains ignored. Agent/evaluator, API, CI, MLflow, benchmark expansion, and the transfer guide are separate implementation work whose evidence the report can reference.
 
-The project currently has an offline three-task evaluator and no report generator. Existing planning places report implementation in week two; the user's latest instruction explicitly brings this independent report foundation forward. A working local agent loop is not a prerequisite for this change, but remains mandatory before GitHub Actions and MLflow work. This small first change does not add a hosting requirement or change the four-week deliverables.
+The authoritative [project specification](../../../docs/project_spec.md) now allocates the first report foundation to day two and comparison/report completion to day four. The local fixture/evaluation/persistence/regrading path comes first; live smoke/budget controls precede CI/MLflow. The builder itself has no runtime dependency on those milestones or services. This supersedes the October 16 report-first sequence and larger report scope; earlier planning remains in Git history and dated progress.
 
-Completion evidence is a successful build from the current sources, offline opening of one HTML entry point with the diagram first, validated navigation and links, accessible text equivalents, and automated tests proving that hostile content and private paths are not included or executed. No model API, Podman, GitHub, or MLflow service is required for those checks.
+Completion evidence is a successful build/check, an offline-opened single entry point with architecture first, correct navigation/pending labels, focused rendering/link/privacy tests, and readable desktop/narrow/zoomed layouts. No live experiment, CI result, student reflection, or tracking run is invented to populate the page.

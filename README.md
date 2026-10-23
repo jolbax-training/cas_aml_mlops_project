@@ -1,8 +1,8 @@
-# MLOps workflow with Python code generation
+# Agent evaluation and MLOps with Python code generation
 
-The goal is to demonstrate a complete MLOps workflow in a self-directed, course-related project over roughly four weeks. The Python function generator provides the evaluation use case. Final deliverables are a repository, a continuously updated local HTML report, and a runnable demo. Start by making the complete generation/evaluation loop work on the laptop with Podman; integrate GitHub Actions and MLflow after that local milestone passes.
+The goal is to understand transferable agent-evaluation methods and demonstrate a reproducible MLOps workflow in **four eight-hour working days (32 hours)**. The target is a bounded function-writing agent with its own development checks, hidden final grading, durable traces/results, and offline grading replay. Required deliverables include deterministic CI, local MLflow in Podman, an offline HTML work-log, an evaluation-design guide with a research-orchestrator example, and a runnable demo. [The specification](docs/project_spec.md) defines the agreed scope and acceptance criteria.
 
-The current implementation is an offline pilot: it loads three benchmark tasks, validates generated Python source, executes one case at a time in a restricted Podman container, and scores returned values outside that container. It does not call OpenRouter or MLflow yet.
+The current implementation is still an offline pilot: it loads three tasks and twelve cases, validates Python source, executes one case at a time in a restricted Podman container, and scores returned values outside that container. The agent loop, OpenRouter client, bundles/replay, expanded benchmark, CI, MLflow, and HTML builder are planned. Local orchestration will run on the laptop with uv; MLflow and disposable candidate execution use Podman. Complete the local loop before CI/tracking integration.
 
 ## Setup
 
@@ -31,7 +31,7 @@ CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sand
 
 The integration checks exercise correct and wrong functions, input mutation, a timeout, excessive output, and attempted access to a host file, a synthetic host environment variable, a read-only system path, and the network. They do not use real credentials.
 
-For the learning journal, inspect one expected failure in `tests/test_evaluate.py` before running it. Predict its task score, case score, and failure label. Then compare your prediction with the test result. Useful questions: Why does a syntax error produce four unexecuted cases? Why does a correct return value still fail after input mutation? What does the container protect, and what remains uncertain?
+As an optional learning exercise (not a delivery gate), inspect one expected failure in `tests/test_evaluate.py` before running it. Predict its task score, case score, and failure label. Then compare your prediction with the test result. Useful questions: Why does a syntax error produce four unexecuted cases? Why does a correct return value still fail after input mutation? What does the container protect, and what remains uncertain?
 
 ## Pilot data and scoring boundary
 
@@ -47,10 +47,19 @@ The container restrictions and integration checks limit accidental or hostile co
 
 - [Working specification](docs/project_spec.md): scope, local-first milestones, completion evidence, and unresolved implementation decisions.
 - [Progress and decisions](docs/progress.md): current status, dated evidence, and next steps.
-- [Pilot benchmark](docs/pilot_tasks.md): the existing three-task dataset. The planned independently reviewed minimum is 10 tasks across five categories; 30 is a stretch target.
+- [Pilot benchmark](docs/pilot_tasks.md): the existing three-task dataset. The frozen target is ten reviewed tasks across five categories, with forty hidden checks; each prompt variant has three trials per task.
 - [Personal learning journal](docs/learning_journal.md): student-authored expectations and reflections, preserved as report source material.
 - [Historical brainstorming](docs/project_ideas.md): earlier ideas, superseded by the working specification where they differ.
 
-The planned report entry point is `report/index.html`, generated locally from editable Markdown. The generator and HTML output are not implemented yet. The report will collect status, dated decisions, benchmark review and results, and links to CI/MLflow evidence without requiring hosting.
+## Agreed target configuration (not implemented yet)
 
-OpenSpec is initialized under `openspec/`, with Codex workflow skills in `.agents/skills/`. Its configuration records the scope constraints; the working specification is the authoritative project plan. No OpenSpec changes or capability specs have been authored yet.
+- Four logical model calls and three development-tool attempts per trial; at most four checks per tool request. The fourth model call is final-submission-only.
+- Fresh restricted candidate containers per check; target execution deadline **10 seconds**. The current code still defaults to eight seconds and requires scoring-integrity review before live comparisons.
+- OpenRouter `z-ai/glm-5.3-flash`, pinned to OpenInference `open-inference/fp4`; temperature 0.2, top-p 1, low reasoning effort, 12k input / 2k output tokens, 60-second API attempts. Functional smoke verification is pending.
+- Baseline and one revised prompt, three trials per task: sixty task trials and 240 hidden-check outcomes overall.
+- Project-wide spending ledger: **CHF 10 checkpoint**, automatic continuation; **CHF 15 ceiling**, with conservative reservations including retries and uncertain charges.
+- Trace inspection needs no execution service; grading replay re-executes saved final code in Podman without a model API. Deterministic response fixtures verify the agent loop separately.
+
+The planned report entry point is `report/index.html`, generated locally from selected Markdown and reviewed summaries. The generator/output do not exist yet. The first foundation is scheduled on day two; it will collect architecture, status, decisions, benchmark review, comparison, evidence references, and reproduction instructions without hosting. Build/open commands will be documented after implementation.
+
+OpenSpec is initialized under `openspec/`, with Codex workflow skills in `.agents/skills/`. The existing [local HTML work-log change](openspec/changes/add-local-html-work-log/proposal.md) has revised planning artifacts and no implemented tasks; main capability specs remain empty. The [Wayfinder map](.scratch/revise-project-spec/map.md) retains the user-confirmed decisions, and [glossary](GLOSSARY.md) defines evaluation terminology. A GitHub origin is configured; no Actions workflow exists yet.

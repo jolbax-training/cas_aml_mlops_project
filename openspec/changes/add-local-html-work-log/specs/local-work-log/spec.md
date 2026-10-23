@@ -2,138 +2,102 @@
 
 ## Purpose
 
-Provide one locally readable view of the project's intended architecture, authoritative planning documents, dated progress, and reviewed evaluation evidence without requiring live infrastructure or duplicating editable prose.
+Provide a locally readable architecture, progress, and reviewed-evidence report from selected authoritative sources, supporting the four-day agent-evaluation/MLOps project without depending on live services.
 
 ## ADDED Requirements
 
 ### Requirement: Single offline entry point
-The work log SHALL be available at `report/index.html`, readable directly from the local filesystem after generation. All included narrative, navigation, styling, and the architecture diagram MUST work without a server, network access, or JavaScript.
+The work log SHALL be available at `report/index.html`, with all included narrative, navigation, styling, and architecture readable from the local filesystem without a server, network, or JavaScript.
 
-#### Scenario: Read while services are unavailable
-- **WHEN** the generated entry point is opened with network access disabled and no OpenRouter, Podman, GitHub, or MLflow service available
-- **THEN** the diagram and included content render and internal navigation works without opening the source Markdown files
-- **AND** no remote resources or services are requested automatically
+#### Scenario: Read without services
+- **WHEN** the built entry point is opened offline with no model API, Podman, GitHub, or MLflow service available
+- **THEN** included content and internal navigation work
+- **AND** no remote resource is automatically requested
 
-### Requirement: Architecture is the opening content
-The first visible main content SHALL be an architecture/goal figure showing the intended MLOps system. It MUST visually distinguish the laptop milestone, the external generation API, later CI/tracking, and the report, with phase and implementation-status labels that do not rely on color alone.
+### Requirement: Architecture first with honest status
+The first visible main content SHALL be an accessible architecture figure distinguishing implemented and planned components, with readable labels and a text equivalent. Status meaning MUST remain understandable without color.
 
-#### Scenario: Open the work log
-- **WHEN** the entry point opens at its initial scroll position
-- **THEN** the architecture figure and its goal title precede the status table, narrative documents, and full navigation
-- **AND** the figure distinguishes implemented pilot components from planned local and planned later components
+#### Scenario: Inspect the opening figure
+- **WHEN** the entry point is opened at its initial scroll position
+- **THEN** the goal figure precedes narrative, status tables, and full navigation
+- **AND** its implemented/planned labels reflect the selected documentation
 
-### Requirement: Architecture shows components and evidence flows
-The architecture SHALL show versioned benchmark/tasks and prompt, the OpenRouter generation agent, contract validation/trusted evaluator, Podman execution, trusted scoring, saved local requests/responses/results and replay, later GitHub Actions deterministic checks, later MLflow tracking, baseline/revised comparison, and the Markdown-to-work-log flow.
+#### Scenario: Read the diagram at different sizes
+- **WHEN** viewed at desktop width, 375-pixel width, or 200-percent zoom
+- **THEN** labels remain readable through resizing or scrolling
+- **AND** an accessible title/description and text explanation convey the architecture
 
-#### Scenario: Inspect the execution and evidence boundaries
+### Requirement: Agent and evidence flows are visible
+The architecture SHALL show the bounded agent/development-check loop, external model, final source validation, hidden acceptance execution/scoring, local bundles and grading replay, CI, MLflow, comparison, and Markdown-to-report flow. It MUST expose candidate execution's trust boundary.
+
+#### Scenario: Distinguish development from final grading
 - **WHEN** the architecture is inspected
-- **THEN** labeled flows show task instruction/signature and prompt going to generation, accepted code and case inputs going to Podman, and execution outcomes returning to trusted scoring
-- **AND** expected answers feed scoring outside Podman and are not shown entering the generation API or sandbox
-- **AND** contract failures are recorded without execution, saved candidates support replay without new generation, and the diagram states that execution replay still uses Podman
-- **AND** local results feed comparison and later MLflow, deterministic fixtures feed later GitHub Actions, and reviewed summaries/evidence references feed Markdown and the report
-- **AND** credentials and scoring are outside the sandbox trust boundary
+- **THEN** agent-authored checks produce development feedback and explicit final submission leads to separate hidden grading
+- **AND** expected answers, scoring, credentials, repository files, tracking, and Podman controls stay outside candidate containers
+- **AND** saved final candidates support grading replay without model generation, still using Podman
+- **AND** local persistence precedes MLflow recording, and reviewed summaries feed the report
 
-### Requirement: Maintainable and accessible architecture
-The diagram SHALL be generated from a checked-in editable architecture definition and SHALL have an accessible title, description, and complete text equivalent derived from that same definition. Invalid component or edge references MUST fail validation.
+### Requirement: Selected sources and provenance
+The generator SHALL include explicitly selected authoritative Markdown and reviewed summaries, preserve substantive content and historical context, and identify sources and generation time. Unselected neighboring files MUST NOT be harvested.
 
-#### Scenario: Evolve the architecture
-- **WHEN** an author changes a component label or flow in the architecture definition and regenerates
-- **THEN** the visual diagram and text equivalent reflect that change together without separately editing generated HTML
+#### Scenario: Regenerate after an approved source edit
+- **WHEN** a selected progress or result record changes and the user rebuilds
+- **THEN** the report reflects it with source provenance without duplicate prose edits
+- **AND** unrelated files remain excluded
 
-#### Scenario: Invalid graph
-- **WHEN** an edge references a nonexistent node or node IDs are duplicated
-- **THEN** generation fails with an actionable diagnostic and preserves the previous valid report
+### Requirement: Required content and pending evidence
+The work log SHALL expose scope/status/milestones, dated decisions, benchmark/review, results/comparison/limitations, local evidence and MLflow references, setup/replay/demo instructions, the transfer guide/example, and selected learning material. Missing evidence MUST be pending; no results, URLs, or personal reflections may be invented.
 
-#### Scenario: Read at narrow width or with assistive technology
-- **WHEN** a user views the report at 375-pixel width, zooms to 200 percent, or reads the figure using a screen reader
-- **THEN** labels remain legible through resizing or scrolling and every component/flow is available in the text equivalent
+#### Scenario: Build before experiments or guide delivery
+- **WHEN** required evidence or the guide is not yet registered
+- **THEN** the corresponding sections are visibly pending
+- **AND** existing pilot results remain distinct from planned experiments and illustrative orchestrator examples
 
-### Requirement: Authoritative sources and provenance
-The generator SHALL render explicitly selected Markdown sources without requiring duplicate hand-maintained narrative. It MUST preserve substantive text, dates, tables, code blocks, checklists, and historical context, identify each source, and show generation time and source hashes. Unselected files MUST NOT be harvested automatically.
+#### Scenario: Personal material is unfinished
+- **WHEN** selected journal material contains unanswered prompts or historical plans
+- **THEN** prompts remain unanswered and supersession context remains visible
+- **AND** missing personal reflections do not block report generation
 
-#### Scenario: Update a progress entry
-- **WHEN** an author edits a selected progress Markdown document and rebuilds
-- **THEN** the new text appears in its report section with the source identified
-- **AND** the author does not need to edit the same prose in a second file
+### Requirement: Navigation and local references are validated
+The report SHALL provide unique section/heading targets and keyboard-accessible navigation. Included-document links MUST resolve inside the report; approved local source/evidence references MUST be correctly rebased and validated. Missing registered sources and unresolved internal targets MUST fail build/check.
 
-#### Scenario: Register a new reviewed record
-- **WHEN** an author explicitly registers a new benchmark-review or experiment-result Markdown record
-- **THEN** it becomes readable and navigable from the same entry point on regeneration
-- **AND** an unregistered neighboring document remains excluded
+#### Scenario: Follow included and local reference links
+- **WHEN** a reader follows an included-document heading or approved local evidence link
+- **THEN** it reaches the intended target
+- **AND** non-embedded source references are labelled
 
-### Requirement: Honest status and missing evidence
-The work log SHALL expose current status, plans, dated progress/decisions, benchmark context and review, results/comparison, reproduction instructions, selected learning notes, and historical ideas. Missing evidence MUST be visibly pending; historical content and incomplete runs MUST retain their labels. The generator MUST NOT invent results, URLs, or personal reflections.
+#### Scenario: Broken registered reference
+- **WHEN** a required source or internal target is missing
+- **THEN** validation fails with a useful diagnostic and preserves the previous successful output
 
-#### Scenario: Build before any live experiment
-- **WHEN** no benchmark-review record, live comparison, CI result, or MLflow run is registered
-- **THEN** the corresponding sections show pending evidence rather than success metrics or fabricated links
-- **AND** existing pilot evidence remains distinguishable from future experiment results
+### Requirement: External evidence remains optional
+Recorded CI/MLflow references SHALL retain descriptions or identifiers locally and be labelled as external or local-service references. Generation and viewing MUST NOT automatically fetch them.
 
-#### Scenario: Include unfinished journal material
-- **WHEN** a selected journal entry contains unanswered reflection prompts or a superseded plan
-- **THEN** the prompts remain unanswered and the historical/supersession context remains visible
+#### Scenario: Tracking is stopped
+- **WHEN** a recorded MLflow URL cannot be reached
+- **THEN** its retained identifier/summary and the report remain readable
+- **AND** opening/building the report does not start or query tracking
 
-### Requirement: Navigable content and validated local references
-The work log SHALL provide keyboard-accessible section and heading navigation with unique targets. Links among included sources MUST resolve inside the report. Approved local text references MUST be readable as inert appendices. Unresolved local paths/fragments or missing registered sources MUST fail validation; intentionally omitted references MUST be labeled without exposing private destinations.
+### Requirement: Explicit inclusion and inert content
+The generator SHALL reject secret/private files, machine state, automatic raw-bundle/tracking-store inclusion, escaping paths/symlinks, credential-bearing URLs, and unsafe schemes. Source HTML/code MUST remain inert; external resources MUST NOT load automatically. Only the reviewed local architecture asset is accepted as SVG.
 
-#### Scenario: Follow links between source documents
-- **WHEN** a reader follows a link to an included document or heading, including repeated heading names in different documents
-- **THEN** navigation reaches the correct generated section or unique heading target
+#### Scenario: Unsafe selection or rendered content
+- **WHEN** selected paths escape the repository or include forbidden private stores
+- **THEN** generation refuses those inputs
+- **AND** a selected Python snippet, raw HTML, or remote-image reference is rendered without execution or automatic network access
 
-#### Scenario: Missing source or fragment
-- **WHEN** a registered source is missing or an included local link targets a missing heading
-- **THEN** build/check exits nonzero with the source and faulty reference identified
-- **AND** the previous successful output remains intact
+### Requirement: Repeatable independent build and check
+The project SHALL document one build command and a no-output-write check mode. After dependency setup, both MUST run offline without model/container/tracking services, preserve source documents, and leave previous successful output intact after failure. Generated HTML MUST remain ignored by Git.
 
-#### Scenario: Approved source-code reference
-- **WHEN** an included document links to a specifically approved Python, JSON, or YAML reference
-- **THEN** that reference is available as escaped text inside the report and is not executed
+#### Scenario: Build and validate independently
+- **WHEN** valid selected sources are built and checked with services unavailable
+- **THEN** build creates the local entry point and check validates without output writes
+- **AND** source documents remain unchanged and execution commands do not depend on reporting
 
-### Requirement: External evidence is optional to read
-External CI and MLflow evidence references SHALL retain their recorded descriptions or run identifiers locally and be labeled as unchecked external or local-service links. The builder MUST NOT fetch them. Credential-bearing URLs and unsafe URL schemes MUST be rejected.
+### Requirement: Maintain the work log with actual evidence
+Editable status/result records SHALL be updated and the report rebuilt after meaningful milestones/runs. Historical decisions and incomplete work MUST retain their labels.
 
-#### Scenario: MLflow is stopped
-- **WHEN** a report contains a recorded loopback MLflow link but the service is stopped
-- **THEN** the saved description/run identifier and report remain readable
-- **AND** viewing or generating the report does not start the service or attempt automatic access
-
-#### Scenario: Unsafe evidence link
-- **WHEN** a selected source includes a credential-bearing URL or executable URL scheme
-- **THEN** validation fails without printing credential values
-
-### Requirement: Explicit privacy boundary
-Only explicitly approved sources and references SHALL be included. Credential files, private sources, raw run bundles, tracking stores, machine state, and paths escaping the repository MUST be rejected even if accidentally selected. Recognizable credential tokens in selected content MUST cause failure with redacted diagnostics. Future private journal entries MUST require deliberate selection before inclusion.
-
-#### Scenario: Excluded artifact or path escape
-- **WHEN** the selection or a local reference resolves to a secret file, raw run bundle, private source, or path/symlink outside the repository
-- **THEN** generation refuses that input without reading its contents into the report
-
-#### Scenario: Accidental token in a selected document
-- **WHEN** a selected document contains a recognizable API-token or private-key pattern
-- **THEN** validation fails with a location-only diagnostic and neither output nor diagnostic contains the token
-
-### Requirement: Rendered content remains inert
-Candidate code and embedded raw HTML SHALL be displayed as escaped text, never executed during build or viewing. The report MUST contain no runnable source-provided scripts, active embeds, or automatic external resource loads. The generated architecture is the only accepted SVG source.
-
-#### Scenario: Hostile candidate snippet
-- **WHEN** a source contains Python that writes a sentinel file, HTML script/event-handler markup, or a remote image
-- **THEN** the Python and HTML are inert text, the image is represented by its alt text, no sentinel file appears, and no network request is made
-
-### Requirement: Repeatable build and check
-The project SHALL document `.venv/bin/python scripts/build_work_log.py` for generation and the same command with `--check` for validation without output writes. After dependency setup, both MUST work offline without invoking evaluation or infrastructure. Failed builds MUST preserve previous output. Generated HTML MUST remain ignored by Git.
-
-#### Scenario: Successful regeneration and validation
-- **WHEN** the user runs the build and check commands on valid sources
-- **THEN** build creates the entry point, check returns success without modifying output, and source Markdown is unchanged
-- **AND** repeating the build with unchanged inputs changes only the explicit generation timestamp
-
-#### Scenario: Build/check with no credentials or services
-- **WHEN** credentials are absent and all depicted infrastructure is unavailable
-- **THEN** build/check still succeed for valid local documentation inputs without invoking model or container commands
-
-### Requirement: Accessible report navigation
-The report SHALL use semantic headings, labeled navigation, visible keyboard focus, a skip link, and readable text/table layouts. Phase/status meaning MUST remain understandable without color.
-
-#### Scenario: Keyboard navigation
-- **WHEN** the reader uses only the keyboard to skip navigation and follow section links
-- **THEN** each intended section is reachable with visible focus and a meaningful heading
+#### Scenario: Record a partial or completed milestone
+- **WHEN** new reviewed evidence is registered and rebuilt
+- **THEN** the report shows the observed state with provenance
+- **AND** incomplete work is not presented as completion

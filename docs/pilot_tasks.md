@@ -1,6 +1,6 @@
 # Pilot benchmark tasks
 
-These three tasks exercise the implemented offline evaluator and will support the first local generation/evaluation milestone. The [working specification](project_spec.md) defines a reviewed minimum of 10 tasks across five categories, with 30 as a stretch target. Each task has two ordinary and two edge cases. The tasks use typed inputs only; behavior for inputs outside the stated types is out of scope.
+These three tasks exercise the implemented offline evaluator and will support the first local generation/evaluation milestone. The [working specification](project_spec.md) defines a reviewed minimum of 10 tasks across five categories, within the agreed 32-hour scope; larger suites are excluded from this delivery. Each task has two ordinary and two edge cases. The tasks use typed inputs only; behavior for inputs outside the stated types is out of scope.
 
 The pilot is stored as machine-readable [pilot task data](../data/pilot_tasks.json). The evaluator reads that data rather than scraping the tables below. Recheck expected answers independently before including these tasks in a frozen benchmark.
 

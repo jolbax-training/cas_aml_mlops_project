@@ -4,7 +4,7 @@ This journal records the learning process behind the MLOps evaluation project. A
 
 This is personal source material for the planned local HTML work log, not a substitute for its factual status and run records. [Progress and decisions](progress.md) records those facts. Select student-authored passages for the report; unfinished reflection prompts remain unfinished.
 
-Entries below preserve the decisions and uncertainty at the time they were written. The September plan for exactly 30 tasks and an unresolved rubric is superseded by the 2026-10-16 [working specification](project_spec.md): there is no formal rubric, the minimum is 10 reviewed tasks, and the complete laptop loop comes before CI and MLflow integration. The historical test claims below are not a statement of current environment readiness.
+Entries below preserve the decisions and uncertainty at the time they were written. The September plan and October 16 scope are superseded by the 2026-10-23 [working specification](project_spec.md): four eight-hour working days, a bounded tool-using coding agent, ten reviewed tasks, three trials per task for each of two prompts, and a transferable orchestrator evaluation design. The local loop still precedes CI/MLflow. Personal explanations and reflections support learning without blocking delivery. Historical test claims below are not a statement of current environment readiness; the original dated entries and unanswered prompts are preserved.
 
 ## Entry template
 
