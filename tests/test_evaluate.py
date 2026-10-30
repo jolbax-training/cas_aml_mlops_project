@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from codegen_eval.bundle import Verification
 from codegen_eval.evaluate import count_results, evaluate_task
 from codegen_eval.sandbox import ExecutionResult
 from codegen_eval.tasks import load_tasks
@@ -9,6 +10,13 @@ PILOT = Path(__file__).resolve().parents[1] / "data" / "pilot_tasks.json"
 TASKS = load_tasks(PILOT, {"strings": 1, "lists": 1, "dictionaries": 1})
 VOWELS = "def count_vowels(text: str) -> int:\n    return 0\n"
 UNIQUE = "def unique_in_order(items: list[int]) -> list[int]:\n    return []\n"
+
+
+def verified(planned: int) -> Verification:
+    """A clean record-level verification of `planned` trials (the bundle check is tested in
+    test_run_bundle; here only how the counts consume it)."""
+    ids = tuple(f"t{i}" for i in range(planned))
+    return Verification("run", (), ids, ids)
 
 
 def correct_runner(source, task, case):
@@ -88,4 +96,4 @@ def test_infrastructure_failure_is_counted_separately():
 
     assert counts.infrastructure_failures == 1
     assert counts.cases_executed == 3
-    assert not counts.complete_for(expected_tasks=1)
+    assert not counts.complete_for(verified(1))

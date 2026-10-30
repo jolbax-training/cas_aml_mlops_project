@@ -10,6 +10,7 @@ from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, ExecutionResult, run_c
 from codegen_eval.tasks import Case, Task
 
 if TYPE_CHECKING:
+    from codegen_eval.bundle import Verification
     from codegen_eval.trial import TrialResult
 
 # Candidate outcomes that start no container, so the check is not executed.
@@ -59,9 +60,12 @@ class RunCounts:
     def edge_case_pass_rate(self) -> float:
         return self.edge_cases_passed / self.edge_cases_total if self.edge_cases_total else 0.0
 
-    def complete_for(self, expected_tasks: int) -> bool:
-        return (self.tasks_total == expected_tasks and self.infrastructure_failures == 0
-                and self.tasks_incomplete == 0)
+    def complete_for(self, verification: "Verification") -> bool:
+        """Complete only when `bundle.verify_bundle` found every planned trial intact and
+        these counts cover exactly the planned trials with no infrastructure outcome. The
+        record-level check is not repeated here."""
+        return (verification.complete and self.tasks_total == len(verification.planned)
+                and self.infrastructure_failures == 0 and self.tasks_incomplete == 0)
 
 
 def _strict_equal(actual: Any, expected: Any) -> bool:
@@ -130,7 +134,7 @@ class TrialGrade:
     """Grade of one agent trial's final submission. `cases` always lists the planned checks
     (four), so scores keep their full denominator. An `incomplete` trial reports them as
     unexecuted and unsuccessful with the infrastructure status as the label; it is never a
-    complete task (`count_results(...).complete_for` is false) and is not a candidate failure."""
+    complete task (`count_results(...).complete_for(...)` is false) and is not a candidate failure."""
 
     task_id: str
     category: str

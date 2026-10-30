@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from codegen_eval.bundle import Verification
 from codegen_eval.contract import ContractIssue
 from codegen_eval.evaluate import _strict_equal, count_results, evaluate_task, grade_trial, score_case
 from codegen_eval.limits import DEFAULT_LIMITS
@@ -21,6 +22,13 @@ ROTATE = TASKS["lists_02"]
 GOOD = (ROOT / "data" / "references_v1" / "strings_01.py").read_text(encoding="utf-8")
 HEAD = "def count_vowels(text: str) -> int:\n"
 ROTATE_HEAD = "def rotate_left(items: list[int], k: int) -> list[int]:\n"
+
+
+def verified(planned: int) -> Verification:
+    """A clean record-level verification of `planned` trials (the bundle check is tested in
+    test_run_bundle; here only how the counts consume it)."""
+    ids = tuple(f"t{i}" for i in range(planned))
+    return Verification("run", (), ids, ids)
 
 
 # --- strict recursive comparison (Q23) -------------------------------------------------
@@ -196,7 +204,7 @@ def test_infrastructure_failure_is_not_a_candidate_failure_and_marks_the_run_inc
     result = evaluate_task(VOWELS, GOOD, runner_for(
         lambda case: ExecutionResult("infrastructure_error") if case.id == "strings_01_b" else returned(case)))
     counts = count_results([result])
-    assert counts.infrastructure_failures == 1 and not counts.complete_for(expected_tasks=1)
+    assert counts.infrastructure_failures == 1 and not counts.complete_for(verified(1))
 
 
 # --- trial-level grading ---------------------------------------------------------------
@@ -267,7 +275,7 @@ def test_incomplete_trial_never_counts_as_a_complete_task(status):
                         runner_for(lambda case: pytest.fail("must not execute")))
     counts = count_results([grade])
     assert (counts.tasks_total, counts.cases_total, counts.cases_executed, counts.cases_passed) == (1, 4, 0, 0)
-    assert counts.tasks_incomplete == 1 and not counts.complete_for(expected_tasks=1)
+    assert counts.tasks_incomplete == 1 and not counts.complete_for(verified(1))
 
 
 def test_one_incomplete_trial_makes_a_run_of_complete_trials_incomplete():
@@ -275,8 +283,8 @@ def test_one_incomplete_trial_makes_a_run_of_complete_trials_incomplete():
     bad = grade_trial(VOWELS, make_trial("infrastructure_incomplete", infrastructure="transport_exhausted"),
                       runner_for(returned))
     counts = count_results([good, bad])
-    assert counts.complete_for(expected_tasks=2) is False
-    assert count_results([good, good]).complete_for(expected_tasks=2) is True
+    assert counts.complete_for(verified(2)) is False
+    assert count_results([good, good]).complete_for(verified(2)) is True
 
 
 def test_infrastructure_outcome_in_a_hidden_check_makes_the_trial_incomplete():

@@ -1,6 +1,6 @@
 # Tasks
 
-Sections 1–2 and 3.1–3.2, 4.1–4.4 implemented 2026-10-30; 3.3 open (needs the run-evidence completeness check from `add-run-bundles-and-grading-replay`). Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
+All tasks (1.1–4.4) implemented 2026-10-30; 3.3 consumes `verify_bundle` from `add-run-bundles-and-grading-replay`. Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
 
 ## 1. Benchmark structure and validation
 
@@ -17,7 +17,7 @@ Sections 1–2 and 3.1–3.2, 4.1–4.4 implemented 2026-10-30; 3.3 open (needs 
 
 - [x] 3.1 Verify and extend the existing pilot comparison (`_strict_equal`) and mutation detection in `src/codegen_eval/evaluate.py` against Q23 (type confusion, nested types, list order, dictionary key order, null), keeping them in trusted orchestration and shared with `run_checks`; add tests.
 - [x] 3.2 Record per-check results and multiple failure labels; implement trial success, unexecuted-check accounting for contract errors and `no_submission`, and attempted/unsuccessful deadline interruptions.
-- [ ] 3.3 Implement fixed-denominator summaries with counts and rates, and incomplete-run classification for infrastructure, exhausted-transport, and failed-completeness outcomes, consuming the completeness check from `add-run-bundles-and-grading-replay` (task 2.3) rather than reimplementing it.
+- [x] 3.3 Implement fixed-denominator summaries with counts and rates, and incomplete-run classification for infrastructure, exhausted-transport, and failed-completeness outcomes, consuming the completeness check from `add-run-bundles-and-grading-replay` (task 2.3) rather than reimplementing it.
 
 ## 4. Fixtures, freeze, and evidence
 
