@@ -121,6 +121,28 @@ What is written for one bundle: an MLflow run named after the run ID, tagged wit
 
 Tests: `tests/test_mlflow_tracking.py` runs offline against a temporary SQLite store (needs `--group tracking`; SQLAlchemy and Alembic for the store are in the `dev` group). `tests/test_mlflow_service_integration.py` (marked `sandbox` and `mlflow_service`; run it locally, CI's `podman` job deselects it, needs Podman and the pinned image) starts the real service on a free port with temporary storage and checks persistence across `restart` and container removal, idempotent re-upload, outage then later upload, and candidate isolation.
 
+## Prompt-comparison experiment tooling (offline; no run has been made)
+
+[`experiments/prompt_comparison_v1.json`](experiments/prompt_comparison_v1.json) is the versioned experiment configuration: the baseline prompt (`baseline_agent_v1`, with its SHA-256), the revised variant (**unset**: a revision needs inspected baseline failures first), the benchmark version, hash and freeze hash, the settings hash (model config, agent limits, execution limits, container image), and the 10 x 3 schedule in `task_major` order (all trials of a task, then the next task). `build-config --check` fails if it no longer matches the repository; `build-config --revised-prompt <version>` records a revised prompt once it exists. It is a plan, not a result.
+
+Commands (`PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli ...`; every one except `run` is offline and needs no key):
+
+| Command | Purpose |
+| --- | --- |
+| `build-config [--check] [--revised-prompt V]` | write or verify the configuration |
+| `record-probes` | run the Podman probe suite and record its counts, bound to the current evaluator source (`experiments/evidence/probes.json`) |
+| `calibrate --smoke-bundle B` | calibrate the pre-send token bound against the retained smoke trace (task 4.4 gate) and check the trace shows a tool call, a final-only call and a submission |
+| `freeze-settings --smoke-bundle B` | write `settings_freeze.json`; refused unless calibration passes and the configuration is current |
+| `check --variant V` | list every unmet precondition without spending |
+| `run --variant V --pricing P --i-accept-cost` | **paid**: run the variant's whole schedule through the ledger into one bundle |
+| `compare --baseline R1 --revised R2` | primary metric and diagnostics with counts and rates (task 4.1 tooling) |
+
+`run` refuses to start, before building a client or writing anything, unless **all** of these hold (every failure is listed): explicit `--i-accept-cost` and `OPENROUTER_API_KEY`; the configuration matches the repository; the variant has a versioned prompt; the benchmark freeze is recorded and still matches; probe evidence is clean (no failures, errors or skips) for the current evaluator code; the settings freeze record matches the configuration and the retained smoke bundle is unchanged, was made with the same model settings, and still passes calibration; the ledger total plus the worst case of every variant still to run (180 physical attempts each, 360 in all) fits the CHF 15 ceiling; and no earlier run for that variant exists (a second run spends again, so it needs `--allow-rerun`). Each trial is a fresh conversation, and a ledger refusal mid-run leaves the partial bundle labelled incomplete. A marker `<bundles>/<run_id>.experiment.json` is written before the first call and updated after, and the bundle identity records the experiment, variant and schedule hash. Afterwards the bundle is checked against the schedule: every scheduled trial id present, graded, with its four check outcomes.
+
+`compare` reports each variant's primary rate (successful task trials / 30 planned), hidden-check and edge-case rates, per-task and per-category results, tasks passing at least one and all three trials, failure labels, tool attempts, revisions, observed recovery, latency, tokens, and reported/charged/reserved cost. It computes differences only when both runs are complete, graded and identical apart from the prompt; otherwise it prints the figures labelled "NOT a headline comparison" with the reasons, keeps the planned denominators, and exits non-zero. It draws no conclusion; the write-up and keep/reject decision stay with the later tasks.
+
+MLflow: `run_variant` takes an optional `record_run(bundle, variant)` hook. None is wired yet; a missing or failing hook never blocks or alters a run, and the bundles remain the evidence to upload later.
+
 ## Pilot data and scoring boundary
 
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.

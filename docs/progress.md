@@ -164,6 +164,12 @@ Runtime observations above are from the earlier read-only exploration in this co
 - **Open gate:** the pre-send input estimate (ASCII characters / 2.0 plus non-ASCII bytes plus per-message allowance) is conservative by construction against typical tokenizers but unverified for the GLM tokenizer. The provable byte bound rejected realistic fourth calls, so it was replaced; task 4.4 now requires calibrating against reported `prompt_tokens` before the comparison starts.
 - **Review:** an independent review found one major (the bound above) and ten minors; all were addressed or justified on the branch.
 
+## 2026-10-31 — Prompt-comparison experiment tooling, offline part (`run-prompt-comparison`)
+
+- **Action:** Added the versioned experiment configuration (`experiments/prompt_comparison_v1.json`: baseline prompt and hash, revised prompt unset, benchmark version/hash/freeze hash, settings hash, 10 x 3 schedule), the schedule runner with its preconditions (`codegen_eval.experiment`, `experiment_cli`), and the comparison command (`codegen_eval.comparison`). `run_recorded` gained an optional `identity_extra` so a bundle names its experiment and variant. Task 1.2 is done; 4.1 tooling is ready but 4.1 stays open.
+- **Observed (2026-10-31, local macOS, Podman VM):** `.venv/bin/pytest -q` 537 passed, 64 skipped; `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` 64 passed, 537 deselected; `openspec validate run-prompt-comparison --strict` valid. The new tests use fixture clients and a fake transport only.
+- **Limitations:** No baseline or revised run exists, no paid call was made, and no result is claimed. The preconditions are checked against evidence files that do not exist yet (probe record, settings freeze, smoke bundle). MLflow recording is a hook, not wired. The 1.1, 2.x, 3.x, 4.2 and 4.3 tasks need paid runs, real baseline failures, MLflow, or the student's judgment.
+
 ## Historical decisions
 
 The following October 16 entries preserve their original context. Their four-week schedule, one-candidate-per-task experiment, reflection/understanding gate, and no-remote statements are superseded above; no dates or personal reflections have been rewritten.

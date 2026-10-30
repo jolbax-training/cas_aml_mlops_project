@@ -1,0 +1,154 @@
+{
+  "benchmark": {
+    "file": "data/benchmark_v1.json",
+    "freeze_content_hash": "a001191f288d1140bd62c7f38932a1bd9900e230a9ad2f5a7d75a23ab33aafee",
+    "sha256": "d75c06ae3a8d8d98fbe2bdeb8ec36e4d80f6279c0040a394aee2247a20f556b6",
+    "version": "1"
+  },
+  "experiment_id": "prompt_comparison_v1",
+  "schedule": [
+    {
+      "task_id": "strings_01",
+      "trial_id": "strings_01-t1"
+    },
+    {
+      "task_id": "strings_01",
+      "trial_id": "strings_01-t2"
+    },
+    {
+      "task_id": "strings_01",
+      "trial_id": "strings_01-t3"
+    },
+    {
+      "task_id": "strings_02",
+      "trial_id": "strings_02-t1"
+    },
+    {
+      "task_id": "strings_02",
+      "trial_id": "strings_02-t2"
+    },
+    {
+      "task_id": "strings_02",
+      "trial_id": "strings_02-t3"
+    },
+    {
+      "task_id": "lists_01",
+      "trial_id": "lists_01-t1"
+    },
+    {
+      "task_id": "lists_01",
+      "trial_id": "lists_01-t2"
+    },
+    {
+      "task_id": "lists_01",
+      "trial_id": "lists_01-t3"
+    },
+    {
+      "task_id": "lists_02",
+      "trial_id": "lists_02-t1"
+    },
+    {
+      "task_id": "lists_02",
+      "trial_id": "lists_02-t2"
+    },
+    {
+      "task_id": "lists_02",
+      "trial_id": "lists_02-t3"
+    },
+    {
+      "task_id": "dictionaries_01",
+      "trial_id": "dictionaries_01-t1"
+    },
+    {
+      "task_id": "dictionaries_01",
+      "trial_id": "dictionaries_01-t2"
+    },
+    {
+      "task_id": "dictionaries_01",
+      "trial_id": "dictionaries_01-t3"
+    },
+    {
+      "task_id": "dictionaries_02",
+      "trial_id": "dictionaries_02-t1"
+    },
+    {
+      "task_id": "dictionaries_02",
+      "trial_id": "dictionaries_02-t2"
+    },
+    {
+      "task_id": "dictionaries_02",
+      "trial_id": "dictionaries_02-t3"
+    },
+    {
+      "task_id": "numeric_logic_01",
+      "trial_id": "numeric_logic_01-t1"
+    },
+    {
+      "task_id": "numeric_logic_01",
+      "trial_id": "numeric_logic_01-t2"
+    },
+    {
+      "task_id": "numeric_logic_01",
+      "trial_id": "numeric_logic_01-t3"
+    },
+    {
+      "task_id": "numeric_logic_02",
+      "trial_id": "numeric_logic_02-t1"
+    },
+    {
+      "task_id": "numeric_logic_02",
+      "trial_id": "numeric_logic_02-t2"
+    },
+    {
+      "task_id": "numeric_logic_02",
+      "trial_id": "numeric_logic_02-t3"
+    },
+    {
+      "task_id": "parsing_formatting_01",
+      "trial_id": "parsing_formatting_01-t1"
+    },
+    {
+      "task_id": "parsing_formatting_01",
+      "trial_id": "parsing_formatting_01-t2"
+    },
+    {
+      "task_id": "parsing_formatting_01",
+      "trial_id": "parsing_formatting_01-t3"
+    },
+    {
+      "task_id": "parsing_formatting_02",
+      "trial_id": "parsing_formatting_02-t1"
+    },
+    {
+      "task_id": "parsing_formatting_02",
+      "trial_id": "parsing_formatting_02-t2"
+    },
+    {
+      "task_id": "parsing_formatting_02",
+      "trial_id": "parsing_formatting_02-t3"
+    }
+  ],
+  "schema_version": 1,
+  "settings": {
+    "agent_limits_hash": "e1359505d82677857d06b3b8220eb85e1a825593d7833bc1faaeaaa84366ca7e",
+    "container_image": "docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5",
+    "execution_limits_hash": "dfa3cca881cfe5386d441633dd5aba11e9c67f47864118e3663a0fcbc94f4b30",
+    "model_config_hash": "4fe5bf3e6d9840e2ae7fdac2add3867698ac64022f962d56c30e49206e9e9908",
+    "model_config_version": "openrouter_glm_v1",
+    "settings_hash": "4c3b3b351075142e9db945a7eacb64fe47fef689e83f212957dec72efe0d1c9e"
+  },
+  "trial_order": "task_major",
+  "trials_per_task": 3,
+  "variants": [
+    {
+      "name": "baseline",
+      "prompt_sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+      "prompt_version": "baseline_agent_v1"
+    },
+    {
+      "name": "revised",
+      "prompt_sha256": null,
+      "prompt_version": null
+    }
+  ]
+}

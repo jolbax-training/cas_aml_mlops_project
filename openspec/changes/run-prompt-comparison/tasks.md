@@ -1,11 +1,11 @@
 # Tasks
 
-All tasks are unstarted planning items. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
+Task 1.2 and the offline experiment tooling are implemented and tested with fixtures and a fake transport (no paid call, no run made); every task that needs a paid run, MLflow, inspection of real baseline failures, or the user's judgment stays open. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
 
 ## 1. Preconditions
 
 - [ ] 1.1 Verify and record preconditions: isolation/scoring-integrity probes passing, benchmark version/hash frozen, model settings frozen with retained smoke trace, MLflow service verified or the later-upload path from retained bundles confirmed (a tracking outage does not block runs), and ledger projection within CHF 15.
-- [ ] 1.2 Version the baseline prompt and an experiment configuration listing variant, benchmark version, settings hash, and the 10 × 3 schedule.
+- [x] 1.2 Version the baseline prompt and an experiment configuration listing variant, benchmark version, settings hash, and the 10 × 3 schedule. (`experiments/prompt_comparison_v1.json`: baseline `baseline_agent_v1` with its hash, revised prompt deliberately unset until baseline failures are inspected, `build-config --check` guards drift. Tooling: `codegen_eval.experiment`, `experiment_cli`.)
 
 ## 2. Baseline
 
@@ -20,6 +20,6 @@ All tasks are unstarted planning items. Timeboxes: day 3 baseline/inspection/rev
 
 ## 4. Comparison and decision
 
-- [ ] 4.1 Compute the primary metric and diagnostics for both variants with counts and rates.
+- [ ] 4.1 Compute the primary metric and diagnostics for both variants with counts and rates. (Tooling ready and tested offline: `experiment_cli compare`; stays open until it is run on two real, complete runs.)
 - [ ] 4.2 Write the reviewed comparison Markdown: evidence references, metrics, trace-based explanations of gains/regressions/unchanged outcomes, efficiency, required limitations, and the keep/reject decision. Leave any student interpretation to the student.
 - [ ] 4.3 Update `docs/progress.md` with run IDs, versions, observed results, ledger totals, and limitations; register the comparison summary as a work-log source and rebuild the report.

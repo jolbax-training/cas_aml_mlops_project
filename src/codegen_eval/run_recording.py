@@ -198,13 +198,21 @@ def run_recorded(
     runner: Callable[..., ExecutionResult] = execute_check,
     model_settings: Mapping[str, Any] | None = None,
     extra_secrets: Sequence[str] = (),
+    identity_extra: Mapping[str, Any] | None = None,
 ) -> tuple[Path, Verification]:
-    """Run every planned trial, persisting each record as it finishes; returns the bundle."""
+    """Run every planned trial, persisting each record as it finishes; returns the bundle.
+
+    `identity_extra` adds named sections (for example an experiment's variant) to the
+    bundle identity; it cannot replace a section this module records itself."""
     prompt = prompt or load_prompt()
     planned = [{"task_id": t.id, "trial_id": f"{t.id}-t{n}"}
                for t in tasks for n in range(1, trials_per_task + 1)]
     identity = build_identity(Path(benchmark_path), prompt, limits, execution_limits,
                               model_settings)
+    clash = sorted(set(identity_extra or {}) & set(identity))
+    if clash:
+        raise BundleError(f"identity_extra would replace recorded sections: {', '.join(clash)}")
+    identity.update(identity_extra or {})
     writer = BundleWriter(bundle_root, run_id or new_run_id(), planned, identity,
                           extra_secrets=extra_secrets)
     by_id = {t.id: t for t in tasks}
