@@ -108,10 +108,56 @@ def test_tool_request_on_call_four_is_no_submission_and_nothing_runs(inprocess_r
     assert result.messages[-1]["tool_calls"][0]["id"] == "t4"  # retained for inspection
 
 
-def test_empty_final_message_is_no_submission(inprocess_runner):
-    result, _ = trial("empty_final_message", inprocess_runner)
+def test_absent_final_message_is_no_submission(inprocess_runner):
+    result, _ = trial("no_final_message", inprocess_runner)
 
-    assert result.status == "no_submission" and result.label == "empty_response"
+    assert result.status == "no_submission" and result.label == "no_final_message"
+
+
+def test_blank_final_message_is_a_contract_failure(inprocess_runner):
+    result, client = trial("blank_final_message", inprocess_runner)
+
+    assert result.status == "submitted" and result.contract_issue.code == "contract_error"
+    assert len(client.requests) == 1
+
+
+def test_transport_exhaustion_is_infrastructure_incomplete_with_the_trace_kept(inprocess_runner):
+    result, client = trial("transport_exhausted_on_call_2", inprocess_runner)
+
+    assert result.status == "infrastructure_incomplete"
+    assert result.infrastructure_status == "transport_exhausted"
+    assert result.submission is None and result.contract_issue is None
+    assert result.model_calls == 2 and result.tool_attempts == 1 and len(result.drafts) == 1
+    assert len(result.messages) == 4 and len(client.requests) == 2
+    failed = [e for e in result.events if e["event"] == "model_call"][-1]
+    assert failed["outcome"] == "transport_exhausted" and "retries used up" in failed["detail"]
+
+
+def test_truncation_and_usage_are_visible_in_the_trace_and_never_retried(inprocess_runner):
+    result, client = trial("truncated_final_source", inprocess_runner)
+
+    call = next(e for e in result.events if e["event"] == "model_call")
+    assert call["truncated"] is True and call["usage"] == {"completion_tokens": 2000}
+    assert result.status == "submitted" and result.contract_issue.code == "syntax_error"
+    assert len(client.requests) == 1
+
+
+def test_rejection_detail_is_recorded(inprocess_runner):
+    result, _ = trial("request_rejected_on_call_3", inprocess_runner)
+
+    call = [e for e in result.events if e["event"] == "model_call"][-1]
+    assert call["outcome"] == "request_rejected" and "12,000" in call["detail"]
+
+
+def test_oversized_raw_arguments_are_rejected_before_parsing(inprocess_runner):
+    def runner(*args):
+        raise AssertionError("no check may execute")
+
+    result, client = trial("oversized_arguments", runner)
+
+    assert result.tool_attempts == 1 and result.drafts == ()
+    feedback = tool_feedback(client, 2)[0]
+    assert not feedback["ok"] and "payload limit" in feedback["error"]
 
 
 def test_pre_send_rejection_ends_the_trial_as_candidate_side_no_submission(inprocess_runner):

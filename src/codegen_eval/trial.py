@@ -115,14 +115,22 @@ def run_trial(
         request = ModelRequest(tuple(state.messages), (TOOL_SCHEMA,) if tools_enabled else (),
                                "auto" if tools_enabled else "none")
         response = client.complete(request)
-        state.events.append({"event": "model_call", "call": state.model_calls,
-                             "tools_enabled": tools_enabled, "outcome": _outcome(response)})
+        event: dict[str, Any] = {"event": "model_call", "call": state.model_calls,
+                                 "tools_enabled": tools_enabled, "outcome": _outcome(response)}
+        if isinstance(response, ModelFailure):
+            event["detail"] = response.detail
+        else:
+            event["truncated"] = response.truncated
+            event["usage"] = response.usage
+        state.events.append(event)
 
         if isinstance(response, ModelFailure):
             if response.kind == REQUEST_REJECTED:
                 # The rejected call is consumed; no further calls are made.
                 return finish(NO_SUBMISSION, label=REQUEST_REJECTED)
-            raise ValueError(f"unsupported model failure kind: {response.kind!r}")
+            # Any other failure (for example exhausted transport retries) is
+            # infrastructure, not agent performance; partial evidence is kept.
+            return finish(INFRASTRUCTURE_INCOMPLETE, infrastructure=response.kind)
 
         state.messages.append(_assistant_message(response))
 
@@ -135,8 +143,8 @@ def run_trial(
                 return finish(INFRASTRUCTURE_INCOMPLETE, infrastructure=stop)
             continue
 
-        if response.content is None or not response.content.strip():
-            return finish(NO_SUBMISSION, label="empty_response")
+        if response.content is None:
+            return finish(NO_SUBMISSION, label="no_final_message")
 
         issue = validate_source(response.content, task)
         if issue is not None:

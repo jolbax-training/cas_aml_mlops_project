@@ -18,4 +18,4 @@ Planned for day 1 (agent/fixtures, 3h), after `harden-candidate-execution` provi
 ## 3. Verification and documentation
 
 - [x] 3.1 Add fixture tests for early submission without tools, tool use and revision, malformed arguments and recovery, oversized batch, fourth-call submission, tool request on call 4, no submission, pre-send input-limit rejection, multiple tool calls in one response, fenced/invalid final source, candidate exception feedback, and container unavailability.
-- [ ] 3.2 Propose the infrastructure-incomplete-trial glossary entry from design.md to the user. Run the offline suite and record exact commands and observed results in docs/progress.md; document the trial contract and fixture command in README, stating fixtures do not measure live model quality.
+- [x] 3.2 Propose the infrastructure-incomplete-trial glossary entry from design.md to the user. Run the offline suite and record exact commands and observed results in docs/progress.md; document the trial contract and fixture command in README, stating fixtures do not measure live model quality.

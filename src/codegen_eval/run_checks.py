@@ -86,6 +86,9 @@ class ToolResult:
         """JSON-ready, bounded feedback for the model."""
         if self.error:
             return {"ok": False, "error": self.error[:MAX_ERROR_CHARS]}
+        if self.infrastructure:
+            return {"ok": False, "infrastructure": self.infrastructure,
+                    "checks": [{"index": c.index, "passed": c.passed} for c in self.checks]}
         return {
             "ok": True,
             "checks": [
@@ -106,8 +109,11 @@ def _argument_error(message: str, source: str | None = None) -> ToolResult:
     return ToolResult(False, error=message, source=source)
 
 
-def parse_request(raw_arguments: str, limits: AgentLimits) -> tuple[str, list[dict[str, Any]]] | str:
+def parse_request(raw_arguments: str, limits: AgentLimits,
+                  max_bytes: int) -> tuple[str, list[dict[str, Any]]] | str:
     """Validate raw tool arguments. Returns (source, checks) or an error message."""
+    if len(raw_arguments.encode("utf-8", "replace")) > max_bytes:
+        return f"arguments exceed the {max_bytes}-byte payload limit; none were run"
     try:
         data = json.loads(raw_arguments)
     except (ValueError, RecursionError):
@@ -140,7 +146,7 @@ def run_checks(
     """Validate one tool request and run its checks, comparing in trusted code.
 
     `runner` has the signature of `execute_check` (source, function_name, args, limits)."""
-    parsed = parse_request(raw_arguments, limits)
+    parsed = parse_request(raw_arguments, limits, execution_limits.payload_bytes)
     if isinstance(parsed, str):
         return _argument_error(parsed)
     source, checks = parsed

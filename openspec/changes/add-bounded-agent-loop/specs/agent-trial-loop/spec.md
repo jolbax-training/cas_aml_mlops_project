@@ -80,6 +80,10 @@ Container unavailability and broken worker protocols during a trial SHALL make t
 - **WHEN** Podman cannot start a container for a development check
 - **THEN** the trial is marked infrastructure-incomplete, not a candidate failure
 
+#### Scenario: Model client reports exhausted transport retries
+- **WHEN** the model client returns a failure other than a pre-send rejection, such as `transport_exhausted`
+- **THEN** the trial ends as infrastructure-incomplete with its drafts, messages, and trace retained
+
 ### Requirement: API-free recorded-response fixtures
 The controller SHALL depend on a model-client interface, and deterministic recorded-response fixtures MUST verify tool handling and stopping behaviour without a model API or credentials. Fixture results MUST NOT be presented as live model behaviour. Source: issue 05 / Q35; spec Evidence, MLflow, CI, and replay.
 

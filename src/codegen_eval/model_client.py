@@ -36,8 +36,10 @@ class ModelResponse:
     usage: Mapping[str, Any] | None = None
 
 
-# Failure kinds the controller understands. A live client may add transport kinds later.
+# Failure kinds. A rejection is candidate-side; any other kind (for example
+# TRANSPORT_EXHAUSTED) is treated by the controller as infrastructure-incomplete.
 REQUEST_REJECTED = "request_rejected"  # rendered request exceeded the input limit; nothing was sent
+TRANSPORT_EXHAUSTED = "transport_exhausted"  # transport retries used up without a usable response
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,10 @@ class ModelFailure:
 
 
 class ModelClient(Protocol):
+    """The client owns wire translation: the controller's messages use a neutral shape
+    (tool calls as `{"id", "name", "arguments"}`) and a live client converts them, and
+    the reply, for its provider on every send."""
+
     def complete(self, request: ModelRequest) -> ModelResponse | ModelFailure: ...
 
 

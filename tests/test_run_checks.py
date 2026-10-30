@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from codegen_eval.agent_config import AgentLimits
+from codegen_eval.limits import ExecutionLimits
 from codegen_eval.run_checks import MAX_VALUE_CHARS, TOOL_SCHEMA, run_checks
 from codegen_eval.sandbox import ExecutionResult
 from codegen_eval.tasks import Case, Task, load_tasks
@@ -112,3 +113,25 @@ def test_hidden_cases_never_appear_in_feedback_or_tool_schema(inprocess_runner):
     text = json.dumps(result.feedback()) + json.dumps(TOOL_SCHEMA)
 
     assert "HIDDEN-INPUT-7f3a" not in text and "987654321" not in text and "secret_case" not in text
+
+
+def test_infrastructure_feedback_is_not_reported_as_a_successful_run():
+    def runner(source, name, args, limits=None):
+        if args == ["b"]:
+            return ExecutionResult("infrastructure_error", detail="podman missing")
+        return ExecutionResult("returned", value=0, args_after=list(args))
+
+    result = run_checks(request(checks=[{"arguments": ["a"], "expected": 0},
+                                        {"arguments": ["b"], "expected": 0}]), TASK, runner)
+    feedback = result.feedback()
+
+    assert feedback["ok"] is False and feedback["infrastructure"] == "infrastructure_error"
+    assert feedback["checks"] == [{"index": 0, "passed": True}]
+
+
+def test_raw_arguments_over_the_payload_limit_are_rejected_before_parsing():
+    limits = ExecutionLimits(payload_bytes=200)
+    result = run_checks(request(checks=[{"arguments": ["x" * 500], "expected": 0}]), TASK,
+                        lambda *a: 1 / 0, execution_limits=limits)
+
+    assert not result.ok and "payload limit" in result.error and result.source is None

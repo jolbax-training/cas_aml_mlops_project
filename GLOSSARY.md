@@ -19,6 +19,10 @@ _Avoid_: Calling a single development check a run.
 An evaluation run missing required task/trial evidence or affected by an infrastructure or exhausted API-transport failure. Its partial evidence is retained, but it is excluded from headline comparisons.
 _Avoid_: Treating incompleteness as a lower agent-success score or shrinking denominators to hide it.
 
+**Infrastructure-incomplete trial**:
+A trial stopped by container unavailability or a broken worker protocol (issue 01 / Q17), recorded with partial evidence and not scored as an agent-performance failure; it makes its evaluation run incomplete.
+_Avoid_: Counting it as a candidate failure.
+
 **Candidate**:
 A proposed function implementation produced during a trial. A trial can contain multiple candidates before final submission.
 

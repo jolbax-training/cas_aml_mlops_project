@@ -114,15 +114,19 @@ def _oom_killed(name: str) -> bool:
 
 def _remove_container(name: str, *, retry: bool) -> None:
     """Remove the container. After a killed client the server may still be creating
-    it, so later passes run to catch a late creation."""
-    for attempt in range(3 if retry else 1):
+    it (creation can take several seconds in the Podman VM, and the container then
+    runs to completion and stays), so keep retrying until a pass actually removes it
+    or the allowance runs out."""
+    for attempt in range(8 if retry else 1):
         if attempt:
             time.sleep(1.0)
         try:
-            subprocess.run(["podman", "rm", "-f", "--ignore", name],
-                           capture_output=True, timeout=5, check=False)
+            result = subprocess.run(["podman", "rm", "-f", "--ignore", name],
+                                    capture_output=True, timeout=5, check=False)
         except (OSError, subprocess.TimeoutExpired):
-            pass
+            continue
+        if retry and result.returncode == 0 and result.stdout.strip():
+            return  # `--ignore` prints the name only when it removed something
 
 
 def _reap(process: subprocess.Popen[bytes], *, kill: bool, wait_seconds: float = 5) -> None:
