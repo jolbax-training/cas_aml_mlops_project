@@ -43,6 +43,13 @@ label = "current"
 status = "implemented"
 
 [[section]]
+id = "execution-threat-model"
+title = "Candidate execution threat model"
+path = "docs/threat_model.md"
+label = "current"
+status = "implemented"
+
+[[section]]
 id = "benchmark-review"
 title = "Reviewed ten-task benchmark and graders"
 kind = "pending"

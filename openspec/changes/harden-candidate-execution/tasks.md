@@ -19,5 +19,5 @@ Planned for day 1 (boundary/probes, 3h). All tasks are unstarted. Results are re
 
 ## 4. Documentation and evidence
 
-- [ ] 4.1 Write the threat model with assets, attacker capability, protections, and residual limitations; register it as a work-log source when the report builder exists.
+- [x] 4.1 Write the threat model with assets, attacker capability, protections, and residual limitations; register it as a work-log source when the report builder exists.
 - [x] 4.2 Run the full probe suite in each environment used and record exact commands, environment, and observed results in docs/progress.md; mark any unresolved bypass as blocking live comparison.
