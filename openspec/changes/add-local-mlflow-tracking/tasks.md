@@ -10,7 +10,7 @@ Progress is tracked by the checkboxes below and the dated entry in [docs/progres
 ## 2. Recording from retained bundles
 
 - [x] 2.1 Implement a recording command that reads one retained bundle and writes parameters, metrics, artifacts, and identity tags (bundle ID/hash, benchmark, prompt, evaluator revision, completion status) without importing the model client.
-- [ ] 2.2 Represent each trial as a trace with model-call, physical-attempt/retry, `run_checks`, and submission spans; attach grading evidence separately and keep hidden expectations out of the interaction trace.
+- [x] 2.2 Represent each trial as a trace with model-call, physical-attempt/retry, `run_checks`, and submission spans; attach grading evidence separately and keep hidden expectations out of the interaction trace.
 - [x] 2.3 Record grading-replay evidence as distinct linked records; detect re-recording of the same bundle identity and document the chosen behavior.
 
 ## 3. Outage tolerance and safety tests

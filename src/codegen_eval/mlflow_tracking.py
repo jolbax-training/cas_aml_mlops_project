@@ -25,6 +25,8 @@ import re
 import sys
 import tempfile
 import time
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -95,6 +97,42 @@ def _numeric(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def _chf(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except InvalidOperation:
+        return Decimal(0)
+
+
+def attempt_measures(record: Mapping[str, Any]) -> dict[str, float]:
+    """Totals over a trial's physical attempts (retries included); empty when the bundle has
+    none (fixture client). Money is summed as Decimal and logged as a float; a missing value
+    counts as zero and is visible through `attempts_missing_fields`."""
+    attempts = [a for a in record.get("attempts") or [] if isinstance(a, Mapping)]
+    if not attempts:
+        return {}
+    def total(key: str) -> float:
+        return float(sum(a[key] for a in attempts if _numeric(a.get(key))))
+    return {
+        "attempts": len(attempts),
+        "retries": sum(1 for a in attempts if (a.get("retry_index") or 0) > 0),
+        "attempt_errors": sum(1 for a in attempts if a.get("error_class")),
+        "attempts_sent": sum(1 for a in attempts if a.get("sent")),
+        "attempts_provider_mismatch": sum(1 for a in attempts
+                                          if a.get("provider_matches_pin") is False),
+        "attempts_missing_fields": sum(len(a.get("missing_fields") or []) for a in attempts),
+        "latency_ms": total("latency_ms"),
+        "prompt_tokens": total("prompt_tokens"),
+        "completion_tokens": total("completion_tokens"),
+        "reasoning_tokens": total("reasoning_tokens"),
+        "cost_reported_usd": total("reported_cost_usd"),
+        "cost_reserved_chf": float(sum((_chf(a["reservation"].get("amount_chf"))
+                                        for a in attempts if a.get("reservation")), Decimal(0))),
+        "cost_charged_chf": float(sum((_chf(a["charge"].get("amount_chf"))
+                                       for a in attempts if a.get("charge")), Decimal(0))),
+    }
+
+
 def summarize(manifest: Mapping[str, Any], verification: Verification,
               records: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     """Run-level and per-trial measures computed from the saved records only.
@@ -116,6 +154,9 @@ def summarize(manifest: Mapping[str, Any], verification: Verification,
         for key, value in (record.get("usage") or {}).items():
             if _numeric(value):
                 totals["usage." + key] = totals.get("usage." + key, 0) + value
+        for key, value in attempt_measures(record).items():
+            entry[key] = value
+            totals["attempt." + key] = totals.get("attempt." + key, 0) + value
         if grades.get("status") == GRADE_GRADED:
             graded += 1
             checks = grades.get("checks", [])
@@ -171,8 +212,8 @@ def _tool_exchange(record: Mapping[str, Any], call: int, executed: str | None
 
 
 def _attempt_entries(record: Mapping[str, Any]) -> dict[int, list[dict[str, Any]]]:
-    """Physical attempts/retries per logical call. The client change has not fixed their
-    schema yet; entries are kept as given and grouped by an integer `call` field."""
+    """Physical attempts/retries per logical call, as the OpenRouter client records them
+    (`call`, `retry_index`, `started_at`, `latency_ms`, `reservation`, `charge`, ...)."""
     grouped: dict[int, list[dict[str, Any]]] = {}
     for entry in record.get("attempts") or []:
         if isinstance(entry, dict) and isinstance(entry.get("call"), int):
@@ -180,20 +221,68 @@ def _attempt_entries(record: Mapping[str, Any]) -> dict[int, list[dict[str, Any]
     return grouped
 
 
+def _ns(stamp: Any) -> int | None:
+    """Nanoseconds since the epoch for an ISO timestamp from the bundle, else None."""
+    try:
+        return int(datetime.fromisoformat(str(stamp)).timestamp() * 1e9)
+    except (TypeError, ValueError):
+        return None
+
+
+def _attempt_window(attempt: Mapping[str, Any]) -> tuple[int | None, int | None]:
+    """(start, end) of one physical attempt. The end is the start plus the measured latency
+    because the stored timestamps have one-second resolution."""
+    start = _ns(attempt.get("started_at")) or _ns(attempt.get("at"))
+    latency = attempt.get("latency_ms")
+    if start is not None and isinstance(latency, int):
+        return start, start + latency * 1_000_000
+    return start, _ns(attempt.get("ended_at")) or start
+
+
+def _attempt_attributes(attempt: Mapping[str, Any]) -> dict[str, Any]:
+    """Scalar view of an attempt record: nested dicts become dotted keys, lists become JSON,
+    empty values are dropped. The client records no credential, and the whole record is
+    passed through redaction before it reaches this function."""
+    out: dict[str, Any] = {}
+
+    def add(prefix: str, value: Any) -> None:
+        if isinstance(value, Mapping):
+            for key, inner in value.items():
+                add(f"{prefix}.{key}" if prefix else str(key), inner)
+        elif isinstance(value, (list, tuple)):
+            if value:
+                out[prefix] = json.dumps(list(value))
+        elif value is not None:
+            out[prefix] = value
+
+    add("", attempt)
+    return out
+
+
 def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapping[str, Any],
                       tags: Mapping[str, str]) -> str:
     """One trace per trial: model-call, physical-attempt, run_checks, and submission spans.
 
     Only interaction content is used (requests, responses, tool exchange, final outcome).
-    Grades, hidden case outcomes, and expected values are never read here. Span timestamps
-    are upload times: the bundle retains no per-event times, so order is the evidence."""
+    Grades, hidden case outcomes, and expected values are never read here. Physical attempts
+    (including transport retries) become child spans of their logical model call, with the
+    client's recorded usage, cost, reservation, latency, and error class as attributes.
+    Attempt and model-call spans carry the recorded start time and measured latency; spans
+    without a recorded time (tool calls, submission) sit at the end of the preceding model
+    call. A bundle without attempt records (a fixture client) has only upload-time spans,
+    where order is the evidence."""
+    all_attempts = [a for group in _attempt_entries(record).values() for a in group]
+    windows = [_attempt_window(a) for a in all_attempts]
+    starts = [w[0] for w in windows if w[0] is not None]
+    ends = [w[1] for w in windows if w[1] is not None]
+    cursor: int | None = min(starts) if starts else None  # latest recorded time seen so far
     trial_id = record["trial_id"]
     root = client.start_trace(
         name=f"trial {trial_id}", span_type="AGENT", experiment_id=experiment_id, run_id=run_id,
         inputs={"task_id": record["task_id"], "prompt": record.get("prompt")},
         attributes={"trial_id": trial_id, "task_id": record["task_id"],
                     "agent_limits_hash": record.get("agent_limits_hash")},
-        tags=dict(tags))
+        tags=dict(tags), start_time_ns=cursor)
     trace_id = root.trace_id
     requests, responses = record.get("requests", []), record.get("responses", [])
     attempts = _attempt_entries(record)
@@ -203,18 +292,25 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
         step += 1
         if kind == "model_call":
             call = event["call"]
+            call_windows = [_attempt_window(a) for a in attempts.get(call, [])]
+            call_start = next((w[0] for w in call_windows if w[0] is not None), cursor)
+            call_end = max((w[1] for w in call_windows if w[1] is not None), default=call_start)
             span = client.start_span(
                 name=f"model_call {call}", trace_id=trace_id, parent_id=root.span_id,
                 span_type="CHAT_MODEL", attributes={"step": step},
-                inputs=requests[call - 1] if call - 1 < len(requests) else None)
-            for index, attempt in enumerate(attempts.get(call, []), 1):
+                inputs=requests[call - 1] if call - 1 < len(requests) else None,
+                start_time_ns=call_start)
+            for index, (attempt, (a_start, a_end)) in enumerate(
+                    zip(attempts.get(call, []), call_windows), 1):
                 child = client.start_span(
                     name=f"attempt {index}", trace_id=trace_id, parent_id=span.span_id,
-                    span_type="LLM", inputs=None,
-                    attributes={k: v for k, v in attempt.items() if _numeric(v) or isinstance(v, str)})
-                client.end_span(trace_id, child.span_id)
+                    span_type="LLM", inputs=None, attributes=_attempt_attributes(attempt),
+                    start_time_ns=a_start)
+                client.end_span(trace_id, child.span_id, end_time_ns=a_end,
+                                status="ERROR" if attempt.get("error_class") else "OK")
+            cursor = call_end if call_end is not None else cursor
             client.end_span(
-                trace_id, span.span_id,
+                trace_id, span.span_id, end_time_ns=call_end,
                 outputs=responses[call - 1] if call - 1 < len(responses) else None,
                 attributes={"tools_enabled": event.get("tools_enabled"),
                             "outcome": event.get("outcome"), "truncated": event.get("truncated"),
@@ -228,27 +324,33 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
                 name=f"run_checks attempt {event['attempt']}", trace_id=trace_id,
                 parent_id=root.span_id, span_type="TOOL", inputs=arguments,
                 attributes={"step": step, "calls_in_response": event.get("calls_in_response"),
-                            "rejected_extras": event.get("rejected_extras")})
-            client.end_span(trace_id, span.span_id, outputs=feedback)
+                            "rejected_extras": event.get("rejected_extras")},
+                start_time_ns=cursor)
+            client.end_span(trace_id, span.span_id, outputs=feedback, end_time_ns=cursor)
         elif kind == "contract_failure":
             span = client.start_span(name="contract_failure", trace_id=trace_id,
                                      parent_id=root.span_id, span_type="UNKNOWN",
-                                     attributes={"step": step, "code": event.get("code")})
-            client.end_span(trace_id, span.span_id, status="ERROR")
+                                     attributes={"step": step, "code": event.get("code")},
+                                     start_time_ns=cursor)
+            client.end_span(trace_id, span.span_id, status="ERROR", end_time_ns=cursor)
     submission = client.start_span(
         name="submission", trace_id=trace_id, parent_id=root.span_id, span_type="CHAIN",
-        attributes={"step": step + 1})
+        attributes={"step": step + 1}, start_time_ns=cursor)
     final = record.get("final_source")
     client.end_span(trace_id, submission.span_id, outputs={
         "final_source": final, "submitted": final is not None and record.get("status") == "submitted",
         "status": record.get("status"), "label": record.get("label"),
         "infrastructure_status": record.get("infrastructure_status"),
-        "contract_issue": record.get("contract_issue")})
+        "contract_issue": record.get("contract_issue")}, end_time_ns=cursor)
     client.end_trace(trace_id, outputs={"status": record.get("status"), "label": record.get("label")},
                      attributes={"model_calls": record.get("model_calls"),
                                  "tool_attempts": record.get("tool_attempts"),
-                                 "usage": record.get("usage")},
-                     status="ERROR" if record.get("infrastructure_status") else "OK")
+                                 "usage": record.get("usage"),
+                                 "attempts": len(all_attempts),
+                                 "reservation": record.get("reservation"),
+                                 "latency_ms": record.get("latency_ms")},
+                     status="ERROR" if record.get("infrastructure_status") else "OK",
+                     end_time_ns=max(ends) if ends else None)
     return trace_id
 
 

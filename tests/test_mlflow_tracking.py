@@ -440,3 +440,114 @@ def test_long_parameters_are_not_cut_before_redaction():
     out = {}
     mt.flatten("", {"value": "a" * 600}, out)
     assert out["value"] == "a" * 600  # truncation happens after redaction, at MLflow's own limit
+
+
+# --- physical attempts from the OpenRouter client (fake transport, no network) ----------
+
+def transport_bundle(tmp_path, inprocess_runner, *replies):
+    from codegen_eval.ledger import Ledger
+    from codegen_eval.openrouter_client import OpenRouterClient
+    from codegen_eval.openrouter_config import ModelConfig
+    from codegen_eval.run_checks import TOOL_SCHEMA
+    from openrouter_support import KEY, PRICES, FakeTransport
+
+    transport = FakeTransport(*replies)
+    ledger = Ledger(tmp_path / "ledger.jsonl")
+    config = ModelConfig()
+
+    def client_for(task, trial_id):
+        return OpenRouterClient(config, PRICES, ledger, KEY, transport,
+                                tool_definitions=(TOOL_SCHEMA,), sleep=lambda s: None,
+                                context={"trial_id": trial_id})
+
+    path, _ = run_recorded([TASK], client_for, BENCHMARK, bundle_root=tmp_path / "bundles",
+                           run_id="run-t", trials_per_task=1, runner=inprocess_runner,
+                           model_settings=config.identity())
+    return path, KEY
+
+
+def retry_replies():
+    from openrouter_support import TIMEOUT, reply, tool_call
+    source = "def count_vowels(s: str) -> int:\n    return sum(c in 'aeiou' for c in s.lower())\n"
+    call = tool_call(json.dumps({"source": source, "checks": [{"arguments": ["abc"], "expected": 1}]}))
+    return TIMEOUT, reply(None, tool_calls=[call]), reply(source)
+
+
+def test_attempts_retries_usage_latency_and_cost_become_spans_and_metrics(
+        tmp_path, inprocess_runner, store, monkeypatch):
+    uri, client = store
+    path, key = transport_bundle(tmp_path, inprocess_runner, *retry_replies())
+    monkeypatch.setenv("OPENROUTER_API_KEY", key)  # present at upload, must not leak
+    record = bundle.load_trial(path, "strings_01-t1")
+    assert [a["retry_index"] for a in record["attempts"]] == [0, 1, 0]  # one timeout, one retry
+
+    result = mt.record_bundle(path, uri)
+
+    trace = traces(client, result.run_id)[0]
+    spans = {s.span_id: s for s in trace.data.spans}
+    model_spans = sorted((s for s in spans.values() if s.span_type == "CHAT_MODEL"),
+                         key=lambda s: s.name)
+    attempts = {m.name: sorted((s for s in spans.values() if s.parent_id == m.span_id),
+                               key=lambda s: s.start_time_ns) for m in model_spans}
+    assert [len(v) for v in attempts.values()] == [2, 1]
+    first, retry = attempts["model_call 1"]
+    assert (first.name, retry.name) == ("attempt 1", "attempt 2")
+    assert first.status.status_code.name == "ERROR" and first.attributes["error_class"] == "timeout"
+    assert first.attributes["retry_index"] == 0 and retry.attributes["retry_index"] == 1
+    assert retry.status.status_code.name == "OK" and retry.attributes["http_status"] == 200
+    assert retry.attributes["prompt_tokens"] == 1000 and retry.attributes["reasoning_tokens"] == 40
+    assert retry.attributes["reported_cost_usd"] == 0.0002
+    assert retry.attributes["reservation.amount_chf"] and retry.attributes["charge.basis"]
+    assert retry.attributes["provider"] == "OpenInference"
+    assert retry.attributes["latency_ms"] == record["attempts"][1]["latency_ms"]
+    assert first.start_time_ns <= retry.start_time_ns
+    parent = spans[first.parent_id]
+    assert parent.start_time_ns <= first.start_time_ns and retry.end_time_ns <= parent.end_time_ns
+    root = next(s for s in spans.values() if s.parent_id is None)
+    assert root.attributes["attempts"] == 3
+
+    metrics = client.get_run(result.run_id).data.metrics
+    charged = sum(float(a["charge"]["amount_chf"]) for a in record["attempts"] if a.get("charge"))
+    reserved = sum(float(a["reservation"]["amount_chf"]) for a in record["attempts"])
+    assert metrics["attempt.attempts"] == 3 and metrics["attempt.retries"] == 1
+    assert metrics["attempt.attempt_errors"] == 1 and metrics["attempt.attempts_sent"] == 3
+    assert metrics["attempt.prompt_tokens"] == 2000 and metrics["attempt.reasoning_tokens"] == 80
+    assert metrics["attempt.cost_reported_usd"] == pytest.approx(0.0004)
+    assert metrics["attempt.cost_charged_chf"] == pytest.approx(charged) and charged > 0
+    assert metrics["attempt.cost_reserved_chf"] == pytest.approx(reserved)
+    assert metrics["attempt.latency_ms"] == record["latency_ms"]
+    assert metrics["trial/strings_01-t1/retries"] == 1
+    assert metrics["trial/strings_01-t1/cost_charged_chf"] == pytest.approx(charged)
+    assert metrics["usage.prompt_tokens"] == 2000  # the per-response totals are unchanged
+
+
+def test_attempt_records_leak_no_credential_into_tracking(
+        tmp_path, inprocess_runner, store, monkeypatch):
+    uri, client = store
+    path, key = transport_bundle(tmp_path, inprocess_runner, *retry_replies())
+    monkeypatch.setenv("OPENROUTER_API_KEY", key)
+
+    result = mt.record_bundle(path, uri)
+
+    run = client.get_run(result.run_id)
+    everything = json.dumps([run.data.params, run.data.tags, run.data.metrics]) \
+        + artifact_text(client, result.run_id) \
+        + json.dumps([[s.to_dict() for s in t.data.spans] for t in traces(client)])
+    assert key not in everything and "Bearer" not in everything and "Authorization" not in everything
+    assert "attempt.cost_charged_chf" in run.data.metrics
+
+
+def test_a_failed_attempt_chain_is_visible_when_retries_are_exhausted(
+        tmp_path, inprocess_runner, store):
+    from openrouter_support import TIMEOUT
+    uri, client = store
+    path, _ = transport_bundle(tmp_path, inprocess_runner, TIMEOUT, TIMEOUT, TIMEOUT, TIMEOUT)
+
+    result = mt.record_bundle(path, uri)
+
+    run = client.get_run(result.run_id)
+    assert run.data.tags[mt.TAG + "headline_candidate"] == "false"
+    assert run.data.metrics["attempt.attempt_errors"] == run.data.metrics["attempt.attempts"] >= 2
+    trace = traces(client, result.run_id)[0]
+    errors = [s for s in trace.data.spans if s.name.startswith("attempt ")]
+    assert errors and all(s.status.status_code.name == "ERROR" for s in errors)
