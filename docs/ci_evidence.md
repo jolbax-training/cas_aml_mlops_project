@@ -4,7 +4,18 @@ Reviewed 2026-10-30 against the GitHub Actions annotations the coordinator relay
 
 Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Jobs `offline` and `podman`; no secrets, no model calls, no pass-rate gates. Versions and reproduction commands are in the [README](../README.md#deterministic-ci-github-actions).
 
-## Passing run (completion evidence for task 2.1)
+## Current green run on the rebased tree
+
+| Field | Value |
+| --- | --- |
+| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |
+| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |
+| `offline` | success |
+| `podman` | success: 64 tests, 0 skipped, 0 failures |
+
+This supersedes the run below as the evidence for the current tree; the workflow and code were not changed to obtain it.
+
+## Earlier passing run (history, pre-rebase; completion evidence for task 2.1)
 
 | Field | Value |
 | --- | --- |
@@ -40,7 +51,7 @@ Each broken expectation failed only the group that owns it, with the offending t
 
 ## Rebased branch
 
-After the runs above, the branch was rebased onto `main` (which gained its own container-cleanup changes in `sandbox.py`: `rm -t 0`, bounded removal, pid-prefixed names). A GitHub run of the rebased branch is not yet recorded here.
+After the runs above, the branch was rebased onto `main` (which gained its own container-cleanup changes in `sandbox.py`: `rm -t 0`, bounded removal, pid-prefixed names). The rebased commit `15c9eb9` ran green on GitHub: run [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) (`offline` success; `podman` success, 64 tests, 0 skipped, 0 failures), recorded above.
 
 ## Required checks (task 2.3): pending
 
