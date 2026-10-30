@@ -31,8 +31,24 @@ wait_healthy() {
   return 1
 }
 
+# An existing container keeps the port, image, and data directory it was created with, so
+# refuse to reuse it when the current settings differ (the URL printed would be wrong).
+check_matches() {
+  local image port mount
+  image="$(podman inspect --format '{{.ImageName}}' "$NAME")"
+  port="$(podman inspect --format '{{json .HostConfig.PortBindings}}' "$NAME")"
+  mount="$(podman inspect --format '{{range .Mounts}}{{.Source}} {{end}}' "$NAME")"
+  if [ "$image" != "$IMAGE" ] || [[ "$port" != *'"HostIp":"127.0.0.1","HostPort":"'"${PORT}"'"'* ]] \
+      || [[ " $mount " != *" ${DATA_DIR} "* ]]; then
+    echo "container $NAME exists with different settings (image: $image, port: $port, data: $mount)." >&2
+    echo "Run '$0 down' first (data is kept), then start again." >&2
+    exit 1
+  fi
+}
+
 start() {
   mkdir -p "$DATA_DIR"
+  if exists; then check_matches; fi
   if running; then
     echo "already running at $URL"
   elif exists; then

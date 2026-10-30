@@ -32,10 +32,10 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from codegen_eval.bundle import (
-    DEFAULT_BUNDLE_ROOT, BundleError, atomic_write, list_runs, load_manifest, load_trial,
+    DEFAULT_BUNDLE_ROOT, BundleError, _check_id, atomic_write, list_runs, load_manifest, load_trial,
     read_json, redact_value, resolve_bundle, secret_values, utc_now, verify_bundle,
     Verification, GRADE_GRADED, GRADE_PENDING, UNREADABLE_MANIFEST, UNSUPPORTED_SCHEMA,
-    TAMPERED_RECORD, UNREADABLE_RECORD, UNEXPECTED_RECORD, UNRECORDED_RECORD,
+    TAMPERED_RECORD, UNREADABLE_RECORD, UNEXPECTED_RECORD, UNRECORDED_RECORD, IDENTITY_MISMATCH,
 )
 
 DEFAULT_TRACKING_URI = "http://127.0.0.1:5000"
@@ -49,10 +49,10 @@ UPLOAD_COMPLETE = TAG + "upload_complete"
 
 # Problems that make a bundle's contents untrustworthy as recording input.
 _BLOCKING = {UNREADABLE_MANIFEST, UNSUPPORTED_SCHEMA, TAMPERED_RECORD, UNREADABLE_RECORD,
-             UNEXPECTED_RECORD, UNRECORDED_RECORD}
+             UNEXPECTED_RECORD, UNRECORDED_RECORD, IDENTITY_MISMATCH}
 _BATCH = 90  # MLflow accepts at most 100 params/tags per batch call
 _NAME_UNSAFE = re.compile(r"[^A-Za-z0-9_\-. /:]")
-_PARAM_MAX = 500
+_PARAM_MAX = 6000  # MLflow 3's parameter value limit; applied after redaction
 
 
 class TrackingUnavailable(Exception):
@@ -81,7 +81,7 @@ def flatten(prefix: str, value: Any, out: dict[str, str]) -> None:
             flatten(f"{prefix}.{key}" if prefix else str(key), value[key], out)
     else:
         text = value if isinstance(value, str) else json.dumps(value, sort_keys=True)
-        out[_safe(prefix)] = text[:_PARAM_MAX]
+        out[_safe(prefix)] = text
 
 
 def parameters(manifest: Mapping[str, Any]) -> dict[str, str]:
@@ -254,6 +254,14 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
 
 # --- connection, lookup, and upload -----------------------------------------------------
 
+def _tracking_errors() -> tuple[type[BaseException], ...]:
+    """Failures that mean the service (or the connection to it) is the problem. Anything
+    else, such as a bug in the mapping code, is not reported as an outage."""
+    import requests
+    from mlflow.exceptions import MlflowException
+    return (MlflowException, requests.RequestException, OSError)
+
+
 def _preflight(tracking_uri: str, timeout: float = 3.0) -> None:
     """Fail fast when an HTTP tracking server is down (MLflow's own retries take minutes)."""
     if not tracking_uri.startswith(("http://", "https://")):
@@ -316,6 +324,25 @@ def _stage(directory: Path, name: str, data: Any, secrets: Sequence[str]) -> int
     return count
 
 
+def _stage_partial_calls(stage: Path, bundle_dir: Path, secrets: Sequence[str]) -> int:
+    """Retained request/response entries of trials that never got a record (paid evidence
+    of an interrupted run), redacted line by line."""
+    count = 0
+    for file in sorted((bundle_dir / "trials").glob("*.calls.jsonl")):
+        lines = []
+        for line in file.read_text(encoding="utf-8").splitlines():
+            try:
+                clean, c = redact_value(json.loads(line), secrets)
+            except ValueError:
+                clean, c = {"unreadable_line": True}, 0
+            count += c
+            lines.append(json.dumps(clean, sort_keys=True))
+        target = stage / "trials" / file.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return count
+
+
 def _delete_partial(client: Any, experiment_id: str, run_id: str) -> None:
     traces = client.search_traces(locations=[experiment_id], run_id=run_id, include_spans=False,
                                   max_results=1000)
@@ -354,15 +381,20 @@ def record_bundle(bundle_dir: str | Path, tracking_uri: str = DEFAULT_TRACKING_U
             created = True
         replays = _record_replays(client, experiment_id, path, manifest["run_id"], digest, run_id,
                                   extra_secrets)
+        all_replays = sorted(
+            r.data.tags[TAG + "replay_id"]
+            for r in _find_run(client, experiment_id, {"record_kind": KIND_REPLAY,
+                                                       "bundle_digest": digest})
+            if r.data.tags.get(UPLOAD_COMPLETE) == "true")
     except TrackingUnavailable:
         raise
-    except Exception as error:  # noqa: BLE001 - MLflow/requests raise many unrelated types
+    except _tracking_errors() as error:
         raise TrackingUnavailable(f"tracking call failed: {type(error).__name__}: {error}") from error
     result = RecordResult(run_id, created, tuple(replays), redactions)
     write_sidecar(path, {"status": "recorded", "tracking_uri": tracking_uri,
                          "experiment": experiment, "mlflow_run_id": run_id,
                          "bundle_digest": digest, "recorded_at": utc_now(),
-                         "replays": list(replays)})
+                         "replays": all_replays})
     return result
 
 
@@ -384,6 +416,7 @@ def _upload(client: Any, experiment_id: str, path: Path, manifest: Mapping[str, 
         TAG + "prompt_sha256": str(identity.get("prompt", {}).get("sha256")),
         TAG + "evaluator_revision": str(identity.get("evaluator_revision")),
         TAG + "missing_trials": ",".join(verification.missing()) or "none",
+        TAG + "problems": ",".join(sorted({p.kind for p in verification.problems})) or "none",
         "mlflow.note.content": ("Recorded from a retained local bundle; "
                                "the bundle is the primary evidence."),
     }
@@ -401,6 +434,10 @@ def _upload(client: Any, experiment_id: str, path: Path, manifest: Mapping[str, 
             stage = Path(tmp)
             count += _stage(stage, "manifest.json", manifest, secrets)
             count += _stage(stage, "summary.json", summary, secrets)
+            count += _stage(stage, "verification.json", [
+                {"kind": p.kind, "trial_id": p.trial_id, "detail": p.detail}
+                for p in verification.problems], secrets)
+            count += _stage_partial_calls(stage, path, secrets)
             for trial_id, record in records.items():
                 count += _stage(stage, f"trials/{trial_id}.json", record, secrets)
                 count += _stage(stage, f"grading/{trial_id}.json",
@@ -422,7 +459,10 @@ def _upload(client: Any, experiment_id: str, path: Path, manifest: Mapping[str, 
         client.set_tag(run_id, UPLOAD_COMPLETE, "true")
         client.set_terminated(run_id, "FINISHED")
     except BaseException:
-        client.set_terminated(run_id, "FAILED")
+        try:
+            client.set_terminated(run_id, "FAILED")
+        except Exception:  # noqa: BLE001 - keep the original error, not one from cleanup
+            pass
         raise
     return run_id, count
 
@@ -436,7 +476,7 @@ def _record_replays(client: Any, experiment_id: str, path: Path, bundle_run: str
     secrets = secret_values(extra_secrets)
     for file in sorted((path / "replays").glob("*.json")):
         evidence = read_json(file)
-        replay_id = evidence.get("replay_id", file.stem)
+        replay_id = _check_id(str(evidence.get("replay_id", file.stem)), "replay id")
         existing = _find_run(client, experiment_id, {"record_kind": KIND_REPLAY,
                                                      "replay_id": replay_id,
                                                      "bundle_digest": digest})
@@ -495,7 +535,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     for p in (rec, sub.add_parser("status", help="show recorded / not-recorded per bundle")):
         p.add_argument("--bundles", default=DEFAULT_BUNDLE_ROOT)
     rec.add_argument("--tracking-uri", default=os.environ.get("MLFLOW_TRACKING_URI",
-                                                              DEFAULT_TRACKING_URI))
+                                                              DEFAULT_TRACKING_URI),
+                     help="default: $MLFLOW_TRACKING_URI if set, else " + DEFAULT_TRACKING_URI)
     rec.add_argument("--experiment", default=DEFAULT_EXPERIMENT)
     args = parser.parse_args(argv)
 
@@ -519,7 +560,7 @@ def main(argv: Sequence[str] | None = None) -> int:
               f"the service is up. No model call is made.", file=sys.stderr)
         return 3
     print(("recorded" if result.created else "already recorded (unchanged)")
-          + f": MLflow run {result.run_id}")
+          + f": MLflow run {result.run_id} at {args.tracking_uri}")
     for replay in result.replays:
         print(f"  grading replay recorded: {replay}")
     if result.redactions:

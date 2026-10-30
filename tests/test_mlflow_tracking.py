@@ -2,13 +2,17 @@
 Podman, no model client). The Podman service tests are in test_mlflow_service_integration.py."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-mlflow = pytest.importorskip("mlflow")
+if os.environ.get("CODEGEN_EVAL_REQUIRE_TRACKING") == "1":  # CI: a missing client is a failure
+    import mlflow  # noqa: F401
+else:
+    pytest.importorskip("mlflow", reason="needs `uv sync --group tracking` (MLflow client)")
 
 from codegen_eval import bundle, mlflow_tracking as mt, sandbox
 from codegen_eval.bundle import BundleError
@@ -357,3 +361,82 @@ def test_agent_and_evaluator_modules_do_not_depend_on_the_tracking_service():
     offenders = [n for n, text in sources.items()
                  if n != "mlflow_tracking.py" and ("mlflow" in text.lower())]
     assert offenders == []
+
+
+def test_verification_problems_and_partial_calls_are_uploaded(
+        tmp_path, inprocess_runner, local_runner, store):
+    uri, client = store
+
+    def client_for(task, trial_id):
+        if trial_id.endswith("t2"):
+            raise KeyboardInterrupt
+        return FixtureClient.from_data(SCENARIOS["early_submission"])
+
+    with pytest.raises(KeyboardInterrupt):
+        run_recorded([TASK], client_for, BENCHMARK, bundle_root=tmp_path / "bundles",
+                     run_id="run-p", trials_per_task=2, runner=inprocess_runner,
+                     grader=make_grader(local_runner))
+    path = tmp_path / "bundles" / "run-p"
+    # Paid request/response entries of a trial that never got a record, with a secret in one.
+    (path / "trials" / "strings_01-t2.calls.jsonl").write_text(
+        json.dumps({"event": "response", "call": 1, "response": {"content": "hi sk-or-late-0123456789"}})
+        + "\n")
+
+    os.environ["LATE_API_KEY"] = "sk-or-late-0123456789"
+    try:
+        result = mt.record_bundle(path, uri)
+    finally:
+        del os.environ["LATE_API_KEY"]
+
+    run = client.get_run(result.run_id)
+    assert "missing_record" in run.data.tags[mt.TAG + "problems"]
+    verification = json.loads(Path(client.download_artifacts(
+        result.run_id, "bundle/verification.json")).read_text())
+    assert "missing_record" in {p["kind"] for p in verification}
+    calls = Path(client.download_artifacts(
+        result.run_id, "bundle/trials/strings_01-t2.calls.jsonl")).read_text()
+    assert "hi " in calls and "sk-or-late" not in calls
+
+
+def test_sidecar_lists_every_recorded_replay_after_a_re_record(
+        tmp_path, inprocess_runner, local_runner, store):
+    uri, client = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    replay_bundle(path, BENCHMARK, runner=lambda s, t, c: local_runner(s, t, c))
+    first = mt.record_bundle(path, uri)
+
+    mt.record_bundle(path, uri)
+
+    assert mt.read_sidecar(path)["replays"] == list(first.replays) and first.replays
+
+
+def test_a_replay_id_that_could_break_the_query_is_refused(
+        tmp_path, inprocess_runner, local_runner, store):
+    uri, _ = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    (path / "replays").mkdir()
+    (path / "replays" / "evil.json").write_text(json.dumps({"replay_id": "x' or '1'='1"}))
+
+    with pytest.raises(BundleError, match="replay id"):
+        mt.record_bundle(path, uri)
+
+
+def test_a_bug_in_the_mapping_is_not_reported_as_an_outage(
+        tmp_path, inprocess_runner, local_runner, store, monkeypatch):
+    uri, _ = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+
+    def broken(*args, **kwargs):
+        raise KeyError("model_calls")
+
+    monkeypatch.setattr(mt, "write_trial_trace", broken)
+    with pytest.raises(KeyError):
+        mt.record_bundle(path, uri)
+    assert mt.read_sidecar(path)["status"] == "not_recorded"  # never written as an outage note
+    assert "last_error" not in mt.read_sidecar(path)
+
+
+def test_long_parameters_are_not_cut_before_redaction():
+    out = {}
+    mt.flatten("", {"value": "a" * 600}, out)
+    assert out["value"] == "a" * 600  # truncation happens after redaction, at MLflow's own limit

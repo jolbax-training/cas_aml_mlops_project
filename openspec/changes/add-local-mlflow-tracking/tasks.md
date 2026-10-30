@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are unstarted planning items. Exact image version, port, storage path, and command names are bounded implementation choices to document once tested.
+Progress is tracked by the checkboxes below and the dated entry in [docs/progress.md](../../../docs/progress.md). Image version, port, storage path, and command names are documented in the README.
 
 ## 1. Local tracking service
 

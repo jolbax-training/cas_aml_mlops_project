@@ -21,7 +21,7 @@ Both comparison runs must be completely recorded in containerized local MLflow w
 
 ### Modified Capabilities
 
-None. The main capability inventory is empty; this change remains unimplemented.
+None. The main capability inventory is empty until this change is archived.
 
 ## Impact
 

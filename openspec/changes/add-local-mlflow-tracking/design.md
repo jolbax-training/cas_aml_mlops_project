@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md. The repository has no MLflow integration. The agreed topology (Q34) runs the trusted CLI on the laptop in its uv environment and MLflow as a separate persistent Podman service on a localhost endpoint. The durable local bundle (Q35) is primary evidence; MLflow is a navigable secondary record. All tasks remain unstarted.
+See proposal.md. The repository has no MLflow integration. The agreed topology (Q34) runs the trusted CLI on the laptop in its uv environment and MLflow as a separate persistent Podman service on a localhost endpoint. The durable local bundle (Q35) is primary evidence; MLflow is a navigable secondary record. Implementation status is in tasks.md and docs/progress.md.
 
 ## Goals / Non-Goals
 

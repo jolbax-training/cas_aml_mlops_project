@@ -3,17 +3,26 @@ name = "codegen-eval"
 version = "0.1.0"
 description = "Evaluation pipeline for a Python function generation course project"
 requires-python = ">=3.12,<3.13"
-dependencies = [
-    "mlflow>=3.17.2",
-]
+dependencies = []
 
 [dependency-groups]
 dev = [
     "markdown-it-py>=4.2.0",
     "pytest>=8",
+    # SQLite tracking store used by the offline MLflow tests (needs the `tracking` group too).
+    "sqlalchemy>=2,<3",
+    "alembic>=1.14,<2",
+]
+# Client for recording bundles in the local MLflow service (the server runs in the pinned
+# Podman image). Optional: the agent, evaluator, and everything else never import it.
+tracking = [
+    "mlflow-skinny>=3.17.2,<4",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-markers = ["sandbox: runs a real generated function in a local Podman container"]
+markers = [
+    "sandbox: runs a real generated function in a local Podman container",
+    "mlflow_service: also needs the pinned MLflow image and `--group tracking` (local only; CI's podman job deselects it)",
+]

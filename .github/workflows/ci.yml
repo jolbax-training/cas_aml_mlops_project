@@ -37,9 +37,11 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
-      - name: Install locked dependencies
-        run: uv sync --python "$PYTHON_VERSION" --locked
+      - name: Install locked dependencies (including the optional MLflow client group)
+        run: uv sync --python "$PYTHON_VERSION" --locked --group tracking
       - name: Tests (Podman-dependent tests skip here by design; the podman job runs them)
+        env:
+          CODEGEN_EVAL_REQUIRE_TRACKING: "1"  # the MLflow unit tests must run, not skip
         run: .venv/bin/pytest -q
       - name: Install OpenSpec CLI (npm ci from the committed lockfile)
         run: npm ci --ignore-scripts --prefix .github/openspec
@@ -89,7 +91,7 @@ jobs:
         run: sudo -E env "PATH=$PATH" scripts/ci_ensure_container_signals.sh
       - name: Sandbox tests (a skip is a failure)
         run: |
-          sudo -E env "PATH=$PATH" .venv/bin/pytest -q -m sandbox -rs --tb=short \
+          sudo -E env "PATH=$PATH" .venv/bin/pytest -q -m "sandbox and not mlflow_service" -rs --tb=short \
             --junitxml="$RUNNER_TEMP/sandbox-junit.xml"
       - name: Annotate failed tests (readable without job logs)
         if: ${{ !cancelled() }}

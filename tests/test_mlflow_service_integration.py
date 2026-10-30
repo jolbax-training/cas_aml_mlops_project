@@ -16,7 +16,7 @@ from codegen_eval.replay import make_grader
 from codegen_eval.run_recording import run_recorded
 from codegen_eval.tasks import load_benchmark
 
-pytestmark = [pytest.mark.sandbox, pytest.mark.skipif(
+pytestmark = [pytest.mark.sandbox, pytest.mark.mlflow_service, pytest.mark.skipif(
     os.environ.get("RUN_SANDBOX_TESTS") != "1", reason="requires a running local Podman VM"
 )]
 ROOT = Path(__file__).resolve().parents[1]
