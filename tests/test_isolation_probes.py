@@ -412,3 +412,37 @@ def test_forged_deeply_nested_report_is_a_candidate_outcome():
     assert_candidate_outcome(
         FORGE_PREFIX + '    emit(\'"status":"returned","value":\' + "[" * 30000 + "]" * 30000 + \',"args_after":[[3,1,3,2,1]]\')\n',
         "protocol_violation")
+
+
+OOM_MANY_SMALL = f'''import os, time
+{UNIQUE_HEAD}    for _ in range(28):
+        if os.fork() == 0:
+            blob = bytearray(4_500_000)
+            for i in range(0, len(blob), 4096):
+                blob[i] = 1
+            time.sleep(8)
+            os._exit(0)
+    time.sleep(3)
+    return [3, 1, 2]
+'''
+OOM_MANY_SMALL_RESET = OOM_MANY_SMALL.replace(
+    "    for _ in range(28):",
+    "    open('/proc/self/oom_score_adj', 'w').write('0')\n    for _ in range(28):")
+
+
+@pytest.mark.parametrize("source", [OOM_MANY_SMALL, OOM_MANY_SMALL_RESET], ids=["many-small-processes", "oom-score-reset"])
+def test_candidate_induced_container_oom_is_never_infrastructure(source):
+    case = UNIQUE.cases[0]
+    execution = run_case(source, UNIQUE, case)
+
+    # The OOM killer may take the children (returned) or the supervisor (candidate_crash).
+    assert execution.status in {"returned", "candidate_crash"}, execution
+    assert not set(_score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
+
+
+def test_lone_surrogate_return_value_is_a_scorable_candidate_outcome():
+    case = UNIQUE.cases[0]
+    execution = run_case(f"{UNIQUE_HEAD}    return ['\\ud800']\n", UNIQUE, case)
+
+    assert execution.status == "returned"
+    assert _score_case(case, execution).failures == ("wrong_answer",)

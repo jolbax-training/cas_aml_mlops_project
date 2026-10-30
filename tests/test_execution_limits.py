@@ -1,5 +1,7 @@
 import inspect
 import json
+import subprocess
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -46,7 +48,7 @@ def test_container_command_applies_every_limit_and_restriction():
 
     for flag in ("--network=none", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
                  "--user=65534:65534", "--pids-limit=8", "--memory=64m", "--memory-swap=64m", "--cpus=1",
-                 "--tmpfs=/tmp:rw,nosuid,noexec,size=4m", "--pull=never", "--rm"):
+                 "--tmpfs=/tmp:rw,nosuid,noexec,size=4m", "--pull=never"):
         assert flag in command
     # No mounts, secrets, host namespaces, devices, or Podman socket.
     assert not any(part.startswith(("-v", "--volume", "--mount", "--privileged", "--pid=", "--ipc=",
@@ -54,6 +56,8 @@ def test_container_command_applies_every_limit_and_restriction():
                    for part in command)
     assert [part for part in command if part.startswith("--env")] == ["--env=HOME=/tmp"]
     assert not any("podman.sock" in part for part in command)
+    # The container is kept after exit so State.OOMKilled can be read, then removed explicitly.
+    assert "--rm" not in command
 
 
 def test_each_check_gets_a_fresh_named_container(monkeypatch):
@@ -149,3 +153,28 @@ def test_malformed_supervisor_output_is_an_infrastructure_outcome(monkeypatch):
     for output in (b"not json", b'{"status":"returned"}', b'{"status":"made_up"}', b"[]"):
         monkeypatch.setattr(sandbox, "_exchange", lambda *a, _o=output: (_o, b"", None))
         assert execute_check(VOWELS, "count_vowels", ["a"]).status == "protocol_error"
+
+
+def _sleeper(seconds: float):
+    return subprocess.Popen([sys.executable, "-c", f"import time; time.sleep({seconds})"])
+
+
+def test_reap_waits_for_a_client_that_is_about_to_exit():
+    process = _sleeper(0.5)
+    sandbox._reap(process, kill=False, wait_seconds=5)
+
+    assert process.returncode == 0
+
+
+def test_reap_kills_a_client_that_outlives_the_wait():
+    process = _sleeper(30)
+    sandbox._reap(process, kill=False, wait_seconds=0.2)
+
+    assert process.returncode is not None and process.returncode < 0
+
+
+def test_reap_kills_immediately_when_asked_and_always_collects_the_return_code():
+    process = _sleeper(30)
+    sandbox._reap(process, kill=True, wait_seconds=5)
+
+    assert process.returncode is not None and process.returncode < 0

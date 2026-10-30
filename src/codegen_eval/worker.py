@@ -34,6 +34,14 @@ class OutputSink:
 
 
 def main():
+    # Make the executor and its children the OOM killer's preferred victims.
+    # An unprivileged process can lower this again, so the host also attributes
+    # container OOM kills to the candidate; this is defence in depth.
+    try:
+        with open("/proc/self/oom_score_adj", "w") as handle:
+            handle.write("1000")
+    except OSError:
+        pass
     payload = json.load(sys.stdin)
     token = payload["token"]
     report_fd = payload["report_fd"]

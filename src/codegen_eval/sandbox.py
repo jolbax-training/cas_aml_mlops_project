@@ -91,7 +91,7 @@ def _exchange(process: subprocess.Popen[bytes], payload: bytes, seconds: float, 
 def _container_command(name: str, limits: ExecutionLimits) -> list[str]:
     memory = f"{limits.memory_mib}m"
     return [
-        "podman", "run", "--rm", "-i", "--pull=never", "--name", name,
+        "podman", "run", "-i", "--pull=never", "--name", name,
         "--network=none", "--read-only", "--read-only-tmpfs=false", "--cap-drop=ALL",
         "--security-opt=no-new-privileges", f"--pids-limit={limits.max_processes}",
         f"--memory={memory}", f"--memory-swap={memory}", f"--cpus={limits.cpus}",
@@ -99,6 +99,17 @@ def _container_command(name: str, limits: ExecutionLimits) -> list[str]:
         f"--tmpfs=/tmp:rw,nosuid,noexec,size={limits.tmp_mib}m", "--env=HOME=/tmp",
         IMAGE, "python", "-B", "-I", "-S", "-c", SUPERVISOR,
     ]
+
+
+def _oom_killed(name: str) -> bool:
+    """Whether the container's memory cgroup recorded an OOM kill. The container is
+    kept (no --rm) until after this check so the state can still be read."""
+    try:
+        result = subprocess.run(["podman", "inspect", "--format", "{{.State.OOMKilled}}", name],
+                                capture_output=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and result.stdout.strip() == b"true"
 
 
 def _remove_container(name: str, *, retry: bool) -> None:
@@ -114,18 +125,18 @@ def _remove_container(name: str, *, retry: bool) -> None:
             pass
 
 
-def _reap(process: subprocess.Popen[bytes], *, kill: bool) -> None:
+def _reap(process: subprocess.Popen[bytes], *, kill: bool, wait_seconds: float = 5) -> None:
     """Make sure the Podman client has exited so its return code is meaningful."""
     if not kill:
         try:
-            process.wait(timeout=5)
+            process.wait(timeout=wait_seconds)
             return
         except subprocess.TimeoutExpired:
             pass
     if process.poll() is None:
         process.kill()
     try:
-        process.wait(timeout=5)
+        process.wait(timeout=wait_seconds)
     except subprocess.TimeoutExpired:
         pass
 
@@ -160,6 +171,7 @@ def execute_check(source: str, function_name: str, args: Sequence[Any],
 
     reason: str | None = None
     completed = False
+    oom_killed = False
     try:
         output, error, reason = _exchange(process, payload, limits.deadline_seconds,
                                           limits.protocol_bytes + 4096)
@@ -168,6 +180,8 @@ def execute_check(source: str, function_name: str, args: Sequence[Any],
         # Cleanup happens after, and outside, the deadline. A client whose streams
         # closed normally is given time to exit; anything else is killed.
         _reap(process, kill=not completed)
+        if completed and process.returncode not in (0, None):
+            oom_killed = _oom_killed(name)
         _remove_container(name, retry=reason is not None)
 
     if reason == "timeout":
@@ -176,6 +190,11 @@ def execute_check(source: str, function_name: str, args: Sequence[Any],
         return ExecutionResult("protocol_error", detail="supervisor output exceeded the protocol limit")
     if process.returncode is None:
         return ExecutionResult("infrastructure_error", detail="container client did not exit")
+    if process.returncode != 0 and oom_killed:
+        # Only candidate allocations can exhaust the container's memory (the
+        # supervisor's footprint is fixed), but the OOM killer may pick the
+        # supervisor, ending the container without a report.
+        return ExecutionResult("candidate_crash", detail="container memory limit exceeded (OOM kill)")
     if process.returncode != 0:
         return ExecutionResult("infrastructure_error", detail=error.decode("utf-8", "replace")[:500])
     # Only the supervisor can write to the container's stdout, so a malformed
