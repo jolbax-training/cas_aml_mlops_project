@@ -134,13 +134,14 @@ def _remove_container(name: str, *, retry: bool) -> None:
     """Remove the container. After a killed client the server may still be creating
     it (creation can take several seconds in the Podman VM, and the container then
     runs to completion and stays), so keep retrying until a pass actually removes it
-    or the allowance runs out."""
+    or the allowance runs out. `--time=0` kills at once: PID 1 ignores the stop signal, so
+    the default ten-second stop wait outlasts the call's timeout on Podman 4.x."""
     for attempt in range(8 if retry else 1):
         if attempt:
             time.sleep(1.0)
         try:
-            result = subprocess.run(["podman", "rm", "-f", "--ignore", name],
-                                    capture_output=True, timeout=5, check=False)
+            result = subprocess.run(["podman", "rm", "-f", "--time=0", "--ignore", name],
+                                    capture_output=True, timeout=10, check=False)
         except (OSError, subprocess.TimeoutExpired):
             continue
         if retry and result.returncode == 0 and result.stdout.strip():
