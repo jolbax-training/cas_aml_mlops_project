@@ -156,3 +156,59 @@ def test_any_edit_to_a_frozen_file_is_reported(tmp_path, edit):
 
 def _append(path, text):
     path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+
+
+def test_a_non_python_file_added_to_the_references_is_reported(tmp_path):
+    root = _copy_frozen_tree(tmp_path)
+    (root / "data" / "references_v1" / "notes.txt").write_text("scratch\n")
+    with pytest.raises(ValueError, match="notes.txt"):
+        check_freeze(root)
+
+
+def test_bytecode_caches_are_not_part_of_the_freeze(tmp_path):
+    root = _copy_frozen_tree(tmp_path)
+    cache = root / "data" / "references_v1" / "__pycache__"
+    cache.mkdir()
+    (cache / "lists_02.cpython-312.pyc").write_bytes(b"\0")
+    check_freeze(root)
+
+
+def _freeze_script():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("freeze_benchmark", ROOT / "scripts" / "freeze_benchmark.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("argv", [[], ["--chcek"], ["-c"], ["check"], ["--check", "--write"]])
+def test_freeze_script_rejects_unknown_or_missing_modes_without_writing(tmp_path, argv):
+    root = _copy_frozen_tree(tmp_path)
+    before = (root / FREEZE_FILE).read_bytes()
+    with pytest.raises(SystemExit) as exit_info:
+        _freeze_script().main(argv, root)
+    assert exit_info.value.code == 2
+    assert (root / FREEZE_FILE).read_bytes() == before
+
+
+def test_freeze_script_refuses_to_overwrite_a_differing_record_without_force(tmp_path, capsys):
+    root = _copy_frozen_tree(tmp_path)
+    before = (root / FREEZE_FILE).read_bytes()
+    _append(root / "docs" / "benchmark_review.md", "\nedited\n")
+
+    assert _freeze_script().main(["--write"], root) == 1
+    err = capsys.readouterr().err
+    assert "refusing to overwrite" in err and "docs/benchmark_review.md" in err
+    assert (root / FREEZE_FILE).read_bytes() == before
+
+    assert _freeze_script().main(["--write", "--force"], root) == 0
+    assert (root / FREEZE_FILE).read_bytes() != before
+    assert _freeze_script().main(["--check"], root) == 0
+
+
+def test_freeze_script_writes_a_new_record_when_none_exists(tmp_path):
+    root = _copy_frozen_tree(tmp_path)
+    (root / FREEZE_FILE).unlink()
+    assert _freeze_script().main(["--write"], root) == 0
+    assert json.loads((root / FREEZE_FILE).read_text()) == json.loads((ROOT / FREEZE_FILE).read_text())

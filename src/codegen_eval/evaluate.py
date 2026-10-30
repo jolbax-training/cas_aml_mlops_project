@@ -44,6 +44,7 @@ class RunCounts:
     edge_cases_total: int
     edge_cases_passed: int
     infrastructure_failures: int
+    tasks_incomplete: int = 0  # graded trials an infrastructure outcome made unreliable
 
     @property
     def task_pass_rate(self) -> float:
@@ -59,7 +60,8 @@ class RunCounts:
         return self.edge_cases_passed / self.edge_cases_total if self.edge_cases_total else 0.0
 
     def complete_for(self, expected_tasks: int) -> bool:
-        return self.tasks_total == expected_tasks and self.infrastructure_failures == 0
+        return (self.tasks_total == expected_tasks and self.infrastructure_failures == 0
+                and self.tasks_incomplete == 0)
 
 
 def _strict_equal(actual: Any, expected: Any) -> bool:
@@ -126,7 +128,9 @@ def evaluate_task(
 @dataclass(frozen=True)
 class TrialGrade:
     """Grade of one agent trial's final submission. `cases` always lists the planned checks
-    (four), so scores keep their full denominator; an incomplete trial has none to report."""
+    (four), so scores keep their full denominator. An `incomplete` trial reports them as
+    unexecuted and unsuccessful with the infrastructure status as the label; it is never a
+    complete task (`count_results(...).complete_for` is false) and is not a candidate failure."""
 
     task_id: str
     category: str
@@ -153,7 +157,8 @@ def grade_trial(
     A submission that fails the source contract (`contract_error`, `syntax_error`) and a
     `no_submission` (with its reason label, such as `request_rejected`) mark all four checks
     unexecuted and unsuccessful. A trial that ended in `infrastructure_incomplete`, or whose
-    hidden checks hit an infrastructure outcome, is reported incomplete rather than failed;
+    hidden checks hit an infrastructure outcome, is reported incomplete rather than failed (its
+    four checks stay in the planned denominator, unexecuted);
     whether and how an incomplete run is excluded is decided by the run-level classification."""
     from codegen_eval.trial import INFRASTRUCTURE_INCOMPLETE, NO_SUBMISSION, SUBMITTED
 
@@ -162,14 +167,17 @@ def grade_trial(
                           infrastructure, cases)
 
     if trial.status == INFRASTRUCTURE_INCOMPLETE:
-        return grade(trial.status, (), False, True, trial.infrastructure_status, ())
+        status = trial.infrastructure_status or INFRASTRUCTURE_INCOMPLETE
+        return grade(trial.status, (), False, True, status, _unexecuted(task, (status,)))
     if trial.status == NO_SUBMISSION:
         labels = ("no_submission",) + ((trial.label,) if trial.label else ())
         return grade(trial.status, labels, False, False, None, _unexecuted(task, labels))
     if trial.status != SUBMITTED or trial.submission is None:
         raise ValueError(f"cannot grade trial with status {trial.status!r}")
-    if trial.contract_issue is not None:
-        labels = (trial.contract_issue.code,)
+    # Re-validate rather than trust a stored verdict: a rebuilt record could be stale.
+    issue = trial.contract_issue or validate_source(trial.submission, task)
+    if issue is not None:
+        labels = (issue.code,)
         return grade(trial.status, labels, False, False, None, _unexecuted(task, labels))
 
     cases = tuple(score_case(case, runner(trial.submission, task, case)) for case in task.cases)
@@ -195,4 +203,5 @@ def count_results(results: Iterable[TaskResult]) -> RunCounts:
             any(failure in INFRASTRUCTURE_STATUSES for failure in case.failures)
             for case in cases
         ),
+        tasks_incomplete=sum(getattr(task, "incomplete", False) for task in tasks),
     )

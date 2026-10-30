@@ -53,7 +53,7 @@ def main():
     # Bind every builtin and helper now so candidate code that patches modules
     # or builtins afterwards cannot change how its results are serialised.
     def encode(value, depth=0, _type=type, _str=str, _int=int, _float=float, _bool=bool,
-               _list=list, _tuple=tuple, _dict=dict, _int_repr=int.__repr__,
+               _list=list, _dict=dict, _int_repr=int.__repr__,
                _float_repr=float.__repr__, _quote=quote, _finite=math.isfinite,
                _join=str.join):
         if depth > 100:
@@ -71,7 +71,7 @@ def main():
             return _float_repr(value)
         if kind is _str:
             return _quote(value)
-        if kind is _list or kind is _tuple:
+        if kind is _list:
             return "[" + _join(",", [encode(item, depth + 1) for item in value]) + "]"
         if kind is _dict:
             parts = []

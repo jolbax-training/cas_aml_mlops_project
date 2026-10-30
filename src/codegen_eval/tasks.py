@@ -177,14 +177,15 @@ def _build_tasks(raw: Any, expected_categories: Mapping[str, int]) -> tuple[Task
 
 
 FREEZE_FILE = "data/benchmark_v1.freeze.json"
-FROZEN_PATTERNS = ("data/benchmark_v1.json", "data/references_v1/*.py", "docs/benchmark_review.md")
+FROZEN_PATTERNS = ("data/benchmark_v1.json", "data/references_v1/**/*", "docs/benchmark_review.md")
 
 
 def frozen_files(root: str | Path) -> list[str]:
     """Repository-relative paths covered by the benchmark content hash, sorted."""
     root = Path(root)
     return sorted({path.relative_to(root).as_posix() for pattern in FROZEN_PATTERNS
-                   for path in root.glob(pattern)})
+                   for path in root.glob(pattern)
+                   if path.is_file() and "__pycache__" not in path.parts})
 
 
 def freeze_manifest(root: str | Path) -> dict[str, Any]:

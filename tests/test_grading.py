@@ -34,7 +34,8 @@ ROTATE_HEAD = "def rotate_left(items: list[int], k: int) -> list[int]:\n"
         ([1, True], [1, 1]), ([[1, 2]], [[1, True]]),            # nested types
         ({"a": 1}, {"a": True}), ({"a": [1, 0]}, {"a": [1, False]}),
         ([1, 2, 3], [3, 2, 1]), ([[1], [2]], [[2], [1]]),        # list order
-        ((1, 2), [1, 2]), ([1, 2], (1, 2)),                      # tuple is not list
+        ((1, 2), [1, 2]), ([1, 2], (1, 2)),                      # tuple is not list (in-process; the
+        # sandbox encoder rejects a returned tuple as serialization_error, see the sandbox fixtures)
         ({"a": 1}, {"a": 1, "b": 2}), ({"a": 1, "b": 2}, {"a": 1}), ({"a": 1}, {"b": 1}),
         ([1], [1, 1]), ([], {}), ({}, []),
     ],
@@ -56,10 +57,15 @@ def test_dictionary_key_order_does_not_matter_at_any_depth():
 
 
 def test_value_nested_beyond_the_recursion_limit_is_unequal_not_an_error():
-    deep: object = []
-    for _ in range(5000):
-        deep = [deep]
-    assert not _strict_equal(deep, [])
+    def nest(depth):
+        value: object = []
+        for _ in range(depth):
+            value = [value]
+        return value
+
+    # equal-shaped values force the comparison to recurse past the interpreter limit
+    assert _strict_equal(nest(5000), nest(5000)) is False
+    assert _strict_equal(nest(50), nest(50))
 
 
 # --- per-check results and failure labels ----------------------------------------------
@@ -250,7 +256,27 @@ def test_infrastructure_incomplete_trial_is_reported_incomplete_not_failed():
     grade = grade_trial(VOWELS, make_trial("infrastructure_incomplete", infrastructure="transport_exhausted"),
                         runner_for(lambda case: pytest.fail("must not execute")))
     assert grade.incomplete and not grade.success
-    assert grade.infrastructure_status == "transport_exhausted" and grade.cases == ()
+    assert grade.infrastructure_status == "transport_exhausted"
+    # the planned denominator is kept: four unexecuted, unsuccessful checks, never a smaller task
+    assert [(c.executed, c.passed, c.failures) for c in grade.cases] == [(False, False, ("transport_exhausted",))] * 4
+
+
+@pytest.mark.parametrize("status", ["transport_exhausted", "infrastructure_error", None])
+def test_incomplete_trial_never_counts_as_a_complete_task(status):
+    grade = grade_trial(VOWELS, make_trial("infrastructure_incomplete", infrastructure=status),
+                        runner_for(lambda case: pytest.fail("must not execute")))
+    counts = count_results([grade])
+    assert (counts.tasks_total, counts.cases_total, counts.cases_executed, counts.cases_passed) == (1, 4, 0, 0)
+    assert counts.tasks_incomplete == 1 and not counts.complete_for(expected_tasks=1)
+
+
+def test_one_incomplete_trial_makes_a_run_of_complete_trials_incomplete():
+    good = grade_trial(VOWELS, make_trial(submission=GOOD), runner_for(returned))
+    bad = grade_trial(VOWELS, make_trial("infrastructure_incomplete", infrastructure="transport_exhausted"),
+                      runner_for(returned))
+    counts = count_results([good, bad])
+    assert counts.complete_for(expected_tasks=2) is False
+    assert count_results([good, good]).complete_for(expected_tasks=2) is True
 
 
 def test_infrastructure_outcome_in_a_hidden_check_makes_the_trial_incomplete():
@@ -266,20 +292,46 @@ def test_payload_too_large_in_a_trial_is_a_candidate_failure_not_incomplete():
     assert grade.labels == ("payload_too_large",) and all(not c.executed for c in grade.cases)
 
 
+@pytest.mark.parametrize("submission", ["```python\n" + GOOD + "```", "Here:\n" + GOOD, "def count_vowels(", ""])
+def test_grade_trial_revalidates_the_submission_instead_of_trusting_a_stored_verdict(submission):
+    trial = make_trial(submission=submission, issue=None)  # stale record: no stored contract issue
+    grade = grade_trial(VOWELS, trial, runner_for(lambda case: pytest.fail("must not execute")))
+    assert not grade.success and grade.labels in {("contract_error",), ("syntax_error",)}
+    assert all(not c.executed for c in grade.cases)
+
+
 def test_ungradable_trial_status_is_rejected():
     with pytest.raises(ValueError, match="cannot grade"):
         grade_trial(VOWELS, make_trial("unknown"), runner_for(returned))
 
 
-def test_grading_never_passes_expected_answers_to_the_runner():
+def test_grading_runs_one_check_per_planned_case():
     seen = []
 
     def runner(source, task, case):
-        seen.append(case)
+        seen.append(case.id)
         return returned(case)
 
     grade_trial(VOWELS, make_trial(submission=GOOD), runner)
-    assert len(seen) == 4  # the runner sees cases only to read arguments; sandbox.run_case ignores expected
+    assert seen == [case.id for case in VOWELS.cases]
+
+
+def test_the_sandbox_boundary_receives_arguments_but_never_expected_answers(monkeypatch):
+    from codegen_eval import sandbox
+
+    calls = []
+
+    def fake_execute(source, function_name, args, limits):
+        calls.append((source, function_name, args, limits))
+        return ExecutionResult("returned", value=0, args_after=list(args))
+
+    monkeypatch.setattr(sandbox, "execute_check", fake_execute)
+    case = Case("c1", "edge", ("input",), "SECRET-EXPECTED-ANSWER")
+    sandbox.run_case(GOOD, VOWELS, case)
+
+    assert len(calls) == 1
+    assert "SECRET-EXPECTED-ANSWER" not in repr(calls)
+    assert calls[0][2] == ("input",)
 
 
 # --- real candidates in the sandbox ----------------------------------------------------
@@ -289,6 +341,7 @@ SANDBOX_FIXTURES = {
     "wrong_ordinary": (HEAD + "    return 0\n", False, [("wrong_answer",), ("wrong_answer",), (), ("wrong_answer",)], 4),
     "exception": (HEAD + "    raise ValueError('x')\n", False, [("exception",)] * 4, 4),
     "timeout": (HEAD + "    while True:\n        pass\n", False, [("timeout",)] * 4, 4),
+    "tuple_return": (HEAD + "    return tuple([0])\n", False, [("serialization_error",)] * 4, 4),
     "excessive_output": (HEAD + "    print('x' * 100000)\n    return 0\n", False, [("output_limit",)] * 4, 4),
 }
 
