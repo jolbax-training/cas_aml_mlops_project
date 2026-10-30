@@ -27,9 +27,20 @@ Residual difference from the laptop (macOS VM, Podman 6.1.4, SELinux, arm64): th
 | [41124321745](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41124321745) | `868410f` | `podman` failed in the sandbox tests |
 | [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |
 
-## Failure demonstration (task 2.2): pending
+## Failure demonstration (task 2.2)
 
-Not yet run on GitHub. Two throwaway branches break one fixture expectation each; the offline break should fail only `offline`, the sandbox break only `podman`. Run identifiers and results will be added here after the runs exist; nothing is claimed before then.
+Two throwaway branches, each one commit on top of `ef1186e` that breaks one fixture expectation. The breaking commits were never merged; the expectations on the real branch are unchanged.
+
+| Run | Branch / commit | Break | `offline` | `podman` |
+| --- | --- | --- | --- | --- |
+| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |
+| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |
+
+Each broken expectation failed only the group that owns it, with the offending test named in an annotation, as the "Broken grading behavior" scenario requires.
+
+## Rebased branch
+
+After the runs above, the branch was rebased onto `main` (which gained its own container-cleanup changes in `sandbox.py`: `rm -t 0`, bounded removal, pid-prefixed names). A GitHub run of the rebased branch is not yet recorded here.
 
 ## Required checks (task 2.3): pending
 

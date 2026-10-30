@@ -1,6 +1,6 @@
 # Tasks
 
-Tasks 1.1–1.3, 2.1 and 3.1 are done (green run 41128433037). 2.2 (failure demonstration, branches prepared), 2.3 (branch protection, a user step) and 3.2 (failure-demo run identifiers) remain. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
+All tasks except 2.3 are done (green run 41128433037; failure demonstrations in runs 41128978798 and 41128979150). 2.3 (branch protection) is a user step in GitHub settings. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
 
 ## 1. Workflow
 
@@ -11,10 +11,10 @@ Tasks 1.1–1.3, 2.1 and 3.1 are done (green run 41128433037). 2.2 (failure demo
 ## 2. Verification
 
 - [x] 2.1 Run the workflow and verify both groups pass with limits enforced on the runner; document any residual differences from the laptop environment.
-- [ ] 2.2 Demonstrate that deliberately breaking a fixture expectation fails the relevant group, then restore it.
+- [x] 2.2 Demonstrate that deliberately breaking a fixture expectation fails the relevant group, then restore it.
 - [ ] 2.3 Mark both groups as required checks and document how they are configured.
 
 ## 3. Evidence and documentation
 
 - [x] 3.1 Document runner, Podman, Python, dependency, and image versions plus how to reproduce each group locally.
-- [ ] 3.2 Record actual CI run identifiers, commit, and results in progress and register reviewed CI references for the work log; do not record CI success before it exists.
+- [x] 3.2 Record actual CI run identifiers, commit, and results in progress and register reviewed CI references for the work log; do not record CI success before it exists.
