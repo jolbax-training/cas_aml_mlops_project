@@ -78,9 +78,9 @@ def test_oversized_payload_is_rejected_before_any_container_starts(monkeypatch):
     monkeypatch.setattr(sandbox.subprocess, "Popen", forbidden)
     result = execute_check(VOWELS + "# " + "x" * 70_000, "count_vowels", ["a"])
 
-    assert result.status == "input_limit"
+    assert result.status == "payload_too_large"
     small = DEFAULT_LIMITS.__class__(payload_bytes=100)
-    assert execute_check(VOWELS, "count_vowels", ["x" * 200], small).status == "input_limit"
+    assert execute_check(VOWELS, "count_vowels", ["x" * 200], small).status == "payload_too_large"
 
 
 def test_entry_point_takes_no_expected_value_and_payload_contains_none(monkeypatch):

@@ -48,22 +48,43 @@ The system SHALL enforce configurable limits defaulting to a 10-second wall-time
 - **THEN** the outcome is classified as excessive output without unbounded capture
 
 ### Requirement: Trustworthy worker reporting
-The trusted side MUST NOT accept a candidate-forged worker response as a genuine result, and MUST detect input mutation even when candidate code attempts to conceal it. Host isolation passing MUST NOT be treated as evidence of scoring integrity. Source: issue 02 / Q18.
+The trusted side MUST NOT accept a candidate-forged worker response as a genuine result, and MUST detect input mutation that remains in the post-call arguments even when candidate code attempts to conceal it. Mutation is judged on net post-call state. The limitation that a candidate introspecting its own executor can still sign a report MUST stay documented. Host isolation passing MUST NOT be treated as evidence of scoring integrity. Source: issue 02 / Q18.
 
 #### Scenario: Forged worker response
 - **WHEN** a probe candidate writes a fabricated success message in the worker protocol format
 - **THEN** the trusted side does not record it as a passing result
 
 #### Scenario: Concealed mutation
-- **WHEN** a probe candidate mutates its inputs and tries to restore or hide the change before reporting
+- **WHEN** a probe candidate mutates its inputs and tries to hide a change that remains in the post-call arguments (for example by patching serialisation or returning a lying value)
 - **THEN** the outcome records mutation
 
+#### Scenario: Introspection-forged report
+- **WHEN** a probe candidate introspects its executor and signs a report itself
+- **THEN** the report can yield only outcomes reachable honestly, since expected answers never enter the container and mutation is judged on net state
+- **AND** the limitation is recorded in the threat model
+
+#### Scenario: Mutation fully undone before returning
+- **WHEN** a probe candidate mutates its inputs and restores them exactly before returning
+- **THEN** the outcome does not record mutation, because the post-call arguments equal the originals
+
 ### Requirement: Infrastructure outcomes are distinct
-The system SHALL classify container unavailability and broken worker protocols as infrastructure outcomes, distinct from candidate failures such as exceptions, timeouts, excessive output, and mutation. Source: issue 02 / Q19; issue 01 / Q16–Q17.
+The system SHALL classify container unavailability and malformed or missing output from the trusted supervisor (the container's PID 1) as infrastructure outcomes, distinct from candidate failures such as exceptions, timeouts, excessive output, and mutation. Because the candidate shares the executor process with the reporter, executor report and exit failures are candidate outcomes. Source: issue 02 / Q19; issue 01 / Q16–Q17.
 
 #### Scenario: Podman unavailable
 - **WHEN** a container cannot be started
 - **THEN** the outcome is an infrastructure failure rather than a candidate failure
+
+#### Scenario: Trivial correct candidate
+- **WHEN** a trivial correct candidate is executed in an environment
+- **THEN** the outcome is a returned result, guarding the executor itself
+
+#### Scenario: Missing or forged executor report
+- **WHEN** the executor report is missing, malformed, forged, or oversized, or the executor exits non-zero
+- **THEN** the outcome is a candidate outcome
+
+#### Scenario: Candidate disrupts the supervisor
+- **WHEN** a probe candidate signals PID 1, returns a deeply nested value, or forges a report holding NaN, overflowing, or expanding numbers
+- **THEN** the outcome is a candidate outcome and never an infrastructure outcome
 
 ### Requirement: Mandatory probes and threat model before live comparison
 The project SHALL provide probes for host files, host environment, network, read-only paths, timeout, excessive output, input mutation, forged worker responses, and concealed mutation, run them in every execution environment actually used, and document the threat model and residual limitations. A demonstrated scoring bypass MUST be resolved before live comparison results are trusted. Source: issue 02 / Q18, Q20.

@@ -12,7 +12,7 @@ import pytest
 
 from codegen_eval.evaluate import _score_case
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
-from codegen_eval.sandbox import execute_check, run_case
+from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, execute_check, run_case
 from codegen_eval.tasks import load_tasks
 
 
@@ -330,3 +330,85 @@ def test_exiting_without_a_report_is_a_candidate_outcome_not_infrastructure():
 
     assert exited.status == "protocol_violation"
     assert killed.status == "candidate_crash"
+
+
+# --- attribution: hostile behaviour must not become an infrastructure outcome ---
+
+def assert_candidate_outcome(source: str, expected_status: str):
+    case = UNIQUE.cases[0]
+    execution = run_case(source, UNIQUE, case)
+
+    assert execution.status == expected_status, execution
+    assert execution.status not in INFRASTRUCTURE_STATUSES
+    assert not set(_score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
+    return execution
+
+
+def test_a_trivial_correct_candidate_is_returned_so_the_executor_itself_is_sound():
+    source = f"{UNIQUE_HEAD}    return list(dict.fromkeys(items))\n"
+    execution = assert_candidate_outcome(source, "returned")
+
+    assert execution.value == [3, 1, 2]
+    assert trusted_failures(source) == ()
+
+
+@pytest.mark.parametrize("signal_name", ["SIGINT", "SIGTERM", "SIGHUP", "SIGUSR1", "SIGUSR2", "SIGQUIT", "SIGALRM", "SIGPIPE", "SIGCHLD", "SIGCONT"])
+def test_signals_sent_to_the_supervisor_do_not_disturb_the_check(signal_name):
+    execution = assert_candidate_outcome(f"""import os, signal, time
+{UNIQUE_HEAD}    os.kill(1, signal.{signal_name})
+    time.sleep(0.3)
+    return [3, 1, 2]
+""", "returned")
+
+    assert execution.value == [3, 1, 2]
+
+
+def test_deeply_nested_return_value_is_a_candidate_outcome():
+    assert_candidate_outcome(f"""import sys
+{UNIQUE_HEAD}    sys.setrecursionlimit(100000)
+    value = []
+    for _ in range(30000):
+        value = [value]
+    return value
+""", "serialization_error")
+
+
+def test_moderately_nested_return_value_is_a_candidate_outcome():
+    assert_candidate_outcome(f"""{UNIQUE_HEAD}    value = []
+    for _ in range(500):
+        value = [value]
+    return value
+""", "serialization_error")
+
+
+def test_print_overflow_followed_by_an_exception_is_output_limit():
+    assert_candidate_outcome(f"{UNIQUE_HEAD}    print('x' * 40000)\n    raise ValueError('late')\n", "output_limit")
+
+
+FORGE_PREFIX = f'''import sys
+{UNIQUE_HEAD}    emit = sys._getframe(1).f_locals["emit"]
+'''
+
+
+def test_forged_nan_report_is_a_candidate_outcome():
+    assert_candidate_outcome(
+        FORGE_PREFIX + '    emit(\'"status":"returned","value":NaN,"args_after":[[3,1,3,2,1]]\')\n',
+        "protocol_violation")
+
+
+def test_forged_overflowing_number_report_is_a_candidate_outcome():
+    assert_candidate_outcome(
+        FORGE_PREFIX + '    emit(\'"status":"returned","value":1e400,"args_after":[[3,1,3,2,1]]\')\n',
+        "protocol_violation")
+
+
+def test_forged_report_that_expands_when_reserialised_is_a_candidate_outcome():
+    assert_candidate_outcome(
+        FORGE_PREFIX + '    emit(\'"status":"returned","value":[\' + ",".join(["1E9"] * 12000) + \'],"args_after":[[3,1,3,2,1]]\')\n',
+        "output_limit")
+
+
+def test_forged_deeply_nested_report_is_a_candidate_outcome():
+    assert_candidate_outcome(
+        FORGE_PREFIX + '    emit(\'"status":"returned","value":\' + "[" * 30000 + "]" * 30000 + \',"args_after":[[3,1,3,2,1]]\')\n',
+        "protocol_violation")
