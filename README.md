@@ -33,6 +33,20 @@ The integration checks and isolation probes (`tests/test_sandbox_integration.py`
 
 As an optional learning exercise (not a delivery gate), inspect one expected failure in `tests/test_evaluate.py` before running it. Predict its task score, case score, and failure label. Then compare your prediction with the test result. Useful questions: Why does a syntax error produce four unexecuted cases? Why does a correct return value still fail after input mutation? What does the container protect, and what remains uncertain?
 
+## Bounded agent trial (API-free fixtures)
+
+One trial is a fresh conversation (`src/codegen_eval/trial.py`) that starts from the task instruction, typed signature, and the versioned prompt `src/codegen_eval/prompts/baseline_agent_v1.md`. The agent has one optional tool, `run_checks` (`src/codegen_eval/run_checks.py`): candidate source plus up to four agent-authored checks (`arguments`, `expected`), each executed in a fresh container through `execute_check` and compared in trusted code with the pilot's strict comparison and mutation detection. Feedback is per-check pass/fail, a bounded actual value, and bounded diagnostics; hidden cases are never read.
+
+Limits (`AgentLimits` in `agent_config.py`, hash recorded in each result): four logical model calls, three tool attempts, four checks per request. The fourth call is sent with tools disabled and must be final. The final assistant message is the submission: raw source validated by the existing contract and never repaired. Terminal states: `submitted` (a contract failure is recorded on the result), `no_submission` (labels `tool_request_when_disabled`, `empty_response`, `request_rejected`), and `infrastructure_incomplete` (container or worker-protocol failure). One response counts as one tool attempt however many tool calls it holds; only the first `run_checks` call runs.
+
+The controller talks to a `ModelClient` (`model_client.py`); `FixtureClient` replays the recorded responses in `tests/fixtures/agent/trials.json`. Run them offline, with no key or network:
+
+```sh
+.venv/bin/pytest -q tests/test_agent_trial.py tests/test_run_checks.py tests/test_model_client.py
+```
+
+These fixtures verify controller behaviour (tool handling, limits, stopping, classification). They do not measure live model quality; there is no live client yet.
+
 ## Pilot data and scoring boundary
 
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.

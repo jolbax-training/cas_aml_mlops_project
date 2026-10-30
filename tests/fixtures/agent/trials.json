@@ -1,0 +1,540 @@
+{
+  "early_submission": {
+    "responses": [
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "tool_use_and_revision": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    ""
+                  ],
+                  "expected": 0
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    ""
+                  ],
+                  "expected": 0
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "malformed_then_recovery": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": "{not json"
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "oversized_batch": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                },
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "fourth_call_submission": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t3",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "tool_request_on_call_4": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t3",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t4",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "empty_final_message": {
+    "responses": [
+      {
+        "content": null
+      }
+    ]
+  },
+  "request_rejected_on_call_3": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return 0\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "failure": "request_rejected",
+        "detail": "rendered request exceeds the 12,000 input-token limit"
+      }
+    ]
+  },
+  "multiple_tool_calls": {
+    "responses": [
+      {
+        "content": "trying both",
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          },
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    ""
+                  ],
+                  "expected": 0
+                }
+              ]
+            }
+          },
+          {
+            "id": "t3",
+            "name": "shell",
+            "arguments": "{}"
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "content_with_tool_call": {
+    "responses": [
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "fenced_final_source": {
+    "responses": [
+      {
+        "content": "```python\ndef count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n```"
+      }
+    ]
+  },
+  "prose_final_message": {
+    "responses": [
+      {
+        "content": "I believe the function counts vowels."
+      }
+    ]
+  },
+  "disallowed_construct_final": {
+    "responses": [
+      {
+        "content": "def helper():\n    pass\ndef count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "candidate_exception": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return text.missing_method()\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "tool_calls": [
+          {
+            "id": "t2",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "invalid_source_in_tool": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n  return (",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  },
+  "container_unavailable": {
+    "responses": [
+      {
+        "tool_calls": [
+          {
+            "id": "t1",
+            "name": "run_checks",
+            "arguments": {
+              "source": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n",
+              "checks": [
+                {
+                  "arguments": [
+                    "hello"
+                  ],
+                  "expected": 2
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "content": "def count_vowels(text: str) -> int:\n    return sum(1 for ch in text.lower() if ch in 'aeiou')\n"
+      }
+    ]
+  }
+}
