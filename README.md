@@ -47,6 +47,43 @@ The controller talks to a `ModelClient` (`model_client.py`); `FixtureClient` rep
 
 These fixtures verify controller behaviour (tool handling, limits, stopping, classification). They do not measure live model quality; there is no live client yet.
 
+## Run bundles, trace inspection, and grading replay
+
+Every recorded run is saved as a directory under `run_bundles/` (Git-ignored) before anything else consumes it:
+
+```
+run_bundles/<run_id>/
+  manifest.json          schema version, status, planned task/trial IDs, identity, record hashes
+  trials/<trial_id>.json requests, raw responses, messages, tool interactions, candidate drafts,
+                         final source, usage, reservation placeholder, grades
+  replays/<replay_id>.json   grading-replay evidence (separate; never overwrites the originals)
+```
+
+The manifest identity holds the prompt version and hash, benchmark version and file SHA-256, agent and execution limits with hashes, evaluator Git revision (`+dirty` if modified), Python and platform, the `uv.lock` hash, the pinned container image digest, and model settings. Records are written one trial at a time (temp file, then rename) and the manifest stores each record's SHA-256. A run that stops early keeps its finished records and an `incomplete` manifest. Request and response fields come from an allowlist, usage keeps numbers only, and any value of an environment variable named like a key, token, secret, password, credential, or auth (8+ characters) is replaced with `[REDACTED]`; no headers are stored.
+
+The code is not installed as a package, so run these from the repository root with `PYTHONPATH=src` (shown once):
+
+```sh
+# Fixture run (no model API). Add --grade to grade final sources in Podman.
+PYTHONPATH=src .venv/bin/python -m codegen_eval.run_recording --scenario tool_use_and_revision --task strings_01 --trials 2 --grade
+
+# Offline: needs no Podman, network, or credentials, and never executes code.
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect list
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect verify <run_id>
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect show <run_id> [--trial <trial_id>]
+
+# Grading replay: needs Podman, no model API and no credentials.
+PYTHONPATH=src .venv/bin/python -m codegen_eval.replay <run_id> [--benchmark data/benchmark_v1.json]
+```
+
+(`--bundles <dir>` selects another storage directory: before the subcommand for `trace_inspect`, after the run for `replay`.)
+
+**Grading replay is regrading, not reproduction.** It re-executes the saved final source of each trial against the hidden checks with the recorded execution limits and writes new evidence next to the original, linked to the manifest hash. It makes no model request and does not regenerate any conversation. It refuses a benchmark file whose hash differs from the one recorded, refuses bundles with tampered or unreadable records, and reports (does not reconcile) any difference between replay and original grades. Trials with no final source are listed as skipped.
+
+**Completeness** (`bundle.verify_bundle`, shown by `trace_inspect verify`) compares recorded trial IDs with the manifest's planned IDs rather than counting, checks each record against its stored hash and identity, validates executed-check outcomes, and flags infrastructure stops. It reports `missing_record`, `tampered_record`, `unexpected_record`, `infrastructure_stop`, `invalid_grade`, and similar problems; planned denominators are never reduced. Hashes detect edits and corruption, not someone who rewrites a record and the manifest together: record the printed bundle digest elsewhere to anchor it. This is the single owner of the record-level check; outcome classification and headline exclusion belong to the benchmark and grading change.
+
+The grading side plugs in through `bundle.Grader` (`(task_id, source) -> [CheckGrade]`) and `bundle.grades_record`; until a grader fills them, each trial's grades are `{"status": "pending"}`. `replay.make_grader` is a grader over the current `evaluate_task`.
+
 ## Pilot data and scoring boundary
 
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.
