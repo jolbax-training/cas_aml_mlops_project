@@ -31,7 +31,7 @@ def test_ordinary_failure_remains_visible_alongside_passing_cases():
     result = evaluate_task(TASKS[0], VOWELS, runner)
 
     assert not result.passed
-    assert result.cases[0].failures == ("wrong_answer",)
+    assert result.cases[0].failures == ("exception",)
     assert count_results([result]).cases_passed == 3
     assert count_results([result]).edge_cases_passed == 2
 
