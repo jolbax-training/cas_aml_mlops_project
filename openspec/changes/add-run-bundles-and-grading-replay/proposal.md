@@ -24,7 +24,7 @@ None. The main capability inventory is empty.
 
 ## Impact
 
-New persistence and CLI modules under `src/codegen_eval/`, a bundle directory outside version control (exact layout and command names are bounded implementation choices to document), `.gitignore` coverage verification, and focused tests. MLflow upload is in `add-local-mlflow-tracking`; CI automation is in `add-deterministic-ci`; the API-free interaction fixtures belong to `add-bounded-agent-loop`.
+New persistence and CLI modules under `src/codegen_eval/` (plus a bounded fix to the container cleanup in `sandbox.py`, see design decision 6), a bundle directory outside version control (exact layout and command names are bounded implementation choices to document), `.gitignore` coverage verification, and focused tests. MLflow upload is in `add-local-mlflow-tracking`; CI automation is in `add-deterministic-ci`; the API-free interaction fixtures belong to `add-bounded-agent-loop`.
 
 Completion evidence: a fixture-driven run writes a complete bundle; inspection works with Podman and network unavailable; grading replay of known candidates reproduces recorded grades as separate evidence; tests show secrets are excluded and incomplete runs are flagged. Nothing here is implemented.
 

@@ -155,6 +155,21 @@ def test_redaction_works_on_values_so_numbers_and_escapes_stay_valid(tmp_path):
     assert record["messages"][0]["content"] == "key [REDACTED] and [REDACTED]"
     manifest = bundle.load_manifest(tmp_path / "run-r")
     assert manifest["redactions"] == 2 and writer.finish().missing() == ()
+    assert bundle.load_manifest(tmp_path / "run-r")["redactions"] == 2  # not recounted by later saves
+
+
+def test_redaction_counter_counts_identity_once_and_finish_returns_the_final_digest(tmp_path):
+    secret = "identity-secret-123"
+    writer = bundle.BundleWriter(tmp_path, "run-d", [{"task_id": "t", "trial_id": "t-t1"}],
+                                 {"model": {"note": secret}}, extra_secrets=[secret])
+    writer.append_call("t-t1", {"event": "request", "request": {"messages": [{"content": secret}]}})
+    writer.write_trial({"trial_id": "t-t1", "task_id": "t", "messages": [{"content": secret}]})
+    result = writer.finish()
+
+    manifest = bundle.load_manifest(tmp_path / "run-d")
+    assert manifest["redactions"] == 3 and secret not in (tmp_path / "run-d" / "manifest.json").read_text()
+    assert result.bundle_digest == bundle.sha256_file(tmp_path / "run-d" / "manifest.json")
+    assert result.bundle_digest == verify_bundle(tmp_path / "run-d").bundle_digest
 
 
 def test_secret_name_pattern_is_anchored_and_skips_non_secrets(monkeypatch):
@@ -593,6 +608,21 @@ def test_replay_makes_no_network_call_and_never_stores_the_key(good, tmp_path):
     assert result.returncode == 0, result.stderr
     evidence = Path(result.stdout.strip()).read_text()
     assert sentinel not in evidence
+
+
+def test_replay_reports_an_environment_difference_with_both_values(good, local_runner):
+    manifest = bundle.load_manifest(good)
+    manifest["identity"]["container_image"] = "docker.io/library/python@sha256:" + "0" * 64
+    manifest["identity"]["execution_limits"]["hash"] = "f" * 64
+    (good / "manifest.json").write_text(json.dumps(manifest))
+
+    _, evidence = replay_bundle(good, BENCHMARK, runner=local_runner)
+
+    differences = evidence["environment_differences"]
+    assert differences["container_image"] == {"original": "docker.io/library/python@sha256:" + "0" * 64,
+                                              "replay": sandbox.IMAGE}
+    assert differences["execution_limits_hash"]["original"] == "f" * 64
+    assert differences["execution_limits_hash"]["replay"] != "f" * 64
 
 
 def test_replay_refuses_a_matching_benchmark_whose_freeze_differs(good, tmp_path, local_runner):

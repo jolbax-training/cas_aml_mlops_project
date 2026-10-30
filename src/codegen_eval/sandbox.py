@@ -116,10 +116,13 @@ def _oom_killed(name: str) -> bool:
     return result.returncode == 0 and result.stdout.strip() == b"true"
 
 
+CLEANUP_SECONDS = 30  # total budget for verified removal; a late attempt may overrun it by ~15 s
+
+
 def _container_exists(name: str) -> bool:
     try:
         result = subprocess.run(["podman", "container", "exists", name],
-                                capture_output=True, timeout=10, check=False)
+                                capture_output=True, timeout=5, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return True  # cannot tell: assume it is still there
     return result.returncode == 0
@@ -135,17 +138,24 @@ def _remove_container(name: str, *, retry: bool) -> None:
 
     `-t 0` kills at once. Without it `rm -f` sends SIGTERM and waits ten seconds before
     SIGKILL, and the supervisor is PID 1 and ignores SIGTERM; the five-second subprocess
-    timeout then abandoned the client mid-stop and left the container in `Stopping`."""
-    for attempt in range(10 if retry else 1):
-        if attempt:
-            time.sleep(0.5)
+    timeout then abandoned the client mid-stop and left the container in `Stopping`.
+
+    The retries share one time budget (`CLEANUP_SECONDS`), so an unresponsive Podman costs
+    a few tens of seconds at most, not a number of attempts times their timeouts."""
+    end = time.monotonic() + CLEANUP_SECONDS
+    while True:
         try:
             subprocess.run(["podman", "rm", "-f", "-t", "0", "--ignore", name],
-                           capture_output=True, timeout=15, check=False)
+                           capture_output=True, check=False,
+                           timeout=max(min(10, end - time.monotonic()), 1))
         except (OSError, subprocess.TimeoutExpired):
-            continue
-        if retry and not _container_exists(name):
+            pass
+        else:
+            if not retry or not _container_exists(name):
+                return
+        if not retry or time.monotonic() >= end:
             return
+        time.sleep(0.5)
 
 
 CREATE_GRACE_SECONDS = 60  # cleanup allowance for a creation still running at the deadline

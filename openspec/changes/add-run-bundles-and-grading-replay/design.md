@@ -34,6 +34,10 @@ A command loads a bundle's final candidates and the benchmark version it referen
 
 A check compares recorded trial IDs against the manifest's planned IDs and validates that executed checks have valid outcomes. Missing records or infrastructure/transport/budget stops mark the run incomplete; denominators stay at planned values. This change is the single owner of the completeness check; `add-reviewed-benchmark-and-graders` consumes its result and owns accounting/classification and headline exclusion.
 
+### 6. Footprint outside the new modules
+
+Producing this change's own sandbox evidence exposed an intermittent container leftover in `sandbox.py`, whose owning change is archived. It was fixed here and is recorded so the branch is not mistaken for purely additive: `podman create` is a separate step before `podman start --attach --interactive` (so cleanup never races a creation a killed client left in flight); removal uses `rm -f -t 0` (the PID 1 supervisor ignores SIGTERM) and is verified with `podman container exists` within one bounded time budget; container names carry the process ID so concurrent sessions on one Podman VM do not see each other's containers. `tests/test_isolation_probes.py` filters on that prefix with its assertions unchanged; `tests/test_execution_limits.py` pins the new behaviour. Evidence is in docs/progress.md.
+
 ## Risks / Trade-offs
 
 - Bundle schema churn during day 1–3 → include a schema version in the manifest; replay refuses unknown versions with a clear message.

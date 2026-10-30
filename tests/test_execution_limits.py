@@ -196,6 +196,21 @@ def test_container_removal_kills_immediately_and_verifies_it_is_gone(monkeypatch
                         ["podman", "container", "exists", "codegen-eval-x"]]
 
 
+def test_cleanup_is_time_bounded_when_podman_is_unresponsive(monkeypatch):
+    clock = {"now": 0.0}
+
+    def fake_run(command, **kwargs):
+        clock["now"] += kwargs["timeout"]
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    monkeypatch.setattr(sandbox.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(sandbox.time, "sleep", lambda seconds: clock.__setitem__("now", clock["now"] + seconds))
+    sandbox._remove_container("codegen-eval-x", retry=True)
+
+    assert sandbox.CLEANUP_SECONDS <= clock["now"] <= sandbox.CLEANUP_SECONDS + 15
+
+
 def test_container_is_created_before_it_is_started(monkeypatch):
     seen = []
 

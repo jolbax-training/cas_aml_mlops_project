@@ -296,7 +296,9 @@ class BundleWriter:
         if not ids or len(set(ids)) != len(ids):
             raise BundleError("planned trials must be a non-empty list of unique trial ids")
         self._secrets = secret_values(extra_secrets)
-        self._redactions = 0
+        # Redact the identity once; the manifest then holds the clean copy, so saving it
+        # again never recounts, and the counter covers every replacement made in the bundle.
+        clean_identity, self._redactions = redact_value(dict(identity), self._secrets)
         self._manifest: dict[str, Any] = {
             "schema_version": BUNDLE_SCHEMA_VERSION,
             "run_id": self.run_id,
@@ -306,7 +308,7 @@ class BundleWriter:
             "reasons": [],
             "redactions": 0,  # secret values replaced anywhere in this bundle's records
             "planned": [{"task_id": p["task_id"], "trial_id": p["trial_id"]} for p in planned],
-            "identity": dict(identity),
+            "identity": clean_identity,
             "records": {},
         }
         self._save_manifest()
@@ -319,7 +321,8 @@ class BundleWriter:
     def _save_manifest(self) -> None:
         self._manifest["updated_at"] = utc_now()
         self._manifest["redactions"] = self._redactions
-        atomic_write(self.path / "manifest.json", self._dump(self._manifest))
+        clean, _ = redact_value(self._manifest, self._secrets)  # e.g. reasons; not recounted
+        atomic_write(self.path / "manifest.json", _canonical(clean))
 
     def _calls_path(self, trial_id: str) -> Path:
         return self.path / "trials" / f"{_check_id(trial_id, 'trial id')}.calls.jsonl"
@@ -361,7 +364,8 @@ class BundleWriter:
         if reasons:  # e.g. an interrupt: record-level checks alone could look clean
             result = replace(result, problems=result.problems + tuple(
                 Problem(RUN_STOPPED, reason) for reason in reasons))
-        return result
+        # The digest to record elsewhere is that of the manifest as finally saved.
+        return replace(result, bundle_digest=sha256_file(self.path / "manifest.json"))
 
 
 def write_replay(bundle_dir: str | Path, evidence: Mapping[str, Any]) -> Path:

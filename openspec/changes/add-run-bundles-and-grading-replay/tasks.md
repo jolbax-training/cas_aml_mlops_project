@@ -18,3 +18,7 @@ Planned for day 1 (bundles/regrading, 2h), after the execution boundary and agen
 
 - [x] 3.1 Document the bundle location/layout and exact inspection/replay commands in README, labelling replay as regrading rather than reproduction.
 - [x] 3.2 Run a fixture-driven run, inspection, and replay of known candidates; record commands and observed results in docs/progress.md.
+
+## 4. Shared sandbox cleanup (found while producing this change's evidence)
+
+- [x] 4.1 Make container cleanup deterministic in `src/codegen_eval/sandbox.py` (create then start, `rm -f -t 0`, verified absence within a bounded time budget, per-process container names) and scope the timeout probe to its own containers; record root causes and five consecutive green sandbox runs in docs/progress.md.
