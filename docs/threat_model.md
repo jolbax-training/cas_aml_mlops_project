@@ -18,7 +18,7 @@ Arbitrary Python (standard library only passes `validate_source`, but probes byp
 
 ## Protections
 
-- **Fresh container per check**, uniquely named, removed explicitly after the check (no `--rm`, so `State.OOMKilled` can be read first; cleanup is outside the deadline (cleanup is outside the deadline; late-created containers are retried).
+- **Fresh container per check**, uniquely named, removed explicitly after the check (no `--rm`, so `State.OOMKilled` can be read first). Cleanup is outside the deadline, and late-created containers are retried.
 - **No inputs beyond source, function name, and one check's arguments.** `execute_check` has no expected-value parameter; a unit test inspects the payload. Comparison runs in `evaluate.py`.
 - **Container flags:** `--network=none`, `--read-only`, no extra tmpfs, `--cap-drop=ALL`, `no-new-privileges`, user 65534, no mounts/secrets/env files/devices/host namespaces, no Podman socket; only `HOME=/tmp` in the environment. Writable `/tmp` is `noexec` and 16 MiB.
 - **Limits** (`ExecutionLimits`, hashable and serialisable): 10 s deadline from process start including container startup and code loading; 128 MiB memory (swap equal); 1 CPU; 32 processes; 64 KiB source-plus-arguments rejected before any container starts; 32 KiB print output (counted for `print`, `sys.stderr`, and raw descriptor writes); 64 KiB worker report.

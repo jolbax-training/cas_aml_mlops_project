@@ -435,8 +435,10 @@ def test_candidate_induced_container_oom_is_never_infrastructure(source):
     case = UNIQUE.cases[0]
     execution = run_case(source, UNIQUE, case)
 
-    # The OOM killer may take the children (returned) or the supervisor (candidate_crash).
-    assert execution.status in {"returned", "candidate_crash"}, execution
+    # Depending on which process the OOM killer takes, the check may end as returned,
+    # candidate_crash, or timeout; all are candidate outcomes.
+    assert execution.status in {"returned", "candidate_crash", "timeout"}, execution
+    assert execution.status not in INFRASTRUCTURE_STATUSES
     assert not set(_score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
 
 
