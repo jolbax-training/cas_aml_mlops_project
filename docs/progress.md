@@ -54,6 +54,13 @@ Runtime observations above are from the earlier read-only exploration in this co
 3. Review/freeze the ten-task benchmark; implement the model interface, verified token/cost reservations, retry accounting, and retained functional smoke. Add the HTML foundation.
 4. Integrate local containerized MLflow and deterministic CI, complete both comparison runs, and finish the report, transfer guide, and demo. Exact commands are documented as implemented, not invented in advance.
 
+## 2026-10-30 — Transfer guide and research-coordinator example drafted
+
+- **Delivered:** [Evaluation design guide](evaluation_design_guide.md) and [research coordinator example](research_coordinator_example.md) (design only; six scenarios).
+- **Status:** The orchestrator was not built or executed, no independent verification occurred, and no judge is calibrated. All traces are labelled illustrative and all graders/rubrics proposed. The OpenRouter research appears only as a provenance-labelled evidence fixture.
+- **Pending:** Registering both documents as sources once the work-log builder exists; the student's own review/reflection.
+- **Evidence:** The two documents and `openspec validate add-evaluation-design-guide --strict`; documentation only, no code or runtime change.
+
 ## Historical decisions
 
 The following October 16 entries preserve their original context. Their four-week schedule, one-candidate-per-task experiment, reflection/understanding gate, and no-remote statements are superseded above; no dates or personal reflections have been rewritten.
