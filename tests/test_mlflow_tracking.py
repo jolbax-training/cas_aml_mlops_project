@@ -1,6 +1,7 @@
 """Recording retained bundles in MLflow, against a temporary SQLite store (no service, no
 Podman, no model client). The Podman service tests are in test_mlflow_service_integration.py."""
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -9,10 +10,13 @@ from pathlib import Path
 
 import pytest
 
+HAVE_MLFLOW = importlib.util.find_spec("mlflow") is not None
 if os.environ.get("CODEGEN_EVAL_REQUIRE_TRACKING") == "1":  # CI: a missing client is a failure
     import mlflow  # noqa: F401
-else:
-    pytest.importorskip("mlflow", reason="needs `uv sync --group tracking` (MLflow client)")
+# A per-test skip mark, not a module-level skip: a module-level skip is reported even when
+# the module's tests are deselected, which would make the podman job's no-skip check fail.
+pytestmark = pytest.mark.skipif(not HAVE_MLFLOW,
+                                reason="needs `uv sync --group tracking` (MLflow client)")
 
 from codegen_eval import bundle, mlflow_tracking as mt, sandbox
 from codegen_eval.bundle import BundleError
