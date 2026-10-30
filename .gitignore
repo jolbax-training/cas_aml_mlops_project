@@ -37,6 +37,7 @@ credentials*.json
 /mlruns/
 /mlartifacts/
 /mlflow.db*
+/mlflow_data/
 /mlflow.sqlite*
 /report/
 *.log

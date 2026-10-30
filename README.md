@@ -86,6 +86,40 @@ PYTHONPATH=src .venv/bin/python -m codegen_eval.replay <run_id> [--benchmark dat
 
 The grading side plugs in through `bundle.Grader`, which is exactly `evaluate.grade_trial`: `(Task, TrialResult) -> TrialGrade`, called for every trial including `no_submission` and `infrastructure_incomplete`. `bundle.grades_record` stores the `TrialGrade` (status `graded` or `incomplete`, trial `labels`, `success`, `infrastructure_status`, and per check `id`, `kind`, `executed`, `passed`, `failures`, `actual`); until a grader is given, grades are `{"status": "pending"}`. `replay.make_grader(runner)` binds `grade_trial` to a case runner.
 
+## Local MLflow tracking (Podman) and recording bundles
+
+MLflow is a navigable *secondary* record. The run bundle stays the primary evidence, is written first, and the agent and evaluator never import or call MLflow, so a run completes with the service stopped. Only `src/codegen_eval/mlflow_tracking.py` uses the MLflow client (version locked in `uv.lock`: MLflow 3.17.2); it reads one verified bundle and makes no model call and needs no credentials.
+
+**Service** (`scripts/mlflow_service.sh`): image `ghcr.io/mlflow/mlflow@sha256:1a8e9dba1e19431f175f6d28aac94b0d5790e0c9a9d05d1205c6054bbd3085ac` (the v3.17.2 index digest), published only on `127.0.0.1:5000`, with the SQLite backend store and the artifact store under `./mlflow_data/` (Git-ignored, on the host, so it outlives the container). The server proxies artifacts, so clients upload over HTTP and need no filesystem access to that directory. Override `MLFLOW_PORT`, `MLFLOW_DATA_DIR`, `MLFLOW_CONTAINER_NAME`, or `MLFLOW_IMAGE` (keep it pinned by digest) with environment variables.
+
+```sh
+podman pull ghcr.io/mlflow/mlflow@sha256:1a8e9dba1e19431f175f6d28aac94b0d5790e0c9a9d05d1205c6054bbd3085ac
+scripts/mlflow_service.sh start      # create or start the container, wait for /health
+scripts/mlflow_service.sh status     # exit 0 only if running and healthy
+scripts/mlflow_service.sh stop       # stop; container and data kept
+scripts/mlflow_service.sh restart
+scripts/mlflow_service.sh logs
+scripts/mlflow_service.sh down       # remove the container; data kept in ./mlflow_data
+open http://127.0.0.1:5000           # the MLflow UI (macOS)
+```
+
+**Recording** (idempotent; run from the repository root):
+
+```sh
+PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking record <run_id> [--bundles run_bundles] [--tracking-uri http://127.0.0.1:5000] [--experiment codegen-eval-runs]
+PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking status      # recorded / not_recorded per bundle
+```
+
+What is written for one bundle: an MLflow run named after the run ID, tagged with the bundle identity (`codegen_eval.bundle_run_id`, `codegen_eval.bundle_digest` = SHA-256 of `manifest.json`), benchmark version/hash, prompt version/hash, evaluator revision, completion status, and `codegen_eval.headline_candidate` (true only for a complete, fully graded run, so an incomplete run is visible as incomplete and is not a headline comparison); the flattened manifest identity as parameters (model settings, limits, hashes, image digest); metrics with the full planned denominator (`success_rate` = successful trials / planned trials, check and edge-check counts, grades pending/incomplete, model calls, tool attempts, summed numeric usage, failure labels, and `trial/<id>/...` per trial); artifacts under `bundle/` (manifest, summary, every trial record, and `grading/<trial_id>.json` grading evidence); and one trace per trial. A trial trace has an `AGENT` root with a `CHAT_MODEL` span per logical model call (request, response, usage, tools enabled), a `TOOL` span per `run_checks` attempt (arguments and the bounded feedback the model saw), `contract_failure` where one happened, and a final `submission` span (the final source or the `no_submission` outcome). Hidden case inputs, expected answers, and grades are not in the trace; they are separate artifacts. Spans carry upload-time timestamps because the bundle keeps no per-event times; their order is a `step` attribute. Physical attempts/retries become child spans only if the record's `attempts` entries carry an integer `call` field; the budget/client change has not defined that schema yet, so this is unexercised on real data.
+
+**Grading replays** under `replays/` are recorded as separate runs nested under the original (`mlflow.parentRunId`), tagged `record_kind=grading_replay`, `agent_trial=false`, `headline_candidate=false`, with the replay's metrics and evidence as an artifact, and a tag stating whether its linked manifest hash matches the bundle. They never carry a trace and never alter the original run.
+
+**Re-recording and outages.** Identity is run ID plus bundle digest. Recording the same identity again finds the finished run and changes nothing (`already recorded (unchanged)`); a bundle whose manifest changed (possible only before it is finalized) is a different identity with its own run. An upload that died part-way has no `codegen_eval.upload_complete` tag; the next attempt deletes that partial run and its traces and rebuilds from the bundle. If the service is down, `record` exits 3 with `not yet recorded`, the bundle is untouched, and `<bundle>/tracking.json` (outside the hashed bundle) says `not_recorded`; rerun the same command later. Every uploaded value is passed through the bundle redaction again using the current environment's secret-named variables (the count is tagged `codegen_eval.redactions_at_upload`). If MLflow ever drops a trace, the upload fails instead of reporting success.
+
+**Isolation.** Candidate containers run with `--network=none`, publish nothing, mount nothing, and receive only `HOME=/tmp`; the tracking endpoint is never passed to them. Tests assert those flags and, with Podman, that a container with the sandbox's flags cannot reach the running service while a control container with a network can.
+
+Tests: `tests/test_mlflow_tracking.py` runs offline against a temporary SQLite store. `tests/test_mlflow_service_integration.py` (marked `sandbox`, needs Podman and the pinned image) starts the real service on a free port with temporary storage and checks persistence across `restart` and container removal, idempotent re-upload, outage then later upload, and candidate isolation.
+
 ## Pilot data and scoring boundary
 
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.
