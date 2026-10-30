@@ -614,7 +614,7 @@ def run_variant(
     through `client_for` (which, for a paid run, reserves in the ledger before every send).
 
     Raises `PreconditionsFailed`, before any client is built or bundle written, unless every
-    precondition holds. `record_run(bundle, variant)` is the experiment-tracking hook (MLflow);
+    precondition holds. `record_run(bundle, variant)` is the experiment-tracking hook;
     its failure or absence never affects the bundle, which stays the durable evidence, and its
     outcome is stated in `VariantRun.tracking`."""
     failures = check_preconditions(

@@ -141,7 +141,7 @@ Commands (`PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli ...`; 
 
 `compare` reports each variant's primary rate (successful task trials / 30 planned), hidden-check and edge-case rates, per-task and per-category results, tasks passing at least one and all three trials, failure labels, tool attempts, revisions, observed recovery, latency, tokens, and reported/charged/reserved cost. It computes differences only when both runs are complete, graded and identical apart from the prompt; otherwise it prints the figures labelled "NOT a headline comparison" with the reasons, keeps the planned denominators, and exits non-zero. It draws no conclusion; the write-up and keep/reject decision stay with the later tasks.
 
-MLflow: `run_variant` takes an optional `record_run(bundle, variant)` hook. None is wired yet; a missing or failing hook never blocks or alters a run, and the bundles remain the evidence to upload later.
+MLflow: after a variant's bundle is written and checked against the schedule, `run` records it with `mlflow_tracking.record_bundle` (`mlflow_tracking.bundle_recorder`; `--tracking-uri`, default `$MLFLOW_TRACKING_URI` or `http://127.0.0.1:5000`; `--no-tracking` skips it; needs `uv sync --group tracking`). Re-recording the same bundle changes nothing, and an incomplete run is recorded labelled incomplete and not a headline candidate. If the service is down or the client is missing, the run still completes, the bundle's `tracking.json` marker says `not_recorded` with the error, and `python -m codegen_eval.mlflow_tracking record <run>` uploads it later without regenerating anything.
 
 ## Pilot data and scoring boundary
 

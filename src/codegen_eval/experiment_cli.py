@@ -96,6 +96,10 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
         p.add_argument("--smoke-bundle")
         p.add_argument("--i-accept-cost", action="store_true",
                        help="required: confirms this command spends real money")
+        p.add_argument("--tracking-uri", help="MLflow URI for recording the finished bundle "
+                       "(default: $MLFLOW_TRACKING_URI, else http://127.0.0.1:5000)")
+        p.add_argument("--no-tracking", action="store_true",
+                       help="skip recording; upload later with codegen_eval.mlflow_tracking")
         p.add_argument("--allow-rerun", action="store_true",
                        help="start a variant that already has a run (spends again; record the decision)")
     cmp_ = sub.add_parser("compare", help="primary metric and diagnostics for two runs (offline)")
@@ -170,6 +174,9 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
                                          "variant": args.variant, "task_id": task.id,
                                          "trial_id": trial_id}, **kwargs)
 
+    if record_run is None and not args.no_tracking:
+        from codegen_eval.mlflow_tracking import bundle_recorder
+        record_run = bundle_recorder(args.tracking_uri)
     try:
         result = run_variant(config, args.variant, client_for, runner=runner, grader=grader,
                              record_run=record_run, **options)

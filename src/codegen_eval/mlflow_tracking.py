@@ -628,6 +628,32 @@ def read_sidecar(bundle_dir: Path) -> dict[str, Any]:
         return {"status": "unreadable"}
 
 
+def bundle_recorder(tracking_uri: str | None = None, *, experiment: str | None = None,
+                    client: Any = None) -> Any:
+    """A `record_run(bundle, label) -> str` hook for runners (the experiment runner's).
+
+    The verified bundle is recorded once (re-recording changes nothing). If the service is
+    down, the client is not installed, or the bundle cannot be recorded, the hook keeps the
+    outage marker (`tracking.json`, status `not_recorded`) for a later
+    `python -m codegen_eval.mlflow_tracking record <run>` and returns a message; it never
+    raises, blocks, or regenerates anything, and needs no model call or credential."""
+    def record(bundle: str | Path, label: str = "") -> str:
+        path = Path(bundle)
+        uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_TRACKING_URI)
+        try:
+            result = record_bundle(path, uri, experiment=experiment or DEFAULT_EXPERIMENT,
+                                   client=client)
+        except (TrackingUnavailable, ImportError, BundleError) as error:
+            reason = ("MLflow client not installed (uv sync --group tracking)"
+                      if isinstance(error, ImportError) else str(error))
+            write_sidecar(path, {"status": "not_recorded", "tracking_uri": uri,
+                                 "last_error": reason, "last_attempt_at": utc_now()})
+            return (f"not recorded: {reason}; upload later with: "
+                    f"python -m codegen_eval.mlflow_tracking record {path}")
+        return f"recorded: MLflow run {result.run_id} at {uri}"
+    return record
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Record retained run bundles in local MLflow "
                                                  "(no model API, no credentials).")

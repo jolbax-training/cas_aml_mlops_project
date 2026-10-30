@@ -360,10 +360,11 @@ def test_candidate_containers_have_no_network_or_tracking_configuration():
 
 def test_agent_and_evaluator_modules_do_not_depend_on_the_tracking_service():
     """Execution must complete with MLflow stopped (or not installed): only the recorder
-    module may import it."""
+    module may import it. The experiment CLI is the one trusted runner that wires the recorder
+    in (lazily, only for a paid `run`); the experiment and agent logic stay free of it."""
     sources = {p.name: p.read_text() for p in (ROOT / "src" / "codegen_eval").glob("*.py")}
     offenders = [n for n, text in sources.items()
-                 if n != "mlflow_tracking.py" and ("mlflow" in text.lower())]
+                 if n not in ("mlflow_tracking.py", "experiment_cli.py") and ("mlflow" in text.lower())]
     assert offenders == []
 
 
