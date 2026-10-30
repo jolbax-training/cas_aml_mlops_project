@@ -1,0 +1,174 @@
+import json
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+
+from codegen_eval import bundle
+from codegen_eval.bundle import load_partial_calls, load_trial, verify_bundle
+from codegen_eval.ledger import Ledger
+from codegen_eval.openrouter_cli import main
+from codegen_eval.openrouter_client import OpenRouterClient
+from codegen_eval.openrouter_config import ModelConfig
+from codegen_eval.run_checks import TOOL_SCHEMA
+from codegen_eval.run_recording import run_recorded
+from codegen_eval.tasks import load_benchmark
+from openrouter_support import (
+    KEY, PRICES, TIMEOUT, FakeTransport, error_reply, ledger_events, reply, tool_call,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+BENCHMARK = ROOT / "data" / "benchmark_v1.json"
+TASK = load_benchmark(BENCHMARK)[0]
+SOURCE = "def count_vowels(s: str) -> int:\n    return sum(c in 'aeiou' for c in s.lower())\n"
+CALL = tool_call(json.dumps({"source": SOURCE, "checks": [{"arguments": ["abc"], "expected": 1}]}))
+
+
+def pricing_file(tmp_path):
+    path = tmp_path / "prices.json"
+    path.write_text(json.dumps(PRICES.to_dict()))
+    return str(path)
+
+
+def smoke_args(tmp_path, *extra):
+    return ["smoke", "--pricing", pricing_file(tmp_path), "--ledger", str(tmp_path / "l.jsonl"),
+            "--bundles", str(tmp_path / "bundles"), "--task", TASK.id, *extra]
+
+
+def test_smoke_refuses_without_the_cost_flag_and_makes_no_call_or_file(tmp_path, capsys):
+    transport = FakeTransport()
+
+    code = main(smoke_args(tmp_path), env={"OPENROUTER_API_KEY": KEY}, transport=transport)
+
+    assert code == 2 and "--i-accept-cost" in capsys.readouterr().err
+    assert transport.calls == [] and not (tmp_path / "l.jsonl").exists()
+    assert not (tmp_path / "bundles").exists()
+
+
+def test_smoke_refuses_without_an_api_key(tmp_path, capsys):
+    transport = FakeTransport()
+
+    for env in ({}, {"OPENROUTER_API_KEY": ""}):
+        assert main(smoke_args(tmp_path, "--i-accept-cost"), env=env, transport=transport) == 2
+    assert "OPENROUTER_API_KEY" in capsys.readouterr().err
+    assert transport.calls == [] and not (tmp_path / "bundles").exists()
+
+
+def test_smoke_refuses_without_complete_price_inputs(tmp_path, capsys):
+    path = tmp_path / "prices.json"
+    path.write_text((ROOT / "docs" / "openrouter_pricing.example.json").read_text())
+    args = ["smoke", "--pricing", str(path), "--i-accept-cost", "--ledger", str(tmp_path / "l")]
+
+    assert main(args, env={"OPENROUTER_API_KEY": KEY}, transport=FakeTransport()) == 2
+    assert "chf_per_usd" in capsys.readouterr().err
+
+
+def test_smoke_with_a_fake_transport_runs_through_ledger_and_bundle(tmp_path, inprocess_runner,
+                                                                    capsys):
+    transport = FakeTransport(reply(None, tool_calls=[CALL]), reply(SOURCE))
+
+    code = main(smoke_args(tmp_path, "--i-accept-cost"), env={"OPENROUTER_API_KEY": KEY},
+                transport=transport, runner=inprocess_runner)
+
+    out = capsys.readouterr().out
+    assert code == 0 and "complete=True" in out and "provider=OpenInference" in out
+    assert [c["body"]["tool_choice"] for c in transport.calls] == ["auto", "auto"]
+    (run,) = (tmp_path / "bundles").iterdir()
+    trial = load_trial(run, f"{TASK.id}-t1")
+    assert trial["status"] == "submitted" and trial["model_calls"] == 2
+    assert [a["call"] for a in trial["attempts"]] == [1, 2]
+    assert trial["reservation"]["attempts_reserved"] == 2 and trial["latency_ms"] is not None
+    assert trial["usage"]["prompt_tokens"] == 2000
+    manifest = bundle.load_manifest(run)
+    assert manifest["identity"]["model"]["config_hash"] == ModelConfig().config_hash()
+    assert KEY not in "".join(f.read_text() for f in run.rglob("*") if f.is_file())
+    assert KEY not in (tmp_path / "l.jsonl").read_text() and KEY not in out
+    state = Ledger(tmp_path / "l.jsonl").state()
+    assert state.reserved == 0 and state.committed == Decimal("0.0004") * PRICES.chf_per_usd
+
+
+def make_run(tmp_path, transport, ledger, runner, trials=2, run_id="run-x"):
+    config = ModelConfig()
+
+    def client_for(task, trial_id):
+        return OpenRouterClient(config, PRICES, ledger, KEY, transport,
+                                tool_definitions=(TOOL_SCHEMA,), sleep=lambda s: None,
+                                context={"trial_id": trial_id})
+
+    return run_recorded([TASK], client_for, BENCHMARK, bundle_root=tmp_path / "b",
+                        run_id=run_id, trials_per_task=trials, runner=runner,
+                        model_settings=config.identity())
+
+
+def test_physical_attempts_including_retries_are_stored_in_the_trial_record(tmp_path,
+                                                                            inprocess_runner):
+    transport = FakeTransport(TIMEOUT, reply(SOURCE))
+    ledger = Ledger(tmp_path / "l.jsonl")
+
+    path, result = make_run(tmp_path, transport, ledger, inprocess_runner, trials=1)
+
+    trial = load_trial(path, f"{TASK.id}-t1")
+    assert [(a["retry_index"], a["error_class"]) for a in trial["attempts"]] == [(0, "timeout"),
+                                                                                 (1, None)]
+    assert trial["errors"] == ["timeout"] and trial["model_calls"] == 1
+    assert trial["reservation"]["attempts_reserved"] == 2
+    assert result.complete  # a recovered retry leaves the run complete
+
+
+def test_exhausted_retries_leave_the_bundle_incomplete(tmp_path, inprocess_runner):
+    transport = FakeTransport(error_reply(503), error_reply(503), reply(SOURCE))
+
+    path, result = make_run(tmp_path, transport, Ledger(tmp_path / "l.jsonl"), inprocess_runner,
+                            trials=2)
+
+    assert not result.complete
+    assert load_trial(path, f"{TASK.id}-t1")["infrastructure_status"] == "transport_exhausted"
+    assert any(p.kind == "infrastructure_stop" for p in result.problems)
+
+
+def test_ceiling_stops_the_run_preserves_the_bundle_and_marks_it_incomplete(tmp_path,
+                                                                            inprocess_runner):
+    amount = PRICES.reservation_chf(ModelConfig())
+    ledger = Ledger(tmp_path / "l.jsonl", checkpoint_chf=amount, ceiling_chf=amount * 2)
+    transport = FakeTransport(TIMEOUT, TIMEOUT)  # trial 1 keeps two reservations; trial 2 is refused
+
+    path, result = make_run(tmp_path, transport, ledger, inprocess_runner, trials=3)
+
+    assert not result.complete and len(transport.calls) == 2
+    assert result.recorded == (f"{TASK.id}-t1", f"{TASK.id}-t2")
+    assert result.missing() == (f"{TASK.id}-t3",)
+    manifest = bundle.load_manifest(path)
+    assert manifest["status"] == "incomplete"
+    assert any("budget_ceiling" in r for r in manifest["reasons"])
+    assert load_trial(path, f"{TASK.id}-t1")["infrastructure_status"] == "transport_exhausted"
+    blocked = load_trial(path, f"{TASK.id}-t2")
+    assert blocked["infrastructure_status"] == "budget_ceiling"
+    assert blocked["attempts"][-1]["outcome"] == "budget_refused"
+    assert ledger_events(ledger)[-1]["event"] == "refusal"
+
+
+def test_attempts_reach_the_incremental_call_log_before_the_trial_finishes(tmp_path,
+                                                                           inprocess_runner):
+    transport = FakeTransport(reply(None, tool_calls=[CALL]), RuntimeError("crash"))
+
+    with pytest.raises(RuntimeError):
+        make_run(tmp_path, transport, Ledger(tmp_path / "l.jsonl"), inprocess_runner, trials=1)
+
+    entries = load_partial_calls(tmp_path / "b" / "run-x", f"{TASK.id}-t1")
+    kinds = [(e["event"], e.get("call")) for e in entries]
+    assert ("attempt", None) in kinds and kinds.count(("attempt", None)) == 2
+    assert [e["attempt"]["outcome"] for e in entries if e["event"] == "attempt"] == [
+        "response", "client_error"]
+    assert not verify_bundle(tmp_path / "b" / "run-x").complete
+
+
+def test_ledger_subcommand_reports_and_adjusts_without_any_api_use(tmp_path, capsys):
+    path = str(tmp_path / "l.jsonl")
+
+    assert main(["ledger", "adjust", "--ledger", path, "--amount-chf", "0.40",
+                 "--note", "earlier manual calls"], env={}) == 0
+    out = capsys.readouterr().out
+    assert "committed CHF 0.40" in out and "ceiling CHF 15" in out
+    assert main(["ledger", "status", "--ledger", path], env={}) == 0
+    with pytest.raises(SystemExit):
+        main(["ledger", "adjust", "--ledger", path, "--amount-chf", "x"], env={})

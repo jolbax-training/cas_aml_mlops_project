@@ -4,20 +4,20 @@ All tasks are unstarted planning items. Timebox: day 2, API/budget/smoke (3h). R
 
 ## 1. Configuration and client
 
-- [ ] 1.1 Add versioned model/request configuration (model, pinned `open-inference/fp4` routing, fallbacks disabled, require-parameters, temperature 0.2, top-p 1, `low` reasoning, 2,000 output, 12,000 input, 60-second deadline) and include its hash in bundles.
-- [ ] 1.2 Implement the OpenRouter client behind the agent loop's model interface, sending `tool_choice: none` on the final-only call, with SDK retries disabled and credentials read only by the trusted CLI.
-- [ ] 1.3 Implement the pre-send input-size check with verified token accounting or a verified conservative bound; test rejection without sending or reserving, reported to the controller as a non-retryable pre-send rejection (trial outcome per `add-bounded-agent-loop`).
+- [x] 1.1 Add versioned model/request configuration (model, pinned `open-inference/fp4` routing, fallbacks disabled, require-parameters, temperature 0.2, top-p 1, `low` reasoning, 2,000 output, 12,000 input, 60-second deadline) and include its hash in bundles.
+- [x] 1.2 Implement the OpenRouter client behind the agent loop's model interface, sending `tool_choice: none` on the final-only call, with SDK retries disabled and credentials read only by the trusted CLI.
+- [x] 1.3 Implement the pre-send input-size check with verified token accounting or a verified conservative bound; test rejection without sending or reserving, reported to the controller as a non-retryable pre-send rejection (trial outcome per `add-bounded-agent-loop`).
 
 ## 2. Retries and attempt records
 
-- [ ] 2.1 Implement transient/retryable classification and bounded backoff with one retry per request and two per trial; mark exhausted retries as run-incomplete. Test with deterministic transport doubles, including non-retryable refusal/malformed/truncated cases.
-- [ ] 2.2 Record every physical attempt's model/provider metadata, settings, timing, usage, reported cost, reservation, and error class; verify missing fields are marked missing and no credential is written.
+- [x] 2.1 Implement transient/retryable classification and bounded backoff with one retry per request and two per trial; mark exhausted retries as run-incomplete. Test with deterministic transport doubles, including non-retryable refusal/malformed/truncated cases.
+- [x] 2.2 Record every physical attempt's model/provider metadata, settings, timing, usage, reported cost, reservation, and error class; verify missing fields are marked missing and no credential is written.
 
 ## 3. Spending ledger
 
-- [ ] 3.1 Implement the durable shared ledger with write-before-send reservations from verified prices, token caps, recorded CHF conversion, fees, and safety margin; keep reservations for timed-out or usage-missing attempts.
-- [ ] 3.2 Using the checkpoint basis the user accepted on 2026-10-30 (design.md), implement the CHF 10 checkpoint (log once and continue) and CHF 15 ceiling refusal; test checkpoint crossing, ceiling refusal, crash-safe ordering, and incomplete marking of blocked work.
-- [ ] 3.3 Keep the ledger outside version control and document its location and inputs.
+- [x] 3.1 Implement the durable shared ledger with write-before-send reservations from verified prices, token caps, recorded CHF conversion, fees, and safety margin; keep reservations for timed-out or usage-missing attempts.
+- [x] 3.2 Using the checkpoint basis the user accepted on 2026-10-30 (design.md), implement the CHF 10 checkpoint (log once and continue) and CHF 15 ceiling refusal; test checkpoint crossing, ceiling refusal, crash-safe ordering, and incomplete marking of blocked work.
+- [x] 3.3 Keep the ledger outside version control and document its location and inputs.
 
 ## 4. Smoke test and freeze
 

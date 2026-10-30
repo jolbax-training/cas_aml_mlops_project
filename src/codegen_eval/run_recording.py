@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -29,6 +30,7 @@ from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
 from codegen_eval.model_client import (
     FixtureClient, ModelClient, ModelFailure, ModelRequest, ModelResponse, load_fixtures,
 )
+from codegen_eval.openrouter_client import BUDGET_CEILING
 from codegen_eval.sandbox import IMAGE, ExecutionResult, execute_check
 from codegen_eval.tasks import FREEZE_FILE, Task, check_freeze, freeze_manifest, load_benchmark
 from codegen_eval.trial import TrialResult, run_trial
@@ -49,10 +51,18 @@ class RecordingClient:
         self.sink = sink
         self.requests: list[dict[str, Any]] = []
         self.responses: list[dict[str, Any]] = []
+        self.attempts: list[dict[str, Any]] = []  # physical attempts, if the inner client keeps them
 
     def _emit(self, entry: dict[str, Any]) -> None:
         if self.sink:
             self.sink(entry)
+
+    def _emit_new_attempts(self) -> None:
+        # A live client records each physical attempt (including retries); persist them with
+        # the call log as soon as the logical call returns or fails.
+        for attempt in list(getattr(self.inner, "attempts", ()))[len(self.attempts):]:
+            self.attempts.append(attempt)
+            self._emit({"event": "attempt", "attempt": attempt})
 
     def complete(self, request: ModelRequest) -> ModelResponse | ModelFailure:
         call = len(self.requests) + 1
@@ -65,9 +75,11 @@ class RecordingClient:
         try:
             response = self.inner.complete(request)
         except BaseException as error:
+            self._emit_new_attempts()
             self._emit({"event": "error", "call": call, "error": type(error).__name__,
                         "at": utc_now()})
             raise
+        self._emit_new_attempts()
         if isinstance(response, ModelFailure):
             raw: dict[str, Any] = {"failure": response.kind, "detail": response.detail}
         else:
@@ -88,6 +100,18 @@ def _usage_totals(responses: Sequence[Mapping[str, Any]]) -> dict[str, float]:
             if isinstance(value, (int, float)):
                 totals[key] = totals.get(key, 0) + value
     return totals
+
+
+def _reservation_total(attempts: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+    amounts = [Decimal(a["reservation"]["amount_chf"]) for a in attempts if a.get("reservation")]
+    if not amounts:
+        return None
+    return {"total_chf": str(sum(amounts, Decimal(0))), "attempts_reserved": len(amounts)}
+
+
+def _latency_total(attempts: Sequence[Mapping[str, Any]]) -> int | None:
+    values = [a["latency_ms"] for a in attempts if isinstance(a.get("latency_ms"), int)]
+    return sum(values) if values else None
 
 
 def trial_record(trial_id: str, task: Task, result: TrialResult, client: RecordingClient,
@@ -114,11 +138,11 @@ def trial_record(trial_id: str, task: Task, result: TrialResult, client: Recordi
         "candidate_history": [{"attempt": d.attempt, "source": d.source, "result": d.result}
                               for d in result.drafts],
         "usage": _usage_totals(client.responses),
-        # Homes for the budget/client change; empty until a live client supplies them.
-        "reservation": None,
-        "attempts": [],       # physical attempts and retries per logical call
-        "latency_ms": None,
-        "errors": [],
+        # Filled by a live client; empty or null for the fixture client.
+        "reservation": _reservation_total(client.attempts),
+        "attempts": client.attempts,   # physical attempts and retries per logical call
+        "latency_ms": _latency_total(client.attempts),
+        "errors": [a["error_class"] for a in client.attempts if a.get("error_class")],
         "grades": grades,
     }
 
@@ -182,6 +206,7 @@ def run_recorded(
                               model_settings)
     writer = BundleWriter(bundle_root, run_id or new_run_id(), planned, identity)
     by_id = {t.id: t for t in tasks}
+    stopped: list[str] = []
     try:
         for item in planned:
             task = by_id[item["task_id"]]
@@ -192,10 +217,16 @@ def run_recorded(
                                execution_limits=execution_limits, runner=runner)
             grades = grades_record(grader(task, result)) if grader else dict(PENDING_GRADES)
             writer.write_trial(trial_record(item["trial_id"], task, result, client, grades))
+            if result.infrastructure_status == BUDGET_CEILING:
+                # The ledger ceiling blocks every further paid attempt: keep the bundle and
+                # leave the unfinished trials unrecorded, so the run is incomplete.
+                stopped.append(f"budget_ceiling: stopped before {item['trial_id']} finished; "
+                               "later trials were not run")
+                break
     except BaseException as error:  # keep partial evidence, including on Ctrl-C
         writer.finish([f"interrupted: {type(error).__name__}"])
         raise
-    return writer.path, writer.finish()
+    return writer.path, writer.finish(stopped)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

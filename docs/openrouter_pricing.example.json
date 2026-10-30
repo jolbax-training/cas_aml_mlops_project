@@ -1,0 +1,12 @@
+{
+  "_comment": "Copy outside Git, recheck every value on the day of use, and fill the null fields. Prices below are the dated issue 08 snapshot, not a guarantee.",
+  "input_usd_per_million": "0.0052",
+  "output_usd_per_million": "0.1985",
+  "prices_checked_on": "snapshot from issue 08 (recheck before use)",
+  "prices_source": "OpenRouter endpoint page for z-ai/glm-5.3-flash, open-inference/fp4",
+  "chf_per_usd": null,
+  "fx_date": null,
+  "fx_source": null,
+  "safety_margin": null,
+  "fixed_fee_chf": null
+}
