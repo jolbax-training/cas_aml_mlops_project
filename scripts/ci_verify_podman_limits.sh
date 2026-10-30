@@ -7,7 +7,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 image="$(PYTHONPATH="$root/src" "$root/.venv/bin/python" -c 'from codegen_eval.sandbox import IMAGE; print(IMAGE)')"
 
 podman --version
-podman info --format 'rootless={{.Host.Security.Rootless}} cgroupsVersion={{.Host.CgroupsVersion}} manager={{.Host.CgroupManager}} runtime={{.Host.OCIRuntime.Name}} arch={{.Host.Arch}}'
+summary="$(podman info --format 'rootless={{.Host.Security.Rootless}} cgroupsVersion={{.Host.CgroupsVersion}} manager={{.Host.CgroupManager}} runtime={{.Host.OCIRuntime.Name}} arch={{.Host.Arch}}')"
+echo "$summary"
 controllers="$(podman info --format '{{.Host.CgroupControllers}}')"
 echo "cgroup controllers: $controllers"
 for needed in memory pids cpu; do
@@ -27,3 +28,4 @@ if [ "$observed" != "134217728 32 100000 100000" ]; then
   exit 1
 fi
 echo "limits enforced"
+echo "::notice title=Podman environment::$(podman --version); $summary; controllers=$controllers; probe=$observed"
