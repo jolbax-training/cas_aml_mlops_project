@@ -21,35 +21,53 @@ from codegen_eval.agent_config import (
     DEFAULT_AGENT_LIMITS, AgentLimits, AgentPrompt, load_prompt,
 )
 from codegen_eval.bundle import (
-    DEFAULT_BUNDLE_ROOT, PENDING_GRADES, BundleWriter, Grader, Verification, evaluator_revision,
-    grades_record, new_run_id, runtime_identity, sanitize_request, sanitize_response, sha256_file,
-    utc_now,
+    DEFAULT_BUNDLE_ROOT, PENDING_GRADES, BundleError, BundleWriter, Grader, Verification,
+    evaluator_revision, grades_record, new_run_id, runtime_identity, sanitize_request,
+    sanitize_response, sha256_file, source_tree_sha256, utc_now,
 )
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
 from codegen_eval.model_client import (
     FixtureClient, ModelClient, ModelFailure, ModelRequest, ModelResponse, load_fixtures,
 )
 from codegen_eval.sandbox import IMAGE, ExecutionResult, execute_check
-from codegen_eval.tasks import Task, load_benchmark
-from codegen_eval.trial import SUBMITTED, TrialResult, run_trial
+from codegen_eval.tasks import FREEZE_FILE, Task, check_freeze, freeze_manifest, load_benchmark
+from codegen_eval.trial import TrialResult, run_trial
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class RecordingClient:
-    """Wrap a client and keep the allowlisted form of every request and response."""
+    """Wrap a client and keep the allowlisted form of every request and response.
 
-    def __init__(self, inner: ModelClient) -> None:
+    `sink`, if given, receives each entry as it happens (the request before it is sent,
+    the response as soon as it returns), so the caller can persist paid interactions
+    before the trial finishes."""
+
+    def __init__(self, inner: ModelClient,
+                 sink: Callable[[dict[str, Any]], None] | None = None) -> None:
         self.inner = inner
+        self.sink = sink
         self.requests: list[dict[str, Any]] = []
         self.responses: list[dict[str, Any]] = []
 
+    def _emit(self, entry: dict[str, Any]) -> None:
+        if self.sink:
+            self.sink(entry)
+
     def complete(self, request: ModelRequest) -> ModelResponse | ModelFailure:
-        self.requests.append(sanitize_request({
+        call = len(self.requests) + 1
+        recorded = sanitize_request({
             "messages": [dict(m) for m in request.messages],
             "tools": [dict(t) for t in request.tools],
-            "tool_choice": request.tool_choice}))
-        response = self.inner.complete(request)
+            "tool_choice": request.tool_choice})
+        self.requests.append(recorded)
+        self._emit({"event": "request", "call": call, "request": recorded, "at": utc_now()})
+        try:
+            response = self.inner.complete(request)
+        except BaseException as error:
+            self._emit({"event": "error", "call": call, "error": type(error).__name__,
+                        "at": utc_now()})
+            raise
         if isinstance(response, ModelFailure):
             raw: dict[str, Any] = {"failure": response.kind, "detail": response.detail}
         else:
@@ -57,7 +75,9 @@ class RecordingClient:
                    "usage": dict(response.usage) if response.usage else None,
                    "tool_calls": [{"id": c.id, "name": c.name, "arguments": c.arguments}
                                   for c in response.tool_calls]}
-        self.responses.append(sanitize_response(raw))
+        clean = sanitize_response(raw)
+        self.responses.append(clean)
+        self._emit({"event": "response", "call": call, "response": clean, "at": utc_now()})
         return response
 
 
@@ -72,7 +92,6 @@ def _usage_totals(responses: Sequence[Mapping[str, Any]]) -> dict[str, float]:
 
 def trial_record(trial_id: str, task: Task, result: TrialResult, client: RecordingClient,
                  grades: dict[str, Any]) -> dict[str, Any]:
-    submitted = result.status == SUBMITTED
     return {
         "trial_id": trial_id,
         "task_id": task.id,
@@ -83,7 +102,7 @@ def trial_record(trial_id: str, task: Task, result: TrialResult, client: Recordi
         "contract_issue": ({"code": result.contract_issue.code, "detail": result.contract_issue.detail}
                            if result.contract_issue else None),
         "contract_valid": result.contract_valid,
-        "final_source": result.submission if submitted else None,
+        "final_source": result.submission,  # as returned, even if it failed the source contract
         "model_calls": result.model_calls,
         "tool_attempts": result.tool_attempts,
         "prompt": {"version": result.prompt_version, "sha256": result.prompt_sha256},
@@ -95,10 +114,28 @@ def trial_record(trial_id: str, task: Task, result: TrialResult, client: Recordi
         "candidate_history": [{"attempt": d.attempt, "source": d.source, "result": d.result}
                               for d in result.drafts],
         "usage": _usage_totals(client.responses),
-        "reservation": None,  # filled by the budget ledger change: reserved/reported cost
+        # Homes for the budget/client change; empty until a live client supplies them.
+        "reservation": None,
+        "attempts": [],       # physical attempts and retries per logical call
+        "latency_ms": None,
         "errors": [],
         "grades": grades,
     }
+
+
+def freeze_content_hash(benchmark_path: Path) -> str | None:
+    """Content hash over the benchmark, references, and review (part B's freeze record).
+
+    None if the benchmark's repository carries no freeze record. A record that no longer
+    matches the files is an error: the bundle would otherwise name content it did not use."""
+    root = benchmark_path.resolve().parent.parent
+    if not (root / FREEZE_FILE).is_file():
+        return None
+    try:
+        check_freeze(root)
+    except ValueError as error:
+        raise BundleError(str(error)) from error
+    return freeze_manifest(root)["content_hash"]
 
 
 def build_identity(benchmark_path: Path, prompt: AgentPrompt, agent_limits: AgentLimits,
@@ -109,10 +146,12 @@ def build_identity(benchmark_path: Path, prompt: AgentPrompt, agent_limits: Agen
     return {
         "prompt": {"version": prompt.version, "sha256": prompt.sha256},
         "benchmark": {"file": benchmark_path.name, "version": envelope.get("benchmark_version"),
-                      "sha256": sha256_file(benchmark_path)},
+                      "sha256": sha256_file(benchmark_path),
+                      "freeze_content_hash": freeze_content_hash(benchmark_path)},
         "agent_limits": {"hash": agent_limits.config_hash(), **agent_limits.to_dict()},
         "execution_limits": {"hash": execution_limits.config_hash(), **execution_limits.to_dict()},
         "evaluator_revision": evaluator_revision(),
+        "evaluator_source_sha256": source_tree_sha256(),
         "runtime": runtime_identity(),
         "dependencies": {"uv_lock_sha256": sha256_file(lock) if lock.is_file() else None},
         "container_image": IMAGE,
@@ -146,11 +185,12 @@ def run_recorded(
     try:
         for item in planned:
             task = by_id[item["task_id"]]
-            client = RecordingClient(client_for(task, item["trial_id"]))
+            trial_id = item["trial_id"]
+            client = RecordingClient(client_for(task, trial_id),
+                                     lambda entry, t=trial_id: writer.append_call(t, entry))
             result = run_trial(task, client, prompt=prompt, limits=limits,
                                execution_limits=execution_limits, runner=runner)
-            grades = (grades_record(grader(task.id, result.submission))
-                      if grader and result.status == SUBMITTED else dict(PENDING_GRADES))
+            grades = grades_record(grader(task, result)) if grader else dict(PENDING_GRADES)
             writer.write_trial(trial_record(item["trial_id"], task, result, client, grades))
     except BaseException as error:  # keep partial evidence, including on Ctrl-C
         writer.finish([f"interrupted: {type(error).__name__}"])
@@ -166,7 +206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--task", action="append", help="task id (repeatable); default: all")
     parser.add_argument("--trials", type=int, default=1, help="trials per task")
     parser.add_argument("--bundles", default=DEFAULT_BUNDLE_ROOT)
-    parser.add_argument("--grade", action="store_true", help="grade final sources now (needs Podman)")
+    parser.add_argument("--grade", action="store_true", help="grade every trial now (needs Podman)")
     args = parser.parse_args(argv)
 
     scenarios = load_fixtures(args.fixtures)
@@ -180,7 +220,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     grader = None
     if args.grade:
         from codegen_eval.replay import make_grader
-        grader = make_grader({t.id: t for t in tasks})
+        grader = make_grader()
     path, result = run_recorded(
         tasks, lambda task, trial_id: FixtureClient.from_data(scenarios[args.scenario]),
         args.benchmark, bundle_root=args.bundles, trials_per_task=args.trials, grader=grader,

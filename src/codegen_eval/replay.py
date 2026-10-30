@@ -18,55 +18,93 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from codegen_eval.bundle import (
-    BUNDLE_SCHEMA_VERSION, DEFAULT_BUNDLE_ROOT, INFRASTRUCTURE_FAILURES, TAMPERED_RECORD,
-    UNEXPECTED_RECORD, UNREADABLE_MANIFEST, UNREADABLE_RECORD, UNSUPPORTED_SCHEMA, BundleError,
-    CheckGrade, Grader, evaluator_revision, grades_record, load_manifest, load_trial,
-    resolve_bundle, sha256_file, utc_now, verify_bundle, write_replay,
+    BUNDLE_SCHEMA_VERSION, DEFAULT_BUNDLE_ROOT, GRADE_PENDING, TAMPERED_RECORD, UNEXPECTED_RECORD,
+    UNRECORDED_RECORD, UNREADABLE_MANIFEST, UNREADABLE_RECORD, UNSUPPORTED_SCHEMA, BundleError,
+    Grader, evaluator_revision, grades_record, load_manifest, load_trial, resolve_bundle,
+    sha256_file, source_tree_sha256, utc_now, verify_bundle, write_replay,
 )
-from codegen_eval.evaluate import evaluate_task
+from codegen_eval.contract import ContractIssue
+from codegen_eval.evaluate import grade_trial
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
 from codegen_eval.sandbox import IMAGE, ExecutionResult, run_case
-from codegen_eval.tasks import Case, Task, load_benchmark
+from codegen_eval.tasks import Case, FREEZE_FILE, Task, freeze_manifest, load_benchmark
+from codegen_eval.trial import TrialResult
 
 ROOT = Path(__file__).resolve().parents[2]
 REPLAY_NOTE = ("Grading replay: saved final candidates were re-executed and regraded. "
                "No model was called and no agent trial was reproduced.")
 # Problems that make a record's contents untrustworthy as replay input.
 _BLOCKING = {TAMPERED_RECORD, UNREADABLE_RECORD, UNSUPPORTED_SCHEMA, UNREADABLE_MANIFEST,
-             UNEXPECTED_RECORD}
+             UNEXPECTED_RECORD, UNRECORDED_RECORD}
+
+Runner = Callable[[str, Task, Case], ExecutionResult]
 
 
-def make_grader(tasks: Mapping[str, Task],
-                runner: Callable[[str, Task, Case], ExecutionResult] = run_case) -> Grader:
-    """Grader over the current evaluator: validates the source, then runs each hidden case."""
-
-    def grade(task_id: str, source: str) -> list[CheckGrade]:
-        result = evaluate_task(tasks[task_id], source, runner)
-        return [CheckGrade(c.id, c.kind, c.executed, c.passed, tuple(c.failures))
-                for c in result.cases]
-
-    return grade
+def make_grader(runner: Runner = run_case) -> Grader:
+    """The grading side's own function, `evaluate.grade_trial`, bound to a case runner."""
+    return lambda task, trial: grade_trial(task, trial, runner)
 
 
-def _outcomes(grades: Mapping[str, Any]) -> dict[str, tuple[bool, tuple[str, ...]]]:
-    return {c["case_id"]: (c["passed"], tuple(c["failures"])) for c in grades.get("checks", [])}
+def trial_from_record(record: Mapping[str, Any]) -> TrialResult:
+    """Rebuild the parts of a trial that grading reads (status, label, submission,
+    contract verdict, infrastructure status) from its saved record."""
+    issue = record.get("contract_issue")
+    prompt = record.get("prompt") or {}
+    return TrialResult(
+        status=record["status"], label=record.get("label"), submission=record.get("final_source"),
+        contract_issue=ContractIssue(issue["code"], issue["detail"]) if issue else None,
+        infrastructure_status=record.get("infrastructure_status"),
+        model_calls=record.get("model_calls", 0), tool_attempts=record.get("tool_attempts", 0),
+        drafts=(), messages=(), events=(), limits_hash=record.get("agent_limits_hash", ""),
+        prompt_version=prompt.get("version", ""), prompt_sha256=prompt.get("sha256", ""))
+
+
+def _outcomes(grades: Mapping[str, Any]) -> dict[str, tuple[bool, bool, tuple[str, ...]]]:
+    return {c["id"]: (c["executed"], c["passed"], tuple(c["failures"]))
+            for c in grades.get("checks", [])}
 
 
 def compare_grades(original: Mapping[str, Any], replayed: Mapping[str, Any]) -> list[str]:
-    """Describe each difference between original and replayed outcomes (empty when equal)."""
-    before, after = _outcomes(original), _outcomes(replayed)
+    """Describe each difference between original and replayed grades (empty when equal)."""
     notes = []
+    for key in ("labels", "success", "incomplete", "infrastructure_status"):
+        if original.get(key) != replayed.get(key):
+            notes.append(f"{key}: original {original.get(key)!r} replay {replayed.get(key)!r}")
+    before, after = _outcomes(original), _outcomes(replayed)
     for case_id in sorted(before.keys() | after.keys()):
         if before.get(case_id) != after.get(case_id):
             notes.append(f"{case_id}: original {before.get(case_id)} replay {after.get(case_id)}")
     return notes
 
 
+def _check_benchmark_identity(manifest: Mapping[str, Any], benchmark_path: Path) -> str:
+    recorded = manifest["identity"].get("benchmark", {})
+    if not isinstance(recorded.get("sha256"), str):
+        raise BundleError("manifest identity has no benchmark hash")
+    actual = sha256_file(benchmark_path)
+    if actual != recorded["sha256"]:
+        raise BundleError(f"benchmark mismatch: bundle recorded {recorded['sha256']} but "
+                          f"{benchmark_path} hashes to {actual}; refusing to grade "
+                          f"against different checks")
+    freeze = recorded.get("freeze_content_hash")
+    if freeze is not None:  # also covers the reference solutions and the review record
+        root = benchmark_path.resolve().parent.parent
+        try:
+            current = freeze_manifest(root)["content_hash"]
+        except (OSError, KeyError, ValueError) as error:
+            raise BundleError(f"cannot recompute the benchmark freeze under {root}: {error}") from error
+        if current != freeze:
+            raise BundleError(f"benchmark freeze mismatch: bundle recorded {freeze} but the "
+                              f"files under {root} hash to {current} ({FREEZE_FILE}); refusing "
+                              f"to grade against different checks")
+    return actual
+
+
 def replay_bundle(
     bundle_dir: str | Path,
     benchmark_path: str | Path,
     *,
-    runner: Callable[[str, Task, Case], ExecutionResult] | None = None,
+    runner: Runner | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     """Regrade a bundle's saved final candidates and write linked replay evidence."""
     path = Path(bundle_dir)
@@ -77,39 +115,43 @@ def replay_bundle(
         raise BundleError("bundle cannot be replayed: " + "; ".join(
             f"{p.kind}{' ' + p.trial_id if p.trial_id else ''}: {p.detail}" for p in blocking))
 
-    recorded_hash = manifest["identity"]["benchmark"]["sha256"]
-    actual_hash = sha256_file(benchmark_path)
-    if actual_hash != recorded_hash:
-        raise BundleError(f"benchmark mismatch: bundle recorded {recorded_hash} but "
-                          f"{benchmark_path} hashes to {actual_hash}; refusing to grade "
-                          f"against different checks")
+    actual_hash = _check_benchmark_identity(manifest, Path(benchmark_path))
     tasks = {t.id: t for t in load_benchmark(benchmark_path)}
-    limits_data = {k: v for k, v in manifest["identity"]["execution_limits"].items() if k != "hash"}
-    limits = ExecutionLimits.from_dict(limits_data) if limits_data else DEFAULT_LIMITS
-    grader = make_grader(tasks, runner or (lambda s, t, c: run_case(s, t, c, limits=limits)))
+    identity = manifest["identity"]
+    limits_data = {k: v for k, v in identity.get("execution_limits", {}).items() if k != "hash"}
+    try:
+        limits = ExecutionLimits.from_dict(limits_data) if limits_data else DEFAULT_LIMITS
+    except (TypeError, ValueError) as error:
+        raise BundleError(f"recorded execution limits are invalid: {error}") from error
+    grader = make_grader(runner or (lambda s, t, c: run_case(s, t, c, limits=limits)))
 
     trials: list[dict[str, Any]] = []
     for trial_id in verification.recorded:
         record = load_trial(path, trial_id)
-        entry: dict[str, Any] = {"trial_id": trial_id, "task_id": record["task_id"]}
-        source = record.get("final_source")
-        if source is None:
-            entry.update(skipped="no final source (status " f"{record.get('status')})")
-        elif record["task_id"] not in tasks:
+        task = tasks.get(record["task_id"])
+        if task is None:
             raise BundleError(f"task {record['task_id']} is not in the retained benchmark")
+        try:
+            replayed = grades_record(grader(task, trial_from_record(record)))
+        except (KeyError, TypeError, ValueError) as error:
+            raise BundleError(f"trial {trial_id} cannot be regraded: {error}") from error
+        original = record.get("grades", {"status": GRADE_PENDING})
+        entry: dict[str, Any] = {"trial_id": trial_id, "task_id": task.id, "grades": replayed}
+        if original.get("status") == GRADE_PENDING:
+            entry["original"] = "pending: nothing to compare"
         else:
-            replayed = grades_record(grader(record["task_id"], source))
-            original = record.get("grades", {"status": "pending"})
-            entry["grades"] = replayed
-            if original.get("status") == "graded":
-                entry["mismatches"] = compare_grades(original, replayed)
-            else:
-                entry["original"] = "pending: nothing to compare"
-            entry["infrastructure"] = any(f in INFRASTRUCTURE_FAILURES
-                                          for c in replayed["checks"] for f in c["failures"])
+            entry["mismatches"] = compare_grades(original, replayed)
         trials.append(entry)
 
-    graded = [t for t in trials if "grades" in t]
+    environment = {
+        "container_image": (identity.get("container_image"), IMAGE),
+        "evaluator_revision": (identity.get("evaluator_revision"), evaluator_revision()),
+        "evaluator_source_sha256": (identity.get("evaluator_source_sha256"), source_tree_sha256()),
+        "execution_limits_hash": (identity.get("execution_limits", {}).get("hash"),
+                                  limits.config_hash()),
+    }
+    differences = {k: {"original": a, "replay": b} for k, (a, b) in environment.items() if a != b}
+    compared = [t for t in trials if "mismatches" in t]
     evidence = {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "kind": "grading_replay",
@@ -119,19 +161,23 @@ def replay_bundle(
         "run_id": manifest["run_id"],
         "linked_manifest_sha256": verification.bundle_digest,
         "created_at": utc_now(),
-        "evaluator_revision": evaluator_revision(),
+        "evaluator_revision": environment["evaluator_revision"][1],
+        "evaluator_source_sha256": environment["evaluator_source_sha256"][1],
         "container_image": IMAGE,
         "benchmark_sha256": actual_hash,
+        "benchmark_freeze_content_hash": identity.get("benchmark", {}).get("freeze_content_hash"),
         "execution_limits_hash": limits.config_hash(),
+        "environment_differences": differences,
         "original_run_complete": verification.complete,
+        "original_problems": [{"kind": p.kind, "trial_id": p.trial_id, "detail": p.detail}
+                              for p in verification.problems],
         "missing_original_records": list(verification.missing()),
         "trials": trials,
         "summary": {
-            "regraded": len(graded),
-            "skipped": len(trials) - len(graded),
-            "mismatched": sum(bool(t.get("mismatches")) for t in graded),
-            "infrastructure": sum(bool(t.get("infrastructure")) for t in graded),
-            "compared": sum("mismatches" in t for t in graded),
+            "regraded": len(trials),
+            "compared": len(compared),
+            "mismatched": sum(bool(t["mismatches"]) for t in compared),
+            "incomplete": sum(t["grades"]["incomplete"] for t in trials),
         },
     }
     return write_replay(path, evidence), evidence
@@ -152,15 +198,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(REPLAY_NOTE)
     print(f"replay evidence: {path}")
     for trial in evidence["trials"]:
-        if "grades" in trial:
-            checks = trial["grades"]["checks"]
-            print(f"  {trial['trial_id']}: {sum(c['passed'] for c in checks)}/{len(checks)} checks passed"
-                  + (f"; MISMATCH vs original: {trial['mismatches']}" if trial.get("mismatches") else ""))
-        else:
-            print(f"  {trial['trial_id']}: skipped ({trial['skipped']})")
+        grades = trial["grades"]
+        checks = grades["checks"]
+        line = (f"  {trial['trial_id']}: {sum(c['passed'] for c in checks)}/{len(checks)} checks passed"
+                f"; labels {grades['labels']}" + ("; INCOMPLETE" if grades["incomplete"] else ""))
+        if trial.get("mismatches"):
+            line += f"; MISMATCH vs original: {trial['mismatches']}"
+        print(line)
+    for key, values in evidence["environment_differences"].items():
+        print(f"  environment differs ({key}): original {values['original']} replay {values['replay']}")
+    for problem in evidence["original_problems"]:
+        print(f"  original bundle problem {problem['kind']} [{problem['trial_id']}]: {problem['detail']}")
     summary = evidence["summary"]
     print(f"summary: {summary}")
-    return 1 if summary["mismatched"] or summary["infrastructure"] else 0
+    return 1 if summary["mismatched"] or summary["incomplete"] else 0
 
 
 if __name__ == "__main__":

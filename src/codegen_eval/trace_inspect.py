@@ -16,8 +16,8 @@ import sys
 from typing import Any, Sequence
 
 from codegen_eval.bundle import (
-    DEFAULT_BUNDLE_ROOT, BundleError, Verification, list_runs, load_manifest, load_trial,
-    resolve_bundle, verify_bundle,
+    DEFAULT_BUNDLE_ROOT, BundleError, Verification, list_runs, load_manifest, load_partial_calls,
+    load_trial, resolve_bundle, verify_bundle,
 )
 
 
@@ -62,10 +62,25 @@ def show_trial(bundle_dir: Any, trial_id: str) -> None:
     print("final source:")
     print(record["final_source"] if record.get("final_source") is not None else "  (none)")
     grades = record.get("grades", {})
-    print(f"grades: {grades.get('status')}")
+    print(f"grades: {grades.get('status')}  success: {grades.get('success')}  "
+          f"labels: {grades.get('labels')}"
+          + (f"  infrastructure: {grades.get('infrastructure_status')}" if grades.get("incomplete") else ""))
     for check in grades.get("checks", []):
         outcome = "pass" if check["passed"] else "fail " + ",".join(check["failures"])
-        print(f"  {check['case_id']} ({check.get('kind')}): {outcome}")
+        print(f"  {check['id']} ({check.get('kind')}): {outcome}"
+              + ("" if check["executed"] else " [not executed]"))
+
+
+def show_partial(bundle_dir: Any, trial_id: str) -> None:
+    """A trial with no record: print the requests/responses saved as they happened."""
+    entries = load_partial_calls(bundle_dir, trial_id)
+    if not entries:
+        return
+    print(f"\n== trial {trial_id}: NO RECORD; {len(entries)} partial entries retained ==")
+    for entry in entries:
+        body = entry.get("request") or entry.get("response") or {"error": entry.get("error")}
+        print(f"  call {entry.get('call')} {entry.get('event')}: "
+              f"{json.dumps(body, sort_keys=True)[:400]}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -102,6 +117,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         shown = [args.trial] if args.trial else list(result.recorded)
         for trial_id in shown:
             show_trial(path, trial_id)
+        if not args.trial:
+            for trial_id in result.missing():
+                show_partial(path, trial_id)
+        elif args.trial in result.missing():
+            show_partial(path, args.trial)
         return 0
     except BundleError as error:
         print(f"error: {error}", file=sys.stderr)

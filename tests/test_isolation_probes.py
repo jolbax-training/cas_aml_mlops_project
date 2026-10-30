@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from codegen_eval import sandbox
 from codegen_eval.evaluate import score_case
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
 from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, execute_check, run_case
@@ -117,7 +118,7 @@ def test_state_from_one_check_is_not_visible_to_the_next():
 def test_timeout_includes_container_startup_and_cleanup_is_separate():
     result = run_vowels("    return 0\n", timeout_seconds=0.05)
     loop = run_vowels("    while True:\n        pass\n", timeout_seconds=1.0)
-    listing = subprocess.run(["podman", "ps", "-a", "--filter", "name=codegen-eval-", "--format", "{{.Names}}"],
+    listing = subprocess.run(["podman", "ps", "-a", "--filter", f"name={sandbox.NAME_PREFIX}", "--format", "{{.Names}}"],
                              capture_output=True, text=True, check=True)
 
     assert result.status == "timeout" and loop.status == "timeout"

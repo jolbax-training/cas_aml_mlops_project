@@ -19,7 +19,7 @@ import re
 import subprocess
 import sys
 import uuid
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
@@ -36,18 +36,18 @@ REQUEST_FIELDS = ("messages", "tools", "tool_choice")
 RESPONSE_FIELDS = ("content", "tool_calls", "truncated", "usage", "failure", "detail")
 MESSAGE_FIELDS = ("role", "content", "tool_calls", "tool_call_id")
 
-# Environment variables whose values must never appear in a bundle.
-_SECRET_NAME = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|AUTH", re.IGNORECASE)
+# Environment variables whose values must never appear in a bundle: names that end in a
+# credential word, or contain SECRET/PASSWORD/CREDENTIAL. This is a heuristic, so the
+# number of replacements is recorded in the manifest; extra values can be passed explicitly.
+_SECRET_NAME = re.compile(r"(^|_)(API_?KEY|KEY|TOKEN|PASSWD)$|SECRET|PASSWORD|CREDENTIAL",
+                          re.IGNORECASE)
 _MIN_SECRET_LENGTH = 8
 REDACTED = "[REDACTED]"
 
-# Labels a graded check may carry; the first group blames the candidate, the second
-# names the container or worker and makes a run incomplete rather than failed.
-CANDIDATE_FAILURES = frozenset({
-    "wrong_answer", "mutated_input", "exception", "timeout", "output_limit",
-    "serialization_error", "payload_too_large", "protocol_violation", "candidate_crash",
-    "syntax_error", "contract_error",
-})
+# Labels naming the container or worker rather than candidate code; they make a trial
+# incomplete instead of failed. Kept equal to `sandbox.INFRASTRUCTURE_STATUSES` by a test
+# (this module must not import the sandbox). Candidate labels are not enumerated here:
+# the grading side owns them, and the bundle only requires each to be a nonempty string.
 INFRASTRUCTURE_FAILURES = frozenset({"infrastructure_error", "protocol_error"})
 
 # Problem kinds reported by verify_bundle.
@@ -61,6 +61,7 @@ TAMPERED_RECORD = "tampered_record"
 IDENTITY_MISMATCH = "identity_mismatch"
 INFRASTRUCTURE_STOP = "infrastructure_stop"
 INVALID_GRADE = "invalid_grade"
+UNRECORDED_RECORD = "unrecorded_record"
 RUN_STOPPED = "run_stopped"
 
 
@@ -68,27 +69,31 @@ class BundleError(Exception):
     """A bundle cannot be read or written as requested."""
 
 
-@dataclass(frozen=True)
-class CheckGrade:
-    """One executed (or blocked) hidden check. The grading side fills these in."""
+# The interface the grading side implements: `(Task, TrialResult) -> TrialGrade`, exactly
+# `evaluate.grade_trial` (bind its runner with `functools.partial`). The bundle stores the
+# grade through `grades_record` and validates stored grades with `check_grades`.
+Grader = Callable[[Any, Any], Any]
 
-    case_id: str
-    kind: str
-    executed: bool
-    passed: bool
-    failures: tuple[str, ...] = ()
-
-
-# The interface the grading side implements: grade one saved final source for one task.
-Grader = Callable[[str, str], Sequence[CheckGrade]]
-
-PENDING_GRADES: dict[str, Any] = {"status": "pending", "checks": []}
+GRADE_PENDING = "pending"
+GRADE_GRADED = "graded"
+GRADE_INCOMPLETE = "incomplete"  # an infrastructure outcome made grading unreliable
+PENDING_GRADES: dict[str, Any] = {"status": GRADE_PENDING, "checks": []}
 
 
-def grades_record(checks: Iterable[CheckGrade]) -> dict[str, Any]:
-    rows = [{**asdict(check), "failures": list(check.failures)} for check in checks]
-    return {"status": "graded", "passed": bool(rows) and all(row["passed"] for row in rows),
-            "checks": rows}
+def grades_record(grade: Any) -> dict[str, Any]:
+    """Stored form of a `TrialGrade`: trial-level fields plus one entry per planned check.
+    Check entries keep `evaluate.CaseResult` names (`id`, `kind`, `executed`, `passed`,
+    `failures`, `actual`)."""
+    return {
+        "status": GRADE_INCOMPLETE if grade.incomplete else GRADE_GRADED,
+        "trial_status": grade.status,
+        "labels": list(grade.labels),
+        "success": grade.success,
+        "incomplete": grade.incomplete,
+        "infrastructure_status": grade.infrastructure_status,
+        "checks": [{"id": c.id, "kind": c.kind, "executed": c.executed, "passed": c.passed,
+                    "failures": list(c.failures), "actual": c.actual} for c in grade.cases],
+    }
 
 
 @dataclass(frozen=True)
@@ -135,17 +140,30 @@ def new_run_id() -> str:
 
 
 def evaluator_revision(repo: str | Path | None = None) -> str:
-    """Git revision of the evaluator code, with `+dirty` if the tree has local changes."""
+    """Git revision of the evaluator code, with `+dirty` if `src/` or `data/` has any
+    uncommitted change, untracked files included (a new module is code that ran)."""
     cwd = Path(repo) if repo else Path(__file__).resolve().parent
     try:
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True,
+        top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=cwd, capture_output=True,
+                             text=True, timeout=10, check=True).stdout.strip()
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=top, capture_output=True,
                               text=True, timeout=10, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
-                               cwd=cwd, capture_output=True, text=True, timeout=10,
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "src", "data"],
+                               cwd=top, capture_output=True, text=True, timeout=10,
                                check=True).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return "unknown"
     return head + ("+dirty" if dirty else "")
+
+
+def source_tree_sha256() -> str:
+    """Hash of the evaluator's own files (Python modules and prompts), so a bundle names
+    the exact code that produced it even when the Git revision cannot."""
+    package = Path(__file__).resolve().parent
+    lines = "".join(f"{path.relative_to(package).as_posix()}\t{sha256_file(path)}\n"
+                    for path in sorted(package.rglob("*"))
+                    if path.suffix in {".py", ".md"} and "__pycache__" not in path.parts)
+    return sha256_bytes(lines.encode("utf-8"))
 
 
 def runtime_identity() -> dict[str, str]:
@@ -186,23 +204,54 @@ def sanitize_response(response: Mapping[str, Any]) -> dict[str, Any]:
 
 def secret_values(extra: Iterable[str] = ()) -> list[str]:
     values = [v for name, v in os.environ.items()
-              if _SECRET_NAME.search(name) and len(v) >= _MIN_SECRET_LENGTH]
+              if _SECRET_NAME.search(name) and len(v) >= _MIN_SECRET_LENGTH and not v.isdigit()]
     values += [v for v in extra if len(v) >= _MIN_SECRET_LENGTH]
     return sorted(set(values), key=len, reverse=True)
 
 
-def redact(text: str, secrets: Sequence[str]) -> tuple[str, int]:
-    count = 0
-    for secret in secrets:
-        count += text.count(secret)
-        text = text.replace(secret, REDACTED)
-    return text, count
+def redact_value(value: Any, secrets: Sequence[str]) -> tuple[Any, int]:
+    """Replace secret values inside string values (and keys) of a JSON-like structure.
+
+    Working on the structure, not on serialised text, keeps numbers, escapes, and the
+    record's validity intact. Returns the redacted copy and the number of replacements."""
+    if isinstance(value, str):
+        count = 0
+        for secret in secrets:
+            count += value.count(secret)
+            value = value.replace(secret, REDACTED)
+        return value, count
+    if isinstance(value, Mapping):
+        total, out = 0, {}
+        for key, item in value.items():
+            new_key, k = redact_value(key, secrets)
+            new_item, n = redact_value(item, secrets)
+            out[new_key] = new_item
+            total += k + n
+        return out, total
+    if isinstance(value, (list, tuple)):
+        items = [redact_value(item, secrets) for item in value]
+        return [i for i, _ in items], sum(n for _, n in items)
+    return value, 0
 
 
 # --- files -------------------------------------------------------------------------
 
 def _canonical(data: Any) -> bytes:
     return (json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Make a rename durable; not available on every platform, so best effort."""
+    try:
+        fd = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
 
 
 def atomic_write(path: Path, data: bytes) -> None:
@@ -215,6 +264,7 @@ def atomic_write(path: Path, data: bytes) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temp, path)
+        _fsync_directory(path.parent)
     finally:
         temp.unlink(missing_ok=True)
 
@@ -246,6 +296,7 @@ class BundleWriter:
         if not ids or len(set(ids)) != len(ids):
             raise BundleError("planned trials must be a non-empty list of unique trial ids")
         self._secrets = secret_values(extra_secrets)
+        self._redactions = 0
         self._manifest: dict[str, Any] = {
             "schema_version": BUNDLE_SCHEMA_VERSION,
             "run_id": self.run_id,
@@ -253,6 +304,7 @@ class BundleWriter:
             "updated_at": utc_now(),
             "status": STATUS_IN_PROGRESS,
             "reasons": [],
+            "redactions": 0,  # secret values replaced anywhere in this bundle's records
             "planned": [{"task_id": p["task_id"], "trial_id": p["trial_id"]} for p in planned],
             "identity": dict(identity),
             "records": {},
@@ -260,12 +312,32 @@ class BundleWriter:
         self._save_manifest()
 
     def _dump(self, data: Any) -> bytes:
-        text, _ = redact(_canonical(data).decode("utf-8"), self._secrets)
-        return text.encode("utf-8")
+        clean, count = redact_value(data, self._secrets)
+        self._redactions += count
+        return _canonical(clean)
 
     def _save_manifest(self) -> None:
         self._manifest["updated_at"] = utc_now()
+        self._manifest["redactions"] = self._redactions
         atomic_write(self.path / "manifest.json", self._dump(self._manifest))
+
+    def _calls_path(self, trial_id: str) -> Path:
+        return self.path / "trials" / f"{_check_id(trial_id, 'trial id')}.calls.jsonl"
+
+    def append_call(self, trial_id: str, entry: Mapping[str, Any]) -> None:
+        """Append one request or response of a running trial, durably, as it happens, so a
+        crash mid-trial keeps every paid response received so far. The trial's record
+        replaces this log once the trial finishes."""
+        if trial_id not in {p["trial_id"] for p in self._manifest["planned"]}:
+            raise BundleError(f"trial {trial_id} was not planned")
+        line = self._dump(entry).decode("utf-8")
+        line = json.dumps(json.loads(line), sort_keys=True, ensure_ascii=False) + "\n"
+        path = self._calls_path(trial_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "ab") as handle:
+            handle.write(line.encode("utf-8"))
+            handle.flush()
+            os.fsync(handle.fileno())
 
     def write_trial(self, record: Mapping[str, Any]) -> None:
         trial_id = _check_id(record["trial_id"], "trial id")
@@ -276,6 +348,7 @@ class BundleWriter:
         atomic_write(self.path / "trials" / f"{trial_id}.json", data)
         self._manifest["records"][trial_id] = sha256_bytes(data)
         self._save_manifest()
+        self._calls_path(trial_id).unlink(missing_ok=True)  # superseded by the record
 
     def finish(self, reasons: Sequence[str] = ()) -> Verification:
         """Verify the bundle record by record and store the resulting status."""
@@ -297,8 +370,8 @@ def write_replay(bundle_dir: str | Path, evidence: Mapping[str, Any]) -> Path:
     path = Path(bundle_dir) / "replays" / f"{replay_id}.json"
     if path.exists():
         raise BundleError(f"replay already exists: {path}")
-    text, _ = redact(_canonical(evidence).decode("utf-8"), secret_values())
-    atomic_write(path, text.encode("utf-8"))
+    clean, _ = redact_value(evidence, secret_values())
+    atomic_write(path, _canonical(clean))
     return path
 
 
@@ -318,7 +391,29 @@ def load_manifest(bundle_dir: str | Path) -> dict[str, Any]:
     if manifest.get("schema_version") != BUNDLE_SCHEMA_VERSION:
         raise BundleError(f"unsupported bundle schema version: {manifest.get('schema_version')!r}"
                           f" (this code reads version {BUNDLE_SCHEMA_VERSION})")
+    planned = manifest.get("planned")
+    if not (isinstance(planned, list) and planned and all(
+            isinstance(p, dict) and isinstance(p.get("task_id"), str)
+            and isinstance(p.get("trial_id"), str) for p in planned)):
+        raise BundleError("manifest 'planned' must list task_id/trial_id pairs")
+    if not isinstance(manifest.get("records"), dict) or not isinstance(manifest.get("identity"), dict) \
+            or not isinstance(manifest.get("run_id"), str):
+        raise BundleError("manifest must have run_id, identity, and records")
     return manifest
+
+
+def load_partial_calls(bundle_dir: str | Path, trial_id: str) -> list[dict[str, Any]]:
+    """Requests/responses retained for a trial that never produced a record."""
+    path = Path(bundle_dir) / "trials" / f"{_check_id(trial_id, 'trial id')}.calls.jsonl"
+    if not path.is_file():
+        return []
+    entries = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            entries.append(json.loads(line))
+        except ValueError:  # a torn final line from a crash keeps the lines before it
+            break
+    return entries
 
 
 def load_trial(bundle_dir: str | Path, trial_id: str) -> dict[str, Any]:
@@ -349,33 +444,56 @@ def list_runs(root: str | Path) -> list[Path]:
 # --- completeness ------------------------------------------------------------------
 
 def check_grades(grades: Any) -> str | None:
-    """Return why a recorded grade set is not a valid outcome, or None if it is valid."""
-    if not isinstance(grades, dict) or grades.get("status") not in {"pending", "graded"}:
-        return "grades must be pending or graded"
-    if grades["status"] == "pending":
+    """Return why a stored grade record is not a valid outcome, or None if it is valid.
+
+    Structural only: candidate labels are owned by the grading side, so any nonempty
+    string is accepted; the infrastructure labels are the exception because they decide
+    whether a trial is incomplete rather than failed."""
+    if not isinstance(grades, dict) or grades.get("status") not in {
+            GRADE_PENDING, GRADE_GRADED, GRADE_INCOMPLETE}:
+        return "grades must be pending, graded, or incomplete"
+    if grades["status"] == GRADE_PENDING:
         return None
+    labels = grades.get("labels")
+    if not (isinstance(labels, list) and all(isinstance(x, str) and x for x in labels)):
+        return "trial labels must be a list of nonempty strings"
+    if not isinstance(grades.get("trial_status"), str) or not isinstance(grades.get("success"), bool) \
+            or not isinstance(grades.get("incomplete"), bool):
+        return "trial-level fields are missing or malformed"
+    infrastructure = grades.get("infrastructure_status")
+    if grades["incomplete"] != (grades["status"] == GRADE_INCOMPLETE):
+        return "status and incomplete flag disagree"
+    if grades["incomplete"] and not (isinstance(infrastructure, str) and infrastructure):
+        return "incomplete grade has no infrastructure status"
+    if grades["incomplete"] and grades["success"]:
+        return "an incomplete trial cannot be a success"
     checks = grades.get("checks")
     if not isinstance(checks, list) or not checks:
         return "graded record has no checks"
     seen: set[str] = set()
     for check in checks:
-        if not isinstance(check, dict) or not {"case_id", "executed", "passed", "failures"} <= set(check):
+        if not isinstance(check, dict) or not {"id", "executed", "passed", "failures"} <= set(check):
             return "check is missing required fields"
-        if check["case_id"] in seen:
-            return f"duplicate check {check['case_id']}"
-        seen.add(check["case_id"])
+        name = check["id"]
+        if not isinstance(name, str) or name in seen:
+            return f"duplicate or malformed check id {name!r}"
+        seen.add(name)
         failures = check["failures"]
-        if not isinstance(failures, list) or not isinstance(check["passed"], bool) \
-                or not isinstance(check["executed"], bool):
-            return f"check {check['case_id']} has malformed outcome fields"
-        if any(f not in CANDIDATE_FAILURES | INFRASTRUCTURE_FAILURES for f in failures):
-            return f"check {check['case_id']} has an unknown failure label"
+        if not isinstance(check["passed"], bool) or not isinstance(check["executed"], bool) \
+                or not isinstance(failures, list) \
+                or not all(isinstance(f, str) and f for f in failures):
+            return f"check {name} has malformed outcome fields"
         if check["passed"] and (failures or not check["executed"]):
-            return f"check {check['case_id']} is marked passed but has failures or did not run"
+            return f"check {name} is marked passed but has failures or did not run"
         if not check["passed"] and not failures:
-            return f"check {check['case_id']} failed without a label"
-        if check["executed"] is False and any(f in INFRASTRUCTURE_FAILURES for f in failures):
-            return f"check {check['case_id']} reports infrastructure failure as unexecuted"
+            return f"check {name} failed without a label"
+        if any(f in INFRASTRUCTURE_FAILURES for f in failures):
+            if check["executed"]:
+                return f"check {name} reports an infrastructure failure as executed"
+            if not grades["incomplete"]:
+                return f"check {name} hit an infrastructure failure but the trial is not incomplete"
+    if grades["success"] and not all(c["passed"] for c in checks):
+        return "trial marked success with a failing check"
     return None
 
 
@@ -407,13 +525,21 @@ def verify_bundle(bundle_dir: str | Path, *, finalizing: bool = False) -> Verifi
     for trial_id in planned:
         file = trial_dir / f"{trial_id}.json"
         if not file.is_file():
-            problems.append(Problem(MISSING_RECORD, "no record for this planned trial", trial_id))
+            partial = len(load_partial_calls(path, trial_id))
+            extra = f"; {partial} request/response entries retained in {trial_id}.calls.jsonl" \
+                if partial else ""
+            problems.append(Problem(MISSING_RECORD,
+                                    "no record for this planned trial" + extra, trial_id))
             continue
         data = file.read_bytes()
-        if hashes.get(trial_id) != sha256_bytes(data):
+        if trial_id not in hashes:
+            problems.append(Problem(UNRECORDED_RECORD,
+                                    "record exists but the manifest never accepted it "
+                                    "(crash between the two writes, or an added file)", trial_id))
+            continue
+        if hashes[trial_id] != sha256_bytes(data):
             problems.append(Problem(TAMPERED_RECORD,
-                                    "record does not match the hash stored in the manifest"
-                                    if trial_id in hashes else "record is not listed in the manifest",
+                                    "record does not match the hash stored in the manifest",
                                     trial_id))
             continue
         try:
@@ -434,19 +560,19 @@ def verify_bundle(bundle_dir: str | Path, *, finalizing: bool = False) -> Verifi
                                     "record identity differs from the manifest plan", trial_id))
             continue
         recorded.append(trial_id)
-        if record.get("status") == "infrastructure_incomplete":
+        stopped = record.get("status") == "infrastructure_incomplete"
+        if stopped:
             problems.append(Problem(INFRASTRUCTURE_STOP, f"trial stopped: "
                                     f"{record.get('infrastructure_status')}", trial_id))
         grades = record.get("grades", PENDING_GRADES)
         reason = check_grades(grades)
         if reason:
             problems.append(Problem(INVALID_GRADE, reason, trial_id))
-        elif grades["status"] == "pending":
+        elif grades["status"] == GRADE_PENDING:
             pending.append(trial_id)
-        elif any(f in INFRASTRUCTURE_FAILURES
-                 for c in grades["checks"] for f in c["failures"]):
-            problems.append(Problem(INFRASTRUCTURE_STOP, "a check hit an infrastructure failure",
-                                    trial_id))
+        elif grades["status"] == GRADE_INCOMPLETE and not stopped:
+            problems.append(Problem(INFRASTRUCTURE_STOP, "a check hit an infrastructure failure "
+                                    f"({grades['infrastructure_status']})", trial_id))
 
     if trial_dir.is_dir():
         for file in sorted(trial_dir.glob("*.json")):

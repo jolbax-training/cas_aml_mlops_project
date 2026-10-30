@@ -22,6 +22,10 @@ from codegen_eval.worker import SUPERVISOR
 
 IMAGE = "docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5"
 
+# Container names carry the process id, so concurrent runs sharing one Podman VM (parallel
+# test sessions, CI) can each list and clean up only their own containers.
+NAME_PREFIX = f"codegen-eval-{os.getpid()}-"
+
 # Statuses attributable to the container or worker rather than candidate code.
 INFRASTRUCTURE_STATUSES = frozenset({"infrastructure_error", "protocol_error"})
 _WORKER_STATUSES = frozenset({
@@ -91,7 +95,7 @@ def _exchange(process: subprocess.Popen[bytes], payload: bytes, seconds: float, 
 def _container_command(name: str, limits: ExecutionLimits) -> list[str]:
     memory = f"{limits.memory_mib}m"
     return [
-        "podman", "run", "-i", "--pull=never", "--name", name,
+        "podman", "create", "-i", "--pull=never", "--name", name,
         "--network=none", "--read-only", "--read-only-tmpfs=false", "--cap-drop=ALL",
         "--security-opt=no-new-privileges", f"--pids-limit={limits.max_processes}",
         f"--memory={memory}", f"--memory-swap={memory}", f"--cpus={limits.cpus}",
@@ -112,21 +116,61 @@ def _oom_killed(name: str) -> bool:
     return result.returncode == 0 and result.stdout.strip() == b"true"
 
 
+def _container_exists(name: str) -> bool:
+    try:
+        result = subprocess.run(["podman", "container", "exists", name],
+                                capture_output=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return True  # cannot tell: assume it is still there
+    return result.returncode == 0
+
+
 def _remove_container(name: str, *, retry: bool) -> None:
-    """Remove the container. After a killed client the server may still be creating
-    it (creation can take several seconds in the Podman VM, and the container then
-    runs to completion and stays), so keep retrying until a pass actually removes it
-    or the allowance runs out."""
-    for attempt in range(8 if retry else 1):
+    """Remove the container; after an abnormal end, keep going until it is verifiably gone.
+
+    The container is created in its own step and always exists before this runs, so the
+    removal never races a creation that a killed client left in flight (an earlier design
+    killed `podman run` mid-request and could never know whether the server would still
+    create the container).
+
+    `-t 0` kills at once. Without it `rm -f` sends SIGTERM and waits ten seconds before
+    SIGKILL, and the supervisor is PID 1 and ignores SIGTERM; the five-second subprocess
+    timeout then abandoned the client mid-stop and left the container in `Stopping`."""
+    for attempt in range(10 if retry else 1):
         if attempt:
-            time.sleep(1.0)
+            time.sleep(0.5)
         try:
-            result = subprocess.run(["podman", "rm", "-f", "--ignore", name],
-                                    capture_output=True, timeout=5, check=False)
+            subprocess.run(["podman", "rm", "-f", "-t", "0", "--ignore", name],
+                           capture_output=True, timeout=15, check=False)
         except (OSError, subprocess.TimeoutExpired):
             continue
-        if retry and result.returncode == 0 and result.stdout.strip():
-            return  # `--ignore` prints the name only when it removed something
+        if retry and not _container_exists(name):
+            return
+
+
+CREATE_GRACE_SECONDS = 60  # cleanup allowance for a creation still running at the deadline
+
+
+def _await_creation(creator: subprocess.Popen[bytes], deadline: float) -> tuple[bool, str | None, str]:
+    """Wait for `podman create` to finish; returns (created, reason, detail).
+
+    Creation counts against the deadline. If it is still running then, the candidate never
+    ran: the client is not killed (that would leave the server finishing the creation
+    unseen) but waited for, outside the deadline, so the container exists before cleanup."""
+    try:
+        creator.wait(timeout=max(deadline - time.monotonic(), 0))
+    except subprocess.TimeoutExpired:
+        try:
+            creator.wait(timeout=CREATE_GRACE_SECONDS)
+        except subprocess.TimeoutExpired:
+            creator.kill()
+            _reap(creator, kill=True)
+        return False, "timeout", ""
+    if creator.returncode == 0:
+        return True, None, ""
+    stderr = getattr(creator, "stderr", None)
+    detail = stderr.read().decode("utf-8", "replace")[:500] if stderr else ""
+    return False, None, detail
 
 
 def _reap(process: subprocess.Popen[bytes], *, kill: bool, wait_seconds: float = 5) -> None:
@@ -166,32 +210,48 @@ def execute_check(source: str, function_name: str, args: Sequence[Any],
                                      "protocol_bytes": limits.protocol_bytes}},
                          ensure_ascii=False).encode("utf-8")
 
-    name = f"codegen-eval-{uuid.uuid4().hex[:16]}"
+    name = f"{NAME_PREFIX}{uuid.uuid4().hex[:12]}"
+    deadline = time.monotonic() + limits.deadline_seconds
     try:
-        process = subprocess.Popen(_container_command(name, limits), stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        creator = subprocess.Popen(_container_command(name, limits), stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
     except OSError as error:
         return ExecutionResult("infrastructure_error", detail=str(error))
 
+    process: subprocess.Popen[bytes] | None = None
     reason: str | None = None
     completed = False
     oom_killed = False
+    created = False
     try:
-        output, error, reason = _exchange(process, payload, limits.deadline_seconds,
-                                          limits.protocol_bytes + 4096)
-        completed = reason is None
+        created, reason, detail = _await_creation(creator, deadline)
+        if not created and reason is None:
+            return ExecutionResult("infrastructure_error", detail=detail)
+        if created:
+            try:
+                process = subprocess.Popen(["podman", "start", "--attach", "--interactive", name],
+                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+            except OSError as error:
+                return ExecutionResult("infrastructure_error", detail=str(error))
+            output, error, reason = _exchange(process, payload,
+                                              max(deadline - time.monotonic(), 0),
+                                              limits.protocol_bytes + 4096)
+            completed = reason is None
     finally:
         # Cleanup happens after, and outside, the deadline. A client whose streams
         # closed normally is given time to exit; anything else is killed.
-        _reap(process, kill=not completed)
-        if completed and process.returncode not in (0, None):
-            oom_killed = _oom_killed(name)
-        _remove_container(name, retry=reason is not None)
+        if process is not None:
+            _reap(process, kill=not completed)
+            if completed and process.returncode not in (0, None):
+                oom_killed = _oom_killed(name)
+        _remove_container(name, retry=reason is not None or not created)
 
     if reason == "timeout":
         return ExecutionResult("timeout")
     if reason:
         return ExecutionResult("protocol_error", detail="supervisor output exceeded the protocol limit")
+    assert process is not None  # a completed exchange always has a start client
     if process.returncode is None:
         return ExecutionResult("infrastructure_error", detail="container client did not exit")
     if process.returncode != 0 and oom_killed:

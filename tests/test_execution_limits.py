@@ -178,3 +178,44 @@ def test_reap_kills_immediately_when_asked_and_always_collects_the_return_code()
     sandbox._reap(process, kill=True, wait_seconds=5)
 
     assert process.returncode is not None and process.returncode < 0
+
+
+def test_container_removal_kills_immediately_and_verifies_it_is_gone(monkeypatch):
+    """`rm -f` without `-t 0` waits ten seconds for a SIGTERM the supervisor ignores; the
+    cleanup timeout then abandoned a container mid-stop (the intermittent leftover)."""
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 1 if command[1] == "container" else 0, b"", b"")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    sandbox._remove_container("codegen-eval-x", retry=True)
+
+    assert commands == [["podman", "rm", "-f", "-t", "0", "--ignore", "codegen-eval-x"],
+                        ["podman", "container", "exists", "codegen-eval-x"]]
+
+
+def test_container_is_created_before_it_is_started(monkeypatch):
+    seen = []
+
+    class FakeProcess:
+        returncode = 0
+
+        def wait(self, timeout=None):
+            return 0
+
+        def poll(self):
+            return 0
+
+    def fake_popen(command, **kwargs):
+        seen.append(command[:2])
+        return FakeProcess()
+
+    monkeypatch.setattr(sandbox.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(sandbox.subprocess, "run", lambda *a, **kw: None)
+    monkeypatch.setattr(sandbox, "_exchange", lambda *a: (b'{"status":"returned","value":1,'
+                                                          b'"args_after":[["a"]]}', b"", None))
+    execute_check(VOWELS, "count_vowels", ["a"])
+
+    assert seen == [["podman", "create"], ["podman", "start"]]
