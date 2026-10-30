@@ -11,8 +11,8 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 | Benchmark | Three tasks, twelve cases; re-counted during this review | Ten reviewed tasks, references/review records, forty checks; freeze before baseline |
 | Evaluator | Dataset/source validation, per-check Podman execution, external scoring implemented | Agent loop, development tool, durable bundles, distinct inspection/regrading commands |
 | Offline checks | Earlier in this conversation: `.venv/bin/pytest -q` gave 21 passed, eight skipped | New implementation checks and retained deterministic CI evidence |
-| Podman | Earlier in this conversation: CLI 6.1.4, running VM; pinned Python image absent | Restore the pinned image and rerun probes; no successful current integration run claimed |
-| Execution boundary | Current deadline eight seconds; worker and candidate share a Python process | Ten-second target; isolation plus forged-response/concealed-mutation probes and documented limitations |
+| Podman | 2026-10-30: CLI 6.1.4, running libkrun VM, pinned image present; 8/8 baseline and 33/33 current sandbox tests passed (see entry below) | Re-run the probes on any other environment (Linux/CI) before trusting results there |
+| Execution boundary | 2026-10-30: ten-second configurable limits, supervisor/executor split, 33 Podman probes/tests passing on the local macOS VM; [threat model](threat_model.md) records residual limitations | Probe run on each further environment (CI) before it is trusted; live comparison still needs its other prerequisites |
 | Version control / CI | `origin` points to the project's GitHub repository; no Actions workflow | Required deterministic and Podman check groups on a verified compatible Linux runner |
 | OpenSpec | One planned HTML change, revised to the smaller scope; main specs empty | Implement the revised tasks separately; planning completion is not implementation completion |
 | Live generation / tracking | No OpenRouter client, budget ledger, agent traces, or MLflow integration | GLM/provider smoke; shared CHF controls; local bundles; containerized MLflow |
@@ -20,6 +20,22 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 | Transfer design | Coordinator/worker/verifier/final-check scope agreed | Guide and six-scenario example drafted (design only, not executed); registered as work-log sources 2026-10-30 |
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
+
+## 2026-10-30 — Candidate execution hardening (`harden-candidate-execution`)
+
+**Environment (observed):** macOS 27.0 arm64 host; Podman CLI/server 6.1.4, libkrun VM `podman-machine-default` (7 CPUs, 3.7 GiB), VM kernel 7.2.5-200.fc44.aarch64; Python 3.12.12 via uv; image `docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5` (present locally, shown with `podman images --digests`). No paid API calls, credentials, GitHub push, or CI were used.
+
+**Baseline before changes** (original pilot code): `.venv/bin/pytest -q` gave 21 passed, 8 skipped; `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` gave 8 passed (10.3 s).
+
+**Demonstrated scoring bypass in the pilot** (scratch scripts, not committed; unique_in_order case `lists_01_a`): (1) a candidate that mutates its input, then writes a forged `{"status":"returned",...,"args_after":<original>}` to stdout and calls `os._exit(0)` was returned as `status=returned` with clean arguments; (2) a candidate that mutates its input and replaces `json.dumps` to substitute the original arguments was also returned with clean arguments. Both would have passed trusted scoring with no `mutated_input` failure. This blocked live comparison until fixed.
+
+**Fix:** supervisor (PID 1, non-dumpable) plus separate executor with a per-check token, private report pipe, and pre-bound exact-type serialiser; rationale and limitations in the [threat model](threat_model.md). After the fix the same two candidates give `protocol_violation` and `returned` with `args_after=[[3,1,3,2,1,99]]` (recorded as `mutated_input`).
+
+**Results after changes (same environment):**
+- `.venv/bin/pytest -q`: 35 passed, 33 skipped.
+- `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox`: 33 passed, 35 deselected, about 60 s (32 passed in three consecutive runs before the cgroup probe was added; 33 passed in the final run), no failures and no leftover `codegen-eval-*` containers. An earlier run during development had one failure in the deadline/cleanup probe (container created after the client was killed); cleanup was changed to retry and the probe passed in all later runs.
+- Measured per-check wall time for a trivial call: 0.66–0.82 s (five runs), so startup uses well under 10 % of the deadline here.
+- No unresolved bypass is known in this environment. Residual limitations (notably deliberate introspection of the executor) are listed in the threat model. Other environments (Linux/CI) have not been run.
 
 ## 2026-10-23 — Wayfinder scope and delivery revision
 

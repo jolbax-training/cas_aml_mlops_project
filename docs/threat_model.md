@@ -1,0 +1,38 @@
+# Candidate execution threat model
+
+Scope: one untrusted, model-generated Python function call per check, executed by `src/codegen_eval/sandbox.py`. This is an engineering control for a course project, not a production security certification. Evidence is the probe suite in `tests/test_isolation_probes.py` and `tests/test_execution_limits.py`; observed results are recorded in [progress](progress.md).
+
+## Assets
+
+| Asset | Why it matters |
+| --- | --- |
+| Hidden expected answers and scoring code | Candidate must not see them or influence the verdict beyond its own return value |
+| Credentials, API keys, host environment | Candidate must not read or exfiltrate them |
+| Tracking services and repository files | Candidate must not reach MLflow, the network, or host files |
+| Podman control | Candidate must not reach the Podman socket or other containers |
+| Score integrity | Candidate must not forge a result or hide that it mutated its inputs |
+
+## Attacker capability
+
+Arbitrary Python (standard library only passes `validate_source`, but probes bypass it) running as an unprivileged user inside one container for at most the deadline. The attacker does not know the per-check token, expected answers, or other checks' inputs.
+
+## Protections
+
+- **Fresh container per check**, `--rm`, uniquely named, removed after the deadline (cleanup is outside the deadline; late-created containers are retried).
+- **No inputs beyond source, function name, and one check's arguments.** `execute_check` has no expected-value parameter; a unit test inspects the payload. Comparison runs in `evaluate.py`.
+- **Container flags:** `--network=none`, `--read-only`, no extra tmpfs, `--cap-drop=ALL`, `no-new-privileges`, user 65534, no mounts/secrets/env files/devices/host namespaces, no Podman socket; only `HOME=/tmp` in the environment. Writable `/tmp` is `noexec` and 16 MiB.
+- **Limits** (`ExecutionLimits`, hashable and serialisable): 10 s deadline from process start including container startup and code loading; 128 MiB memory (swap equal); 1 CPU; 32 processes; 64 KiB source-plus-arguments rejected before any container starts; 32 KiB print output (counted for `print`, `sys.stderr`, and raw descriptor writes); 64 KiB worker report.
+- **Worker integrity (design decision).** Candidate code and the reporter used to share one Python process and stdout, so a candidate could write a fabricated success message and `os._exit(0)`, or patch `json.dumps` to hide an input mutation. Both were demonstrated against the pilot (see progress) and are fixed by three layered choices, selected from the options in design.md:
+  1. A **supervisor** is the container's PID 1 and the only writer of the real stdout. It marks itself non-dumpable (`PR_SET_DUMPABLE=0`), so same-user candidate code cannot read `/proc/1/{mem,environ,fd}` and, being PID 1, ignores signals from inside the container. The per-check **token** arrives on its stdin, never in argv or the environment.
+  2. A separate **executor** process runs the candidate and sends exactly one report on a private pipe, signed with the token. The supervisor rejects anything else on that pipe (wrong or missing token, extra bytes, unexpected fields) as `protocol_violation`, a candidate outcome. A process that exits without reporting is `protocol_violation` (clean exit) or `candidate_crash` (signal/non-zero).
+  3. The executor serialises the return value and post-call arguments with a self-contained encoder whose builtins and helpers are bound before candidate code loads, accepting only exact JSON types. Patching `json`, `sys.modules`, or `builtins`, or returning list subclasses, does not change what is reported; subclass tricks end as `serialization_error`. The trusted side compares the reported post-call arguments with its own copy of the arguments.
+- **Attribution.** Only the supervisor can write to the container's stdout, so malformed or missing supervisor output, container start failure, or unavailable Podman are infrastructure outcomes (`infrastructure_error`, `protocol_error`). Exceptions, timeouts, print/report overflow, mutation, forged reports, and crashes are candidate outcomes.
+
+## Residual limitations
+
+- **In-process introspection.** The token and report pipe live in the executor's own memory. Candidate code that deliberately walks the executor's frames or garbage-collected objects (`sys._getframe`, `gc`) can recover the token and descriptor and sign a false report, including one that hides mutation. No in-process design prevents this; the separate supervisor only stops forgery that does not first compromise the executor. Concealment that restores the inputs (net no mutation) is intentionally not reported as mutation.
+- **Not defended:** Podman, libkrun/VM, or kernel escapes; side channels and timing; CPU contention inflating timeouts; resource exhaustion that makes the host VM unstable beyond the cgroup limits.
+- **Deadline sensitivity.** Startup (about 0.7 s per check on the recorded macOS VM) consumes part of the 10 s deadline; a loaded host could turn a slow-but-correct candidate into a timeout. Re-measure per environment.
+- **Environment coverage.** Probes were run only where recorded in progress (macOS arm64, Podman VM). A Linux or CI runner needs its own run before its results are trusted. The pinned image digest is the only image checked.
+- **Cleanup race.** If Podman creates a container after the client was killed at the deadline, removal is retried for a few seconds; a leaked container after that is possible but was not observed.
+- **Memory-limit classification.** An OOM-killed candidate is `candidate_crash`; it is indistinguishable from other signal deaths.

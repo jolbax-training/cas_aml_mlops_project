@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 
 from codegen_eval.contract import validate_source
-from codegen_eval.sandbox import ExecutionResult, run_case
+from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, ExecutionResult, run_case
 from codegen_eval.tasks import Case, Task
 
 
@@ -79,7 +79,7 @@ def _score_case(case: Case, execution: ExecutionResult) -> CaseResult:
             failures.append("mutated_input")
         return CaseResult(case.id, case.kind, True, not failures, tuple(failures), execution.value)
 
-    infrastructure = execution.status in {"infrastructure_error", "protocol_error"}
+    infrastructure = execution.status in INFRASTRUCTURE_STATUSES
     return CaseResult(case.id, case.kind, not infrastructure, False, (execution.status,))
 
 
@@ -111,7 +111,7 @@ def count_results(results: Iterable[TaskResult]) -> RunCounts:
         edge_cases_total=sum(case.kind == "edge" for case in cases),
         edge_cases_passed=sum(case.kind == "edge" and case.passed for case in cases),
         infrastructure_failures=sum(
-            any(failure in {"infrastructure_error", "protocol_error"} for failure in case.failures)
+            any(failure in INFRASTRUCTURE_STATUSES for failure in case.failures)
             for case in cases
         ),
     )

@@ -29,7 +29,7 @@ Run the separate container integration checks after Podman is available:
 CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox
 ```
 
-The integration checks exercise correct and wrong functions, input mutation, a timeout, excessive output, and attempted access to a host file, a synthetic host environment variable, a read-only system path, and the network. They do not use real credentials.
+The integration checks and isolation probes (`tests/test_sandbox_integration.py`, `tests/test_isolation_probes.py`) run hostile candidates through the real container path and assert the trusted-side classification: host files, a synthetic host environment variable, read-only paths, the network, capabilities and mounts, state leaking between checks, the deadline, print/report floods, memory, process and temporary-storage limits, input mutation, forged worker responses, tampering with the supervisor, and concealed mutation. They do not use real credentials. They take about a minute because every check starts a fresh container.
 
 As an optional learning exercise (not a delivery gate), inspect one expected failure in `tests/test_evaluate.py` before running it. Predict its task score, case score, and failure label. Then compare your prediction with the test result. Useful questions: Why does a syntax error produce four unexecuted cases? Why does a correct return value still fail after input mutation? What does the container protect, and what remains uncertain?
 
@@ -38,10 +38,10 @@ As an optional learning exercise (not a delivery gate), inspect one expected fai
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.
 - `src/codegen_eval/tasks.py` validates dataset shape and category counts.
 - `src/codegen_eval/contract.py` checks Python syntax and the one-function response contract without running code.
-- `src/codegen_eval/sandbox.py` passes source and one case's arguments to a disposable container. It never passes expected answers, repository files, or credentials.
+- `src/codegen_eval/sandbox.py` exposes `execute_check(source, function_name, args, limits)`, which runs one call in a fresh restricted container and returns a raw outcome. It never receives expected answers and passes no repository files or credentials. `src/codegen_eval/limits.py` holds the serialisable `ExecutionLimits` (10 s deadline including startup, 128 MiB, 1 CPU, 32 processes, 16 MiB tmp, 64 KiB payload, 32 KiB print, 64 KiB report; `config_hash()` identifies a configuration). `src/codegen_eval/worker.py` holds the in-container supervisor and executor.
 - `src/codegen_eval/evaluate.py` compares the returned value and post-call arguments with trusted expectations outside the container, preserving each case's failure labels.
 
-The container restrictions and integration checks limit accidental or hostile code behavior. They are not a formal proof against a candidate deliberately manipulating the worker protocol inside its own Python process. The live model benchmark remains disabled until this execution boundary is reviewed against the project's execution and scoring-integrity requirements.
+Outcomes are either candidate-attributable (`returned`, `exception`, `timeout`, `output_limit`, `serialization_error`, `input_limit`, `protocol_violation`, `candidate_crash`) or infrastructure (`infrastructure_error`, `protocol_error`, kept out of failure counts). A PID 1 supervisor, a separate executor, a per-check token, and a pre-bound serialiser stop a candidate from forging a result or hiding input mutation by writing to stdout, patching `json`/builtins, or exiting early; the [threat model](docs/threat_model.md) records the design, the evidence, and what is not defended. Notably, candidate code that deliberately introspects its own executor can still sign a false report, so this is an engineering control, not a security certification. Probe results per environment are recorded in [progress](docs/progress.md); the live comparison must not start while a bypass is unresolved.
 
 ## Local HTML work log
 
@@ -67,10 +67,10 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 - [Personal learning journal](docs/learning_journal.md): student-authored expectations and reflections, preserved as report source material.
 - [Historical brainstorming](docs/project_ideas.md): earlier ideas, superseded by the working specification where they differ.
 
-## Agreed target configuration (not implemented yet)
+## Agreed target configuration (execution limits implemented; the rest not implemented yet)
 
 - Four logical model calls and three development-tool attempts per trial; at most four checks per tool request. The fourth model call is final-submission-only.
-- Fresh restricted candidate containers per check; target execution deadline **10 seconds**. The current code still defaults to eight seconds and requires scoring-integrity review before live comparisons.
+- Fresh restricted candidate containers per check; execution deadline **10 seconds** (configurable; implemented in `ExecutionLimits`).
 - OpenRouter `z-ai/glm-5.3-flash`, pinned to OpenInference `open-inference/fp4`; temperature 0.2, top-p 1, low reasoning effort, 12k input / 2k output tokens, 60-second API attempts. Functional smoke verification is pending.
 - Baseline and one revised prompt, three trials per task: sixty task trials and 240 hidden-check outcomes overall.
 - Project-wide spending ledger: **CHF 10 checkpoint**, automatic continuation; **CHF 15 ceiling**, with conservative reservations including retries and uncertain charges.
