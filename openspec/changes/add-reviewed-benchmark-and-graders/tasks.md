@@ -4,14 +4,14 @@ All tasks are unstarted planning items. Timebox: day 2, benchmark/reference revi
 
 ## 1. Benchmark structure and validation
 
-- [ ] 1.1 Define the versioned benchmark schema (task ID, category, instruction, function name, typed signature, four cases tagged ordinary/edge) and add validation for ten tasks, two per category, two ordinary plus two edge cases per task, unique IDs, and signature-matching arguments; test each failure diagnostic.
-- [ ] 1.2 Re-review the three pilot tasks' instructions and expected answers; record corrections or exclusions before reusing any.
+- [x] 1.1 Define the versioned benchmark schema (task ID, category, instruction, function name, typed signature, four cases tagged ordinary/edge) and add validation for ten tasks, two per category, two ordinary plus two edge cases per task, unique IDs, and signature-matching arguments; test each failure diagnostic.
+- [x] 1.2 Re-review the three pilot tasks' instructions and expected answers; record corrections or exclusions before reusing any.
 
 ## 2. Tasks, references, and review evidence
 
-- [ ] 2.1 Author the remaining tasks to reach ten, within the JSON-compatible scope and excluding floating-point tolerance and expected-exception tasks.
-- [ ] 2.2 Write a separately reasoned reference solution per task and run it against the cases as a consistency check; resolve any discrepancy.
-- [ ] 2.3 Retain review evidence per task (reviewer, date, derivation/reference, corrections, task/case IDs) without counting an unreviewed model answer as validation.
+- [x] 2.1 Author the remaining tasks to reach ten, within the JSON-compatible scope and excluding floating-point tolerance and expected-exception tasks.
+- [x] 2.2 Write a separately reasoned reference solution per task and run it against the cases as a consistency check; resolve any discrepancy.
+- [x] 2.3 Retain review evidence per task (reviewer, date, derivation/reference, corrections, task/case IDs) without counting an unreviewed model answer as validation.
 
 ## 3. Grading and accounting
 

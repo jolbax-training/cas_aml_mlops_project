@@ -35,3 +35,27 @@ def test_invalid_benchmark_is_rejected(tmp_path, change, message):
 
     with pytest.raises(ValueError, match=message):
         load_tasks(broken, EXPECTED_CATEGORIES)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda data: data[0]["cases"][0].update(args=["a", "b"]), "has 2 args but the signature takes 1"),
+        (lambda data: data[0]["cases"][0].update(args=[5]), "argument 'text' does not match"),
+        (lambda data: data[1]["cases"][0].update(args=[[1, True]]), "argument 'items' does not match"),
+        (lambda data: data[1]["cases"][0].update(args=[[1, 2.0]]), "argument 'items' does not match"),
+        (lambda data: data[0]["cases"][0].update(expected=True), "expected value does not match"),
+        (lambda data: data[0]["cases"][0].update(expected=2.0), "expected value does not match"),
+        (lambda data: data[2]["cases"][0].update(expected={"a": "2"}), "expected value does not match"),
+        (lambda data: data[0].update(signature="count_vowels(*texts: str) -> int"), "plain positional"),
+        (lambda data: data[0].update(signature="count_vowels(text: bytes) -> int"), "unsupported annotation"),
+    ],
+)
+def test_case_values_must_match_the_signature(tmp_path, change, message):
+    data = json.loads(PILOT.read_text(encoding="utf-8"))
+    change(data)
+    broken = tmp_path / "broken.json"
+    broken.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        load_tasks(broken, EXPECTED_CATEGORIES)

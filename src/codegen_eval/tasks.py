@@ -10,6 +10,16 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
+BENCHMARK_SCHEMA_VERSION = 1
+BENCHMARK_CATEGORIES = {
+    "strings": 2,
+    "lists": 2,
+    "dictionaries": 2,
+    "numeric_logic": 2,
+    "parsing_formatting": 2,
+}
+
+
 @dataclass(frozen=True)
 class Case:
     id: str
@@ -51,9 +61,60 @@ def _check_signature(signature: str, function_name: str) -> None:
         raise ValueError("signature and function_name disagree")
 
 
+def _matches(value: Any, annotation: ast.expr | None) -> bool:
+    """Check a JSON value against a signature annotation, keeping bool and int distinct."""
+    if isinstance(annotation, ast.Constant) and annotation.value is None:
+        return value is None
+    if isinstance(annotation, ast.Name):
+        if annotation.id == "bool":
+            return isinstance(value, bool)
+        if annotation.id == "int":
+            return isinstance(value, int) and not isinstance(value, bool)
+        if annotation.id == "str":
+            return isinstance(value, str)
+    if isinstance(annotation, ast.Subscript) and isinstance(annotation.value, ast.Name):
+        container, inner = annotation.value.id, annotation.slice
+        if container == "list":
+            return isinstance(value, list) and all(_matches(item, inner) for item in value)
+        if container == "dict" and isinstance(inner, ast.Tuple) and len(inner.elts) == 2:
+            key_type, value_type = inner.elts
+            return isinstance(value, dict) and all(
+                _matches(key, key_type) and _matches(item, value_type) for key, item in value.items()
+            )
+    raise ValueError(f"unsupported annotation: {ast.unparse(annotation) if annotation else None}")
+
+
+def _check_case_shape(case_id: str, signature: str, args: list[Any], expected: Any) -> None:
+    function = ast.parse(f"def {signature}:\n    pass\n").body[0]
+    parameters = function.args.args
+    if function.args.vararg or function.args.kwarg or function.args.kwonlyargs or function.args.defaults:
+        raise ValueError(f"{signature!r} may only use plain positional parameters")
+    if len(args) != len(parameters):
+        raise ValueError(f"{case_id} has {len(args)} args but the signature takes {len(parameters)}")
+    for parameter, value in zip(parameters, args):
+        if not _matches(value, parameter.annotation):
+            raise ValueError(f"{case_id} argument {parameter.arg!r} does not match its annotation")
+    if not _matches(expected, function.returns):
+        raise ValueError(f"{case_id} expected value does not match the return annotation")
+
+
 def load_tasks(path: str | Path, expected_categories: Mapping[str, int]) -> tuple[Task, ...]:
     """Load a benchmark and check its structure, counts, and identifiers."""
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    return _build_tasks(raw, expected_categories)
+
+
+def load_benchmark(path: str | Path) -> tuple[Task, ...]:
+    """Load the versioned ten-task benchmark: five categories, two tasks each, four cases each."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    envelope = _object(raw, {"schema_version", "benchmark_version", "tasks"}, "benchmark")
+    if envelope["schema_version"] != BENCHMARK_SCHEMA_VERSION:
+        raise ValueError(f"unsupported benchmark schema version: {envelope['schema_version']!r}")
+    _text(envelope["benchmark_version"], "benchmark version")
+    return _build_tasks(envelope["tasks"], BENCHMARK_CATEGORIES)
+
+
+def _build_tasks(raw: Any, expected_categories: Mapping[str, int]) -> tuple[Task, ...]:
     if not isinstance(raw, list):
         raise ValueError("benchmark must be a list of tasks")
 
@@ -95,6 +156,7 @@ def load_tasks(path: str | Path, expected_categories: Mapping[str, int]) -> tupl
                 raise ValueError(f"invalid case kind: {kind!r}")
             if not isinstance(case["args"], list):
                 raise ValueError(f"{case_id} args must be a list")
+            _check_case_shape(case_id, signature, case["args"], case["expected"])
             cases.append(Case(case_id, kind, tuple(case["args"]), case["expected"]))
             kinds[kind] += 1
         if kinds != Counter({"ordinary": 2, "edge": 2}):

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "1",
+  "tasks": [
+    {
+      "id": "strings_01",
+      "category": "strings",
+      "function_name": "count_vowels",
+      "signature": "count_vowels(text: str) -> int",
+      "instruction": "Write count_vowels(text: str) -> int. Count occurrences of the Latin vowels a, e, i, o, and u, including accented forms such as é and ü, without regard to case. A vowel written as a base letter followed by a combining accent counts once. Do not count y. Do not count letters that are not a vowel letter with combining marks, such as the ligature æ or the letter ø. The input is always a string; return 0 for an empty string. Python standard-library imports are allowed, but third-party dependencies are not.",
+      "cases": [
+        {"id": "strings_01_a", "kind": "ordinary", "args": ["hello"], "expected": 2},
+        {"id": "strings_01_b", "kind": "ordinary", "args": ["café"], "expected": 2},
+        {"id": "strings_01_c", "kind": "edge", "args": [""], "expected": 0},
+        {"id": "strings_01_d", "kind": "edge", "args": ["A\u0308Éæ"], "expected": 2}
+      ]
+    },
+    {
+      "id": "strings_02",
+      "category": "strings",
+      "function_name": "run_length_encode",
+      "signature": "run_length_encode(text: str) -> str",
+      "instruction": "Write run_length_encode(text: str) -> str. Replace every maximal run of identical consecutive characters with that character followed by the run length written in decimal digits, even when the run length is 1. Comparison is case-sensitive, so 'a' and 'A' are different characters. The input is always a string; return an empty string for an empty string.",
+      "cases": [
+        {"id": "strings_02_a", "kind": "ordinary", "args": ["aaabcc"], "expected": "a3b1c2"},
+        {"id": "strings_02_b", "kind": "ordinary", "args": ["aAbb"], "expected": "a1A1b2"},
+        {"id": "strings_02_c", "kind": "edge", "args": [""], "expected": ""},
+        {"id": "strings_02_d", "kind": "edge", "args": ["zzzzzzzzzzzz"], "expected": "z12"}
+      ]
+    },
+    {
+      "id": "lists_01",
+      "category": "lists",
+      "function_name": "unique_in_order",
+      "signature": "unique_in_order(items: list[int]) -> list[int]",
+      "instruction": "Write unique_in_order(items: list[int]) -> list[int]. Return each distinct integer exactly once, in the order it first appears in items. Do not modify items. The input is always a list of integers. For an empty list, return an empty list.",
+      "cases": [
+        {"id": "lists_01_a", "kind": "ordinary", "args": [[3, 1, 3, 2, 1]], "expected": [3, 1, 2]},
+        {"id": "lists_01_b", "kind": "ordinary", "args": [[-2, -2, 0, 4, 0]], "expected": [-2, 0, 4]},
+        {"id": "lists_01_c", "kind": "edge", "args": [[]], "expected": []},
+        {"id": "lists_01_d", "kind": "edge", "args": [[5, 5, 5]], "expected": [5]}
+      ]
+    },
+    {
+      "id": "lists_02",
+      "category": "lists",
+      "function_name": "rotate_left",
+      "signature": "rotate_left(items: list[int], k: int) -> list[int]",
+      "instruction": "Write rotate_left(items: list[int], k: int) -> list[int]. Return a new list containing the elements of items rotated left by k positions, so the element at index k moves to the front and the first k elements move to the back in their original order. k is always a nonnegative integer and may be larger than the length of items. Do not modify items. The input items is always a list of integers. For an empty list, return an empty list.",
+      "cases": [
+        {"id": "lists_02_a", "kind": "ordinary", "args": [[1, 2, 3, 4, 5], 2], "expected": [3, 4, 5, 1, 2]},
+        {"id": "lists_02_b", "kind": "ordinary", "args": [[7, 8, 9], 0], "expected": [7, 8, 9]},
+        {"id": "lists_02_c", "kind": "edge", "args": [[], 3], "expected": []},
+        {"id": "lists_02_d", "kind": "edge", "args": [[1, 2, 3], 7], "expected": [2, 3, 1]}
+      ]
+    },
+    {
+      "id": "dictionaries_01",
+      "category": "dictionaries",
+      "function_name": "merge_integer_maps",
+      "signature": "merge_integer_maps(left: dict[str, int], right: dict[str, int]) -> dict[str, int]",
+      "instruction": "Write merge_integer_maps(left: dict[str, int], right: dict[str, int]) -> dict[str, int]. Return a dictionary containing every key from either input. If a key appears in both, its result is the sum of the two integer values. If it appears in only one, preserve that value. Keep keys whose result is zero. Do not modify either input dictionary. The inputs are always dictionaries with string keys and integer values.",
+      "cases": [
+        {"id": "dictionaries_01_a", "kind": "ordinary", "args": [{"a": 2}, {"b": 3}], "expected": {"a": 2, "b": 3}},
+        {"id": "dictionaries_01_b", "kind": "ordinary", "args": [{"a": 2, "b": 1}, {"a": 3, "c": 4}], "expected": {"a": 5, "b": 1, "c": 4}},
+        {"id": "dictionaries_01_c", "kind": "edge", "args": [{}, {}], "expected": {}},
+        {"id": "dictionaries_01_d", "kind": "edge", "args": [{"x": 0}, {"x": 0}], "expected": {"x": 0}}
+      ]
+    },
+    {
+      "id": "dictionaries_02",
+      "category": "dictionaries",
+      "function_name": "group_keys_by_value",
+      "signature": "group_keys_by_value(mapping: dict[str, str]) -> dict[str, list[str]]",
+      "instruction": "Write group_keys_by_value(mapping: dict[str, str]) -> dict[str, list[str]]. Return a dictionary whose keys are the distinct values of mapping. Each result key maps to the list of all keys of mapping that have that value, sorted in ascending order by Python's default string comparison. Do not modify mapping. The input is always a dictionary with string keys and string values; for an empty dictionary, return an empty dictionary.",
+      "cases": [
+        {"id": "dictionaries_02_a", "kind": "ordinary", "args": [{"a": "x", "b": "y", "c": "x"}], "expected": {"x": ["a", "c"], "y": ["b"]}},
+        {"id": "dictionaries_02_b", "kind": "ordinary", "args": [{"b": "k", "a": "k"}], "expected": {"k": ["a", "b"]}},
+        {"id": "dictionaries_02_c", "kind": "edge", "args": [{}], "expected": {}},
+        {"id": "dictionaries_02_d", "kind": "edge", "args": [{"only": ""}], "expected": {"": ["only"]}}
+      ]
+    },
+    {
+      "id": "numeric_logic_01",
+      "category": "numeric_logic",
+      "function_name": "digital_root",
+      "signature": "digital_root(n: int) -> int",
+      "instruction": "Write digital_root(n: int) -> int. Repeatedly replace n with the sum of its decimal digits until the result has a single digit, and return that digit. n is always a nonnegative integer and may be larger than 64 bits. A single-digit n, including 0, is returned unchanged.",
+      "cases": [
+        {"id": "numeric_logic_01_a", "kind": "ordinary", "args": [38], "expected": 2},
+        {"id": "numeric_logic_01_b", "kind": "ordinary", "args": [999], "expected": 9},
+        {"id": "numeric_logic_01_c", "kind": "edge", "args": [0], "expected": 0},
+        {"id": "numeric_logic_01_d", "kind": "edge", "args": [1000000000000000000000000000000], "expected": 1}
+      ]
+    },
+    {
+      "id": "numeric_logic_02",
+      "category": "numeric_logic",
+      "function_name": "collatz_steps",
+      "signature": "collatz_steps(n: int) -> int",
+      "instruction": "Write collatz_steps(n: int) -> int. Starting from n, repeat the following step until the value is 1: if the value is even, halve it; if it is odd, multiply it by 3 and add 1. Return the number of steps taken. n is always a positive integer. If n is 1, return 0.",
+      "cases": [
+        {"id": "numeric_logic_02_a", "kind": "ordinary", "args": [6], "expected": 8},
+        {"id": "numeric_logic_02_b", "kind": "ordinary", "args": [7], "expected": 16},
+        {"id": "numeric_logic_02_c", "kind": "edge", "args": [1], "expected": 0},
+        {"id": "numeric_logic_02_d", "kind": "edge", "args": [27], "expected": 111}
+      ]
+    },
+    {
+      "id": "parsing_formatting_01",
+      "category": "parsing_formatting",
+      "function_name": "format_duration",
+      "signature": "format_duration(seconds: int) -> str",
+      "instruction": "Write format_duration(seconds: int) -> str. Convert a number of seconds into the text H:MM:SS, where H is the total number of whole hours written in decimal digits without leading zeros (at least one digit, and not wrapped at 24), and MM and SS are the remaining minutes and seconds, each written with exactly two digits. seconds is always a nonnegative integer.",
+      "cases": [
+        {"id": "parsing_formatting_01_a", "kind": "ordinary", "args": [3661], "expected": "1:01:01"},
+        {"id": "parsing_formatting_01_b", "kind": "ordinary", "args": [59], "expected": "0:00:59"},
+        {"id": "parsing_formatting_01_c", "kind": "edge", "args": [0], "expected": "0:00:00"},
+        {"id": "parsing_formatting_01_d", "kind": "edge", "args": [360000], "expected": "100:00:00"}
+      ]
+    },
+    {
+      "id": "parsing_formatting_02",
+      "category": "parsing_formatting",
+      "function_name": "parse_settings",
+      "signature": "parse_settings(text: str) -> dict[str, str]",
+      "instruction": "Write parse_settings(text: str) -> dict[str, str]. The text is a list of settings separated by semicolons. Split it on ';' and skip every segment that is empty or contains only spaces. Every other segment contains at least one '='; split it at the first '=' into a key and a value, and remove leading and trailing spaces from both. The key is never empty after removing spaces, and the value may be empty. If a key appears more than once, the last value is kept. The input is always a string; return an empty dictionary for an empty string.",
+      "cases": [
+        {"id": "parsing_formatting_02_a", "kind": "ordinary", "args": ["a=1;b=2"], "expected": {"a": "1", "b": "2"}},
+        {"id": "parsing_formatting_02_b", "kind": "ordinary", "args": [" name = Ann ; city=Bern=CH"], "expected": {"name": "Ann", "city": "Bern=CH"}},
+        {"id": "parsing_formatting_02_c", "kind": "edge", "args": [""], "expected": {}},
+        {"id": "parsing_formatting_02_d", "kind": "edge", "args": ["k=1;k=2;;z="], "expected": {"k": "2", "z": ""}}
+      ]
+    }
+  ]
+}
