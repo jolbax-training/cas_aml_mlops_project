@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import secrets
 import selectors
 import subprocess
@@ -20,7 +21,24 @@ from codegen_eval.tasks import Case, Task
 from codegen_eval.worker import SUPERVISOR
 
 
-IMAGE = "docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5"
+# python:3.12.14-slim-trixie. Each digest is the per-platform image manifest, so the host
+# architecture selects the matching pin (an arm64 digest cannot run on an amd64 runner).
+_IMAGE_BY_ARCH = {
+    "arm64": "docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5",
+    "amd64": "docker.io/library/python@sha256:44ff437bba879d4941b710a369a8f19266aea34b29002807f0c487fabc9eec9b",
+}
+_ARCH_ALIASES = {"aarch64": "arm64", "x86_64": "amd64"}
+
+
+def _select_image(machine: str) -> str:
+    arch = _ARCH_ALIASES.get(machine.lower(), machine.lower())
+    try:
+        return _IMAGE_BY_ARCH[arch]
+    except KeyError:
+        raise RuntimeError(f"no pinned candidate image for architecture {machine!r}") from None
+
+
+IMAGE = _select_image(platform.machine())
 
 # Container names carry the process id, so concurrent runs sharing one Podman VM (parallel
 # test sessions, CI) can each list and clean up only their own containers.

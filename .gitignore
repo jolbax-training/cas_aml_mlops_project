@@ -51,3 +51,4 @@ credentials*.json
 
 # Claude machine-local settings; shared skills remain tracked
 .claude/settings.local.json
+/.github/openspec/node_modules/

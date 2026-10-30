@@ -6,21 +6,21 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "ci/**"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   UV_VERSION: "0.9.3"
   PYTHON_VERSION: "3.12"
-  OPENSPEC_VERSION: "1.14.2"
 
 jobs:
   offline:
@@ -41,10 +41,10 @@ jobs:
         run: uv sync --python "$PYTHON_VERSION" --locked
       - name: Tests (Podman-dependent tests skip here by design; the podman job runs them)
         run: .venv/bin/pytest -q
-      - name: Install OpenSpec CLI
-        run: npm install --global "@fission-ai/openspec@${OPENSPEC_VERSION}"
-      - name: Validate OpenSpec changes and specs
-        run: openspec validate --all --strict --no-interactive
+      - name: Install OpenSpec CLI (npm ci from the committed lockfile)
+        run: npm ci --ignore-scripts --prefix .github/openspec
+      - name: Validate main specs and in-flight changes that carry specs (strict)
+        run: scripts/ci_validate_openspec.sh .github/openspec/node_modules/.bin/openspec
       - name: Benchmark freeze check
         run: .venv/bin/python scripts/freeze_benchmark.py --check
       - name: Work-log sources check
@@ -66,23 +66,27 @@ jobs:
           enable-cache: false
       - name: Install locked dependencies
         run: uv sync --python "$PYTHON_VERSION" --locked
-      - name: Install and verify Podman
+      - name: Install Podman and run it rootful
+        # Rootless Podman on a hosted runner has no logind user session, so it cannot create
+        # a delegated cgroup and would not enforce memory/pids/cpu limits. Rootful Podman
+        # (passwordless sudo on the runner) uses the system cgroup tree, as the laptop VM does.
         run: |
           if ! command -v podman >/dev/null; then
             sudo apt-get update
             sudo apt-get install -y podman
           fi
-          podman --version
-          podman info --format 'rootless={{.Host.Security.Rootless}} cgroups={{.Host.CgroupsVersion}} runtime={{.Host.OCIRuntime.Name}}'
-      - name: Pull the pinned candidate image by digest
-        run: |
-          image="$(PYTHONPATH=src .venv/bin/python -c 'from codegen_eval.sandbox import IMAGE; print(IMAGE)')"
-          echo "image: $image"
-          podman pull "$image"
-          podman image inspect "$image" --format 'digest={{.Digest}}'
+          printf '#!/bin/sh\nexec sudo -n /usr/bin/podman "$@"\n' | sudo tee /usr/local/bin/podman >/dev/null
+          sudo chmod +x /usr/local/bin/podman
+          command -v podman
+      - name: Pull the pinned candidate image by digest (retries, mirror, digest check)
+        env:
+          CI_IMAGE_MIRROR: public.ecr.aws/docker/library
+        run: scripts/ci_pull_pinned_image.sh
+      - name: Verify Podman can enforce memory, pids, and cpu limits
+        run: scripts/ci_verify_podman_limits.sh
       - name: Sandbox tests (a skip is a failure)
         run: |
-          .venv/bin/pytest -q -m sandbox -rs --junitxml=sandbox-junit.xml
+          .venv/bin/pytest -q -m sandbox -rs --junitxml="$RUNNER_TEMP/sandbox-junit.xml"
       - name: Fail on skipped, errored, or missing Podman tests
         if: ${{ !cancelled() }}
-        run: .venv/bin/python scripts/ci_require_no_skips.py sandbox-junit.xml
+        run: .venv/bin/python scripts/ci_require_no_skips.py "$RUNNER_TEMP/sandbox-junit.xml"
