@@ -1,6 +1,6 @@
 # Project progress and decisions
 
-Updated 2026-10-23. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
+Updated 2026-10-30. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
 
 ## Current status
 
@@ -17,7 +17,7 @@ Updated 2026-10-23. [The specification](project_spec.md) defines the current acc
 | OpenSpec | One planned HTML change, revised to the smaller scope; main specs empty | Implement the revised tasks separately; planning completion is not implementation completion |
 | Live generation / tracking | No OpenRouter client, budget ledger, agent traces, or MLflow integration | GLM/provider smoke; shared CHF controls; local bundles; containerized MLflow |
 | Report / demo | Markdown exists; no HTML builder/output or complete demo | Day-two HTML foundation, later evidence updates and offline/replay demo checks |
-| Transfer design | Coordinator/worker/verifier/final-check scope agreed | Reusable guide and six worked evaluation scenarios; no second system required |
+| Transfer design | Coordinator/worker/verifier/final-check scope agreed | Guide and six-scenario example drafted (design only, not executed); registration in the work-log pending |
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
 
@@ -59,7 +59,7 @@ Runtime observations above are from the earlier read-only exploration in this co
 - **Delivered:** [Evaluation design guide](evaluation_design_guide.md) and [research coordinator example](research_coordinator_example.md) (design only; six scenarios).
 - **Status:** The orchestrator was not built or executed, no independent verification occurred, and no judge is calibrated. All traces are labelled illustrative and all graders/rubrics proposed. The OpenRouter research appears only as a provenance-labelled evidence fixture.
 - **Pending:** Registering both documents as sources once the work-log builder exists; the student's own review/reflection.
-- **Evidence:** The two documents and `openspec validate add-evaluation-design-guide --strict`; documentation only, no code or runtime change.
+- **Evidence:** The two documents and `openspec validate add-evaluation-design-guide --strict` (passed on 2026-10-30); documentation only, no code or runtime change.
 
 ## Historical decisions
 

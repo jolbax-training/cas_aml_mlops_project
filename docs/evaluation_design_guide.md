@@ -6,7 +6,7 @@ A reusable method for deciding whether a change to an agent system helps. It is 
 
 The coding-agent project is mostly **planned**: the [specification](project_spec.md) defines the design, and [progress](progress.md) records what exists. At the time of writing only the offline evaluator (dataset validation, per-check Podman execution, external scoring) is implemented. Where a step below says "the coding-agent project does X", read it as "its specification requires X" unless [progress](progress.md) records evidence. No comparison results, MLflow runs, or CI successes are claimed here.
 
-Vocabulary follows [GLOSSARY.md](../GLOSSARY.md): coding task, task trial, acceptance check, evaluation run, and, for the orchestrator example, coordinator, work item, worker, independent verifier, and final check.
+Vocabulary follows [GLOSSARY.md](../GLOSSARY.md): coding task, trial (task trial), acceptance check, evaluation run, and, for the orchestrator example, coordinator, work item, worker, independent verifier, and final check.
 
 ## The seven steps
 
@@ -22,7 +22,7 @@ For each step: what to decide, what evidence to retain, and the coding-agent app
 
 - **Decide:** A set that is representative of the real use, covers named categories, and includes edge and failure cases, not just the happy path. Fix the set before you look at results so that you cannot tune it to the outcome. Have the tasks reviewed independently of whoever wrote the reference answers.
 - **Retain:** The frozen task list, the category for each task, who or what reviewed it, and the freeze date.
-- **Coding agent:** Ten independently reviewed tasks across five categories, four cases per task (two ordinary, two edge in the [pilot](pilot_tasks.md)), frozen before the baseline run. The generator sees only the instruction and signature; case inputs and expected outputs stay private until scoring.
+- **Coding agent:** Ten independently reviewed tasks across five categories, four cases per task (two ordinary and two edge, as in the existing [pilot](pilot_tasks.md)), frozen before the baseline run. The generator sees only the instruction and signature; case inputs and expected outputs stay private until scoring.
 
 ### 3. Choose graders, deterministic first
 

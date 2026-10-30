@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are unstarted planning items. This change produces documentation only; no orchestrator is built or run.
+Documentation drafted 2026-10-30 (tasks 1.1–3.1); task 3.2 awaits the work-log builder. This change produces documentation only; no orchestrator is built or run.
 
 ## 1. Guide
 

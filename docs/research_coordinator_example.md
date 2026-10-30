@@ -109,7 +109,7 @@ final check: coverage 3/3, unresolved 0, contradictions 0 -> recommendation emit
 ## Scenario 5: Worker or verifier failure
 
 - **Inputs:** Worker B times out on its search, or verifier C errors before returning a verdict.
-- **Capabilities:** Shared capabilities; a bounded retry policy (PROPOSED: one retry per failed call, as in the coding-agent project's transient-failure rule).
+- **Capabilities:** Shared capabilities; a bounded retry policy (PROPOSED: one retry per failed call and a small per-run retry cap, mirroring the coding-agent project's rule of one retry per request and at most two per trial, where exhausted retries make the run incomplete).
 - **Expected outcome:** A transient failure is retried within the bound; if it still fails the item is recorded as **incomplete (infrastructure)** rather than as a quality failure or a pass. The final check reports the unresolved item and the recommendation is not presented as verified.
 - **Graders:**
   - [observable] The failed call, retry count, and final status are recorded.
@@ -149,7 +149,7 @@ final check: coverage 3/3, unresolved 0, contradictions 0 -> recommendation emit
 Existing research can supply **evidence fixtures** (real source material a worker's claims could be compared against). It was **not** produced by this coordinator workflow, and no verification by independent verifiers has happened on it.
 
 - **Fixture:** OpenRouter model-choice research, retained on throwaway branch `research/openrouter-model-choice`, commit `44d1fff8e7d5c947c56c50e4fec355f47991f08a` ([findings file](https://github.com/jolbax-training/cas_aml_mlops_project/blob/44d1fff8e7d5c947c56c50e4fec355f47991f08a/docs/research/openrouter-model-choice.md)). Provenance and limits are recorded in [progress](progress.md) and the [specification](project_spec.md): it verifies *documented* temperature/tool controls and provider differences and is a **dated snapshot**, not a live smoke result or a permanent price guarantee.
-- **Use:** Item A, B and C ground-truth material for judging whether a worker claim is supported (for example, the documented temperature range or provider differences). No numbers from it are reproduced here to avoid presenting a stale snapshot as current.
+- **Use:** Item A, B and C ground-truth material for judging whether a worker claim is supported (for example, the documented temperature range or provider differences). Example claims it could support (qualitative, from [the specification](project_spec.md)): item A, temperature is configurable and GLM reasoning is mandatory, defaulting to max when not explicitly controlled; item B, providers differ in documented support, with behaviour at the routed endpoint untested; item C, prices are a dated snapshot. No numbers from it are reproduced here to avoid presenting a stale snapshot as current.
 
 ## Not claimed
 

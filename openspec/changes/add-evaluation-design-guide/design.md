@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md. The orchestrator structure and scenarios were confirmed in issue 06; GLOSSARY.md defines coordinator, work item, worker, independent verifier, and final check. Retained OpenRouter research (issue 08) can supply evidence fixtures. Nothing here is implemented; all tasks remain unstarted.
+See proposal.md. The orchestrator structure and scenarios were confirmed in issue 06; GLOSSARY.md defines coordinator, work item, worker, independent verifier, and final check. Retained OpenRouter research (issue 08) can supply evidence fixtures. The orchestrator is not implemented; the documents were drafted 2026-10-30 and only work-log registration (task 3.2) remains.
 
 ## Goals / Non-Goals
 

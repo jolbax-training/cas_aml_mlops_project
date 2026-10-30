@@ -20,7 +20,7 @@ One goal of the project is transferable understanding of agent evaluation. A reu
 
 ### Modified Capabilities
 
-None. The main capability inventory is empty; this change remains unimplemented.
+None. The main capability inventory is empty; the guide and example are drafted (design only); the orchestrator itself remains unimplemented.
 
 ## Impact
 
