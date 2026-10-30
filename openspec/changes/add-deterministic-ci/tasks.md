@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are unstarted planning items. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
+Tasks 1.1–1.3 and 3.1 are implemented; 2.1–2.3 and 3.2 await real GitHub Actions runs. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
 
 ## 1. Workflow
 

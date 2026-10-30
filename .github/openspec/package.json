@@ -1,0 +1,8 @@
+{
+  "name": "ci-openspec",
+  "private": true,
+  "description": "Pins the OpenSpec CLI and its transitive dependencies for CI (npm ci).",
+  "dependencies": {
+    "@fission-ai/openspec": "1.14.2"
+  }
+}
