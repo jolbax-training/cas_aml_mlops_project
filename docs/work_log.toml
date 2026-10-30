@@ -1,0 +1,96 @@
+# Explicit, ordered source list for the local HTML work log (scripts/build_work_log.py).
+#
+# Only the files named here are read. Nothing is harvested from neighbouring files,
+# followed from links, or discovered recursively. Paths are repository-relative
+# Markdown files; missing, absolute, escaping, symlinked, or private-looking paths
+# fail the build.
+#
+# Section keys:
+#   id      unique lowercase anchor (letters, digits, single hyphens)
+#   title   heading shown in the report
+#   kind    "document" (default; needs path and label) or "pending"
+#   label   document provenance: current | historical | personal | reviewed
+#   status  optional: implemented | planned | incomplete
+#   needs   pending only: OpenSpec changes whose reviewed record fills the section
+#   description  pending only: what the section will contain
+#
+# To fill a pending section after a milestone, replace its entry with a
+# kind = "document" entry (same id, label "reviewed") that names the reviewed
+# Markdown summary. Rebuild afterwards.
+
+[architecture]
+diagram = "docs/work_log_architecture.svg"
+explanation = "docs/work_log_architecture.md"
+
+[[section]]
+id = "scope"
+title = "Scope, plan, and acceptance criteria"
+path = "docs/project_spec.md"
+label = "current"
+
+[[section]]
+id = "status"
+title = "Progress, decisions, and milestones"
+path = "docs/progress.md"
+label = "current"
+status = "incomplete"
+
+[[section]]
+id = "pilot-benchmark"
+title = "Pilot benchmark (three tasks)"
+path = "docs/pilot_tasks.md"
+label = "current"
+status = "implemented"
+
+[[section]]
+id = "benchmark-review"
+title = "Reviewed ten-task benchmark and graders"
+kind = "pending"
+needs = ["add-reviewed-benchmark-and-graders"]
+description = "Independent task and grader review records, the frozen ten-task benchmark, and its forty hidden checks."
+
+[[section]]
+id = "results"
+title = "Results, comparison, and limitations"
+kind = "pending"
+needs = ["run-prompt-comparison"]
+description = "Baseline and revised-prompt outcomes with improvements, regressions, unchanged tasks, and limits."
+
+[[section]]
+id = "evidence"
+title = "Local evidence and MLflow identifiers"
+kind = "pending"
+needs = ["add-run-bundles-and-grading-replay", "add-local-mlflow-tracking", "add-deterministic-ci"]
+description = "References to local run bundles, MLflow run identifiers, and CI run links, recorded as references and never fetched."
+
+[[section]]
+id = "setup"
+title = "Setup, verification, and reproduction"
+path = "README.md"
+label = "current"
+
+[[section]]
+id = "demo"
+title = "Replay and demo instructions"
+kind = "pending"
+needs = ["prepare-reproducible-demo"]
+description = "Commands to replay saved candidates offline and walk through the evidence."
+
+[[section]]
+id = "guide"
+title = "Evaluation-design guide and orchestrator example"
+kind = "pending"
+needs = ["add-evaluation-design-guide"]
+description = "The transferable agent-evaluation guide and the illustrative research-orchestrator design exercise."
+
+[[section]]
+id = "learning"
+title = "Learning journal (student-authored)"
+path = "docs/learning_journal.md"
+label = "personal"
+
+[[section]]
+id = "ideas"
+title = "Historical brainstorming (superseded)"
+path = "docs/project_ideas.md"
+label = "historical"

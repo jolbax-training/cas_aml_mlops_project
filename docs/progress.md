@@ -16,7 +16,7 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 | Version control / CI | `origin` points to the project's GitHub repository; no Actions workflow | Required deterministic and Podman check groups on a verified compatible Linux runner |
 | OpenSpec | One planned HTML change, revised to the smaller scope; main specs empty | Implement the revised tasks separately; planning completion is not implementation completion |
 | Live generation / tracking | No OpenRouter client, budget ledger, agent traces, or MLflow integration | GLM/provider smoke; shared CHF controls; local bundles; containerized MLflow |
-| Report / demo | Markdown exists; no HTML builder/output or complete demo | Day-two HTML foundation, later evidence updates and offline/replay demo checks |
+| Report / demo | HTML builder and architecture figure implemented 2026-10-30 (see entry below); evidence sections pending; no complete demo | Day-four evidence updates, browser layout inspection, offline/replay demo checks |
 | Transfer design | Coordinator/worker/verifier/final-check scope agreed | Guide and six-scenario example drafted (design only, not executed); registration in the work-log pending |
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
@@ -60,6 +60,13 @@ Runtime observations above are from the earlier read-only exploration in this co
 - **Status:** The orchestrator was not built or executed, no independent verification occurred, and no judge is calibrated. All traces are labelled illustrative and all graders/rubrics proposed. The OpenRouter research appears only as a provenance-labelled evidence fixture.
 - **Pending:** Registering both documents as sources once the work-log builder exists; the student's own review/reflection.
 - **Evidence:** The two documents and `openspec validate add-evaluation-design-guide --strict` (passed on 2026-10-30); documentation only, no code or runtime change.
+
+## 2026-10-30 — Local HTML work-log foundation
+
+- **Purpose:** Day-two foundation of the OpenSpec change `add-local-html-work-log`.
+- **Implemented:** `scripts/build_work_log.py` (build and `--check`), the explicit source list `docs/work_log.toml`, a reviewed architecture SVG with a text equivalent, and `tests/test_work_log.py`. Commands are in the [README](../README.md).
+- **Observed:** The builder reproduces byte-identical output for a fixed build time, passes `--check` on this repository, and the generated report is Git-ignored. Test counts are recorded in the commit that added this entry.
+- **Pending and not claimed:** Results, reviewed benchmark, CI/MLflow identifiers, demo, and guide sections render as pending; no experiment, CI run, MLflow run, or reflection exists for them. Desktop, 375-pixel, and 200-percent-zoom inspection in a real browser is not yet recorded (a headless Chrome screenshot at desktop width was viewed only to fix diagram text overflow).
 
 ## Historical decisions
 
