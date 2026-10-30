@@ -85,6 +85,8 @@ jobs:
         run: sudo -E env "PATH=$PATH" scripts/ci_pull_pinned_image.sh
       - name: Verify Podman can enforce memory, pids, and cpu limits
         run: sudo -E env "PATH=$PATH" scripts/ci_verify_podman_limits.sh
+      - name: Ensure processes in a restricted container can signal each other
+        run: sudo -E env "PATH=$PATH" scripts/ci_ensure_container_signals.sh
       - name: Sandbox tests (a skip is a failure)
         run: |
           sudo -E env "PATH=$PATH" .venv/bin/pytest -q -m sandbox -rs --tb=short \
