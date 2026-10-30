@@ -4,7 +4,7 @@
 
 See proposal.md for motivation and scope. The current repository has Python 3.12/uv/pytest, an offline evaluator, Markdown sources, a configured GitHub origin, and no HTML builder. The user-confirmed [specification](../../../docs/project_spec.md) budgets a two-hour foundation on day two and later report completion. The previous report-first sequence and extensive report engine are superseded.
 
-This design produces a view of reviewed documentation, not a runtime interface or proof that source claims are true. All tasks remain unstarted.
+This design produces a view of reviewed documentation, not a runtime interface or proof that source claims are true. The day-two foundation was implemented 2026-10-30; tasks 3.1 and 4.2 (real-browser inspection and completion evidence) remain open.
 
 ## Goals / Non-Goals
 
@@ -16,7 +16,7 @@ This design produces a view of reviewed documentation, not a runtime interface o
 
 ### 1. A standalone static build
 
-Use `.venv/bin/python scripts/build_work_log.py` to build `report/index.html`, with `--check` validating current sources/output structure without writing. These are target commands, not existing commands. Use a maintained Markdown parser with raw HTML disabled and table support; lock it through uv. Standard-library code handles paths, HTML assembly, provenance, and validation.
+Use `.venv/bin/python scripts/build_work_log.py` to build `report/index.html`, with `--check` validating current sources/output structure without writing. These commands exist as of the 2026-10-30 foundation. Use a maintained Markdown parser with raw HTML disabled and table support; lock it through uv. Standard-library code handles paths, HTML assembly, provenance, and validation.
 
 Embed local CSS and the reviewed diagram in one HTML file. No JavaScript, CDN, remote fonts/images, HTTP server, API calls, or evaluation imports are needed. Build time and selected source identities/hashes make the snapshot inspectable. Validate before atomic output replacement so failures preserve the last good report; source Markdown is never rewritten.
 

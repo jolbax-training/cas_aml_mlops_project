@@ -1,6 +1,6 @@
 # Tasks
 
-Documentation drafted 2026-10-30 (tasks 1.1–3.1); task 3.2 awaits the work-log builder. This change produces documentation only; no orchestrator is built or run.
+Documentation drafted 2026-10-30 (tasks 1.1–3.1); task 3.2 completed once the work-log builder registered both documents. This change produces documentation only; no orchestrator is built or run.
 
 ## 1. Guide
 
@@ -15,4 +15,4 @@ Documentation drafted 2026-10-30 (tasks 1.1–3.1); task 3.2 awaits the work-log
 ## 3. Review and integration
 
 - [x] 3.1 Review both documents against each requirement and scenario in this change; fix gaps and check local links.
-- [ ] 3.2 Register the documents as work-log sources and record delivery in progress without claiming execution evidence.
+- [x] 3.2 Register the documents as work-log sources and record delivery in progress without claiming execution evidence.

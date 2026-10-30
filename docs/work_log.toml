@@ -78,10 +78,16 @@ description = "Commands to replay saved candidates offline and walk through the 
 
 [[section]]
 id = "guide"
-title = "Evaluation-design guide and orchestrator example"
-kind = "pending"
-needs = ["add-evaluation-design-guide"]
-description = "The transferable agent-evaluation guide and the illustrative research-orchestrator design exercise."
+title = "Evaluation-design guide"
+path = "docs/evaluation_design_guide.md"
+label = "current"
+
+[[section]]
+id = "coordinator-example"
+title = "Research-coordinator example (design only)"
+path = "docs/research_coordinator_example.md"
+label = "current"
+status = "planned"
 
 [[section]]
 id = "learning"

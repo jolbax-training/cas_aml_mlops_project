@@ -322,7 +322,7 @@ def test_architecture_comes_first_with_accessible_text(tmp_path):
 @pytest.mark.parametrize("bad", [
     SVG.replace("<defs>", "<script>alert(1)</script><defs>"),
     SVG.replace("<defs>", '<image href="https://example.com/x.png"/><defs>'),
-    SVG.replace('<rect class="bg"', '<rect onclick="x()" class="bg"'),
+    SVG.replace('<rect class="arch-bg"', '<rect onclick="x()" class="arch-bg"'),
     SVG.replace("</style>", "@import url(https://example.com/a.css);</style>"),
     SVG.replace('marker-end="url(#arrow)"', 'marker-end="url(https://example.com/m)"', 1),
     SVG.replace("<svg ", '<!DOCTYPE svg [<!ENTITY x "y">]><svg ', 1),
@@ -335,29 +335,73 @@ def test_unreviewed_svg_features_are_rejected(bad):
 
 def test_output_validation_flags_unresolved_anchors_and_remote_loads():
     page = '<!doctype html><meta http-equiv="Content-Security-Policy" content="x">'
-    with pytest.raises(builder.WorkLogError, match="architecture"):
+    with pytest.raises(builder.WorkLogError, match="internal links without targets: gone"):
         builder.validate_output(page + '<a href="#gone">x</a>')
+    with pytest.raises(builder.WorkLogError, match="architecture figure must precede"):
+        builder.validate_output(page)
     with pytest.raises(builder.WorkLogError, match="resource"):
         builder.validate_output(page + '<iframe src="https://example.com"></iframe>')
 
 
+def test_link_title_with_attribute_like_text_does_not_fail_the_build(tmp_path):
+    root = make_repo(tmp_path)
+    (root / "docs" / "one.md").write_text('[a](https://example.com "see data=1")\n')
+    build(root)
+
+
+def test_uppercase_markdown_target_fragments_are_validated(tmp_path):
+    root = make_repo(tmp_path)
+    (root / "docs" / "other.MD").write_text("# Real\n")
+    (root / "docs" / "one.md").write_text("[x](other.MD#nope)\n")
+    with pytest.raises(builder.WorkLogError, match="no heading #nope"):
+        build(root)
+
+
+def test_output_outside_the_repository_is_refused(tmp_path):
+    root = make_repo(tmp_path)
+    with pytest.raises(builder.WorkLogError, match="outside the repository root"):
+        build(root, output=tmp_path.parent / "elsewhere" / "index.html")
+
+
+def test_report_mode_follows_the_umask_not_the_temp_file(tmp_path):
+    root = make_repo(tmp_path)
+    build(root)
+    assert (root / "report" / "index.html").stat().st_mode & 0o044
+
+
+def test_architecture_entries_must_have_the_expected_suffix(tmp_path):
+    root = make_repo(tmp_path)
+    config = root / "docs" / "work_log.toml"
+    config.write_text(config.read_text().replace("docs/arch.svg", "docs/arch.md"), encoding="utf-8")
+    with pytest.raises(builder.WorkLogError, match="'diagram' must be a .svg file"):
+        build(root)
+
+
 # --- the actual repository ---------------------------------------------------------
 
-def test_actual_repository_builds_and_checks_offline(tmp_path):
-    output = tmp_path / "index.html"
+def test_actual_repository_builds_and_checks_offline():
     root = builder.REPO_ROOT
+    # the output must stay inside the repository (ignored report/), so use a scratch name there
+    output = root / "report" / ".test-index.html"
     config = root / "docs" / "work_log.toml"
     build_time = builder.parse_build_time(BUILD_TIME)
     before = tree_state(root / "docs")
-    builder.run(root, config, output, build_time, check=False)
-    page = output.read_text(encoding="utf-8")
-    assert builder.run(root, config, output, build_time, check=True).startswith("check passed")
+    try:
+        builder.run(root, config, output, build_time, check=False)
+        page = output.read_text(encoding="utf-8")
+        assert builder.run(root, config, output, build_time, check=True).startswith("check passed")
+    finally:
+        output.unlink(missing_ok=True)
     assert tree_state(root / "docs") == before
 
     assert page.index('<section id="architecture"') < page.index('<nav id="sections"')
-    for pending in ("benchmark-review", "results", "evidence", "demo", "guide"):
+    for pending in ("benchmark-review", "results", "evidence", "demo"):
         section = re.search(rf'<section id="{pending}".*?</section>', page, re.S).group(0)
         assert "Pending" in section
+    # the evaluation-design guide documents are registered sources, not pending
+    for source in ("guide", "coordinator-example"):
+        section = re.search(rf'<section id="{source}".*?</section>', page, re.S).group(0)
+        assert "Pending" not in section
     # no remote resource is loaded by the page
     assert not re.search(r"<[a-z][^>]*\b(src|srcset)\s*=", page)
     assert not re.search(r'<link\b|<script\b|<img\b', page)

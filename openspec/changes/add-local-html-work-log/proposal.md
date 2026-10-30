@@ -21,7 +21,7 @@ The agent-evaluation/MLOps project needs one locally readable view of its archit
 
 ### Modified Capabilities
 
-None. The main capability inventory is empty; this change remains unimplemented.
+None. The main capability inventory is empty; the builder foundation was implemented 2026-10-30; the browser-inspection and completion tasks (3.1, 4.2) remain open.
 
 ## Impact
 

@@ -23,6 +23,7 @@ import tomllib
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
@@ -194,6 +195,9 @@ def load_config(root: Path, config_path: Path) -> Config:
                                     description=_require_str(table, "description", where)))
         else:
             raise WorkLogError(f"{where}: kind must be 'document' or 'pending'")
+    for key, suffix in (("diagram", ".svg"), ("explanation", ".md")):
+        if PurePosixPath(_require_str(arch, key, "[architecture]")).suffix.lower() != suffix:
+            raise WorkLogError(f"[architecture]: {key!r} must be a {suffix} file")
     return Config(
         PurePosixPath(_require_str(arch, "diagram", "[architecture]")),
         PurePosixPath(_require_str(arch, "explanation", "[architecture]")),
@@ -294,7 +298,7 @@ def classify_link(href: str, doc: Doc, ctx: LinkContext) -> tuple[str, str, bool
         if fragment not in included.slugs:
             raise WorkLogError(f"no heading #{fragment} in {included.rel}")
         return f"#{included.section_id}--{fragment}", "", False
-    if fragment and target.suffix == ".md" and fragment not in ctx.slugs_of(target):
+    if fragment and target.suffix.lower() == ".md" and fragment not in ctx.slugs_of(target):
         raise WorkLogError(f"no heading #{fragment} in {target.relative_to(ctx.root).as_posix()}")
     rebased = Path(os.path.relpath(target, ctx.output_dir)).as_posix()
     return rebased + (f"#{fragment}" if fragment else ""), "ref source-file", False
@@ -424,7 +428,7 @@ a.source-file::after { content: " (source file, not embedded)"; font-size: .8em;
 @media (max-width: 40rem) { h1 { font-size: 1.3rem; } }
 """
 
-CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
+CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; base-uri 'none'; form-action 'none'"
 
 
 def esc(text: str) -> str:
@@ -554,6 +558,29 @@ def build_html(root: Path, config: Config, build_time: datetime, output_dir: Pat
 
 # --- output validation --------------------------------------------------------
 
+RISKY_ATTRIBUTES = {"src", "srcset", "data", "onload", "onclick", "onerror"}
+
+
+class _AttributeScan(HTMLParser):
+    """Collect attribute names (never values) that could load a resource or run script."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.found: set[str] = set()
+
+    def handle_starttag(self, tag, attrs):
+        self.found.update(name for name, _ in attrs if name.lower() in RISKY_ATTRIBUTES)
+
+    handle_startendtag = handle_starttag
+
+
+def _risky_attributes(html_text: str) -> set[str]:
+    scan = _AttributeScan()
+    scan.feed(html_text)
+    scan.close()
+    return scan.found
+
+
 def validate_output(html_text: str) -> None:
     """Structural checks on generated HTML; raise WorkLogError on the first group of problems."""
     problems: list[str] = []
@@ -561,7 +588,7 @@ def validate_output(html_text: str) -> None:
         problems.append("missing doctype")
     if re.search(r"<(script|img|link|iframe|object|embed|form|base)\b", html_text, re.I):
         problems.append("contains a tag that could load or run a resource")
-    if re.search(r"<[a-z][^>]*\s(src|srcset|data|onload|onclick|onerror)\s*=", html_text, re.I):
+    if _risky_attributes(html_text):
         problems.append("contains a resource or event attribute")
     ids = re.findall(r'\bid="([^"]+)"', html_text)
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
@@ -591,6 +618,10 @@ def write_atomic(output: Path, text: str) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
+        # NamedTemporaryFile is 0600; give the report the mode a normal write would get.
+        umask = os.umask(0)
+        os.umask(umask)
+        os.chmod(handle.name, 0o666 & ~umask)
         os.replace(handle.name, output)
     except BaseException:
         Path(handle.name).unlink(missing_ok=True)
@@ -610,6 +641,12 @@ def parse_build_time(value: str | None) -> datetime:
 
 
 def run(root: Path, config_path: Path, output: Path, build_time: datetime, check: bool) -> str:
+    try:
+        output.resolve().relative_to(root.resolve())
+    except ValueError:
+        raise WorkLogError(
+            f"output {output} is outside the repository root; rebased source links would embed local paths"
+        ) from None
     config = load_config(root, config_path)
     rendered = build_html(root, config, build_time, output.parent)
     validate_output(rendered)
