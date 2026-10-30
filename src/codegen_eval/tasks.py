@@ -87,13 +87,18 @@ def _matches(value: Any, annotation: ast.expr | None) -> bool:
 def _check_case_shape(case_id: str, signature: str, args: list[Any], expected: Any) -> None:
     function = ast.parse(f"def {signature}:\n    pass\n").body[0]
     parameters = function.args.args
-    if function.args.vararg or function.args.kwarg or function.args.kwonlyargs or function.args.defaults:
+    if (function.args.posonlyargs or function.args.vararg or function.args.kwarg
+            or function.args.kwonlyargs or function.args.defaults):
         raise ValueError(f"{signature!r} may only use plain positional parameters")
     if len(args) != len(parameters):
         raise ValueError(f"{case_id} has {len(args)} args but the signature takes {len(parameters)}")
     for parameter, value in zip(parameters, args):
+        if parameter.annotation is None:
+            raise ValueError(f"{signature!r} parameter {parameter.arg!r} must have an annotation")
         if not _matches(value, parameter.annotation):
             raise ValueError(f"{case_id} argument {parameter.arg!r} does not match its annotation")
+    if function.returns is None:
+        raise ValueError(f"{signature!r} must have a return annotation")
     if not _matches(expected, function.returns):
         raise ValueError(f"{case_id} expected value does not match the return annotation")
 

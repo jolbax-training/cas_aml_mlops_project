@@ -46,7 +46,7 @@
       "category": "lists",
       "function_name": "rotate_left",
       "signature": "rotate_left(items: list[int], k: int) -> list[int]",
-      "instruction": "Write rotate_left(items: list[int], k: int) -> list[int]. Return a new list containing the elements of items rotated left by k positions, so the element at index k moves to the front and the first k elements move to the back in their original order. k is always a nonnegative integer and may be larger than the length of items. Do not modify items. The input items is always a list of integers. For an empty list, return an empty list.",
+      "instruction": "Write rotate_left(items: list[int], k: int) -> list[int]. Return a new list containing the elements of items rotated left by k positions, so the element at index k moves to the front and the first k elements move to the back in their original order. k is always a nonnegative integer and may be larger than the length of items. Rotation wraps, so rotating by k is the same as rotating by k modulo the length of items. Do not modify items. The input items is always a list of integers. For an empty list, return an empty list.",
       "cases": [
         {"id": "lists_02_a", "kind": "ordinary", "args": [[1, 2, 3, 4, 5], 2], "expected": [3, 4, 5, 1, 2]},
         {"id": "lists_02_b", "kind": "ordinary", "args": [[7, 8, 9], 0], "expected": [7, 8, 9]},
@@ -124,7 +124,7 @@
       "category": "parsing_formatting",
       "function_name": "parse_settings",
       "signature": "parse_settings(text: str) -> dict[str, str]",
-      "instruction": "Write parse_settings(text: str) -> dict[str, str]. The text is a list of settings separated by semicolons. Split it on ';' and skip every segment that is empty or contains only spaces. Every other segment contains at least one '='; split it at the first '=' into a key and a value, and remove leading and trailing spaces from both. The key is never empty after removing spaces, and the value may be empty. If a key appears more than once, the last value is kept. The input is always a string; return an empty dictionary for an empty string.",
+      "instruction": "Write parse_settings(text: str) -> dict[str, str]. The text is a list of settings separated by semicolons. Split it on ';' and skip every segment that is empty or contains only space characters (U+0020). Every other segment contains at least one '='; split it at the first '=' into a key and a value, and remove leading and trailing space characters (U+0020) from both. The key is never empty after removing spaces, and the value may be empty. If a key appears more than once, the last value is kept. The input is always a string; return an empty dictionary for an empty string.",
       "cases": [
         {"id": "parsing_formatting_02_a", "kind": "ordinary", "args": ["a=1;b=2"], "expected": {"a": "1", "b": "2"}},
         {"id": "parsing_formatting_02_b", "kind": "ordinary", "args": [" name = Ann ; city=Bern=CH"], "expected": {"name": "Ann", "city": "Bern=CH"}},

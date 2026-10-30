@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are unstarted planning items. Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
+Sections 1–2 implemented 2026-10-30; sections 3–4 open. Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
 
 ## 1. Benchmark structure and validation
 

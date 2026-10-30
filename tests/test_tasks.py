@@ -49,6 +49,9 @@ def test_invalid_benchmark_is_rejected(tmp_path, change, message):
         (lambda data: data[2]["cases"][0].update(expected={"a": "2"}), "expected value does not match"),
         (lambda data: data[0].update(signature="count_vowels(*texts: str) -> int"), "plain positional"),
         (lambda data: data[0].update(signature="count_vowels(text: bytes) -> int"), "unsupported annotation"),
+        (lambda data: data[0].update(signature="count_vowels(text: str, /) -> int"), "plain positional"),
+        (lambda data: data[0].update(signature="count_vowels(text) -> int"), "must have an annotation"),
+        (lambda data: data[0].update(signature="count_vowels(text: str)"), "must have a return annotation"),
     ],
 )
 def test_case_values_must_match_the_signature(tmp_path, change, message):

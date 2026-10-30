@@ -11,7 +11,7 @@ This records the review of the ten-task benchmark in [`data/benchmark_v1.json`](
 
 ## Result
 
-All ten references pass all forty cases (twenty of them edge cases) with no input mutation. No reference disagreed with a derived expected answer, so no expected answer needed correcting. The only correction is the `strings_01` instruction below.
+All ten references pass all forty cases (twenty of them edge cases) with no input mutation. No reference disagreed with a derived expected answer, so no expected answer needed correcting. Corrections to instructions (no case or expected answer changed): `strings_01` (below), and after the second review `lists_02` and `parsing_formatting_02` (see Second review).
 
 ## Pilot task re-review
 
@@ -39,6 +39,66 @@ Reviewer for every row: Claude Sonnet 5.5, 2026-10-30, no human review. Case IDs
 | `numeric_logic_02` `collatz_steps` | a: 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1 is 8 steps. b: 7 → 22 → 11 → 34 → 17 → 52 → 26 → 13 → 40 → 20 → 10 → 5 → 16 → 8 → 4 → 2 → 1 is 16 steps. c: 1 is 0 steps. d: 27 takes 111 steps; this value was not derived by hand, it comes from the well-known published Collatz count for 27 and is confirmed only by the reference run. | None. |
 | `parsing_formatting_01` `format_duration` | a: 3661 s = 1 h + 1 min + 1 s so `1:01:01`. b: 59 s is `0:00:59`. c: 0 is `0:00:00`. d: 360000 s is exactly 100 h, so `100:00:00` (hours not wrapped). Reference: nested `divmod` and `%d:%02d:%02d`. | None. |
 | `parsing_formatting_02` `parse_settings` | a: `a=1;b=2` gives a→1, b→2. b: ` name = Ann ` gives name→Ann; ` city=Bern=CH` splits at the first `=` giving city→`Bern=CH`. c: empty string gives `{}`. d: `k=1;k=2;;z=` gives k→2 (last wins), the empty segment is skipped, and `z=` gives z→empty value. Reference: `partition("=")` per segment. | None. |
+
+## Second review
+
+- **Reviewer:** Claude Fable 5.1, independent derivation, 2026-10-30. **No human review.** The reviewer read only each task's instruction, signature, and case IDs, kinds, and arguments (expected values and references hidden), wrote an expected answer for all 40 cases, then compared with strict type-aware equality. It also ran the references with a mutation check and confirmed the sandbox run. This is a second model reviewer, not human validation, and the same-model-family limitation above still applies.
+- **Result:** agreement 40/40; no expected answer needed correction. `numeric_logic_02_d` (111) now has a second derivation (published value plus executing the step rule independently).
+
+| Case | Kind | Args | My derived answer | Benchmark `expected` | Agree |
+| --- | --- | --- | --- | --- | --- |
+| strings_01_a | ordinary | `"hello"` | 2 (e, o) | 2 | yes |
+| strings_01_b | ordinary | `"café"` | 2 (a, é) | 2 | yes |
+| strings_01_c | edge | `""` | 0 | 0 | yes |
+| strings_01_d | edge | `"ÄÉæ"` | 2 (A+combining diaeresis once, É once, æ excluded) | 2 | yes |
+| strings_02_a | ordinary | `"aaabcc"` | `"a3b1c2"` | `"a3b1c2"` | yes |
+| strings_02_b | ordinary | `"aAbb"` | `"a1A1b2"` | `"a1A1b2"` | yes |
+| strings_02_c | edge | `""` | `""` | `""` | yes |
+| strings_02_d | edge | 12 × `z` | `"z12"` | `"z12"` | yes |
+| lists_01_a | ordinary | `[3,1,3,2,1]` | `[3,1,2]` | `[3,1,2]` | yes |
+| lists_01_b | ordinary | `[-2,-2,0,4,0]` | `[-2,0,4]` | `[-2,0,4]` | yes |
+| lists_01_c | edge | `[]` | `[]` | `[]` | yes |
+| lists_01_d | edge | `[5,5,5]` | `[5]` | `[5]` | yes |
+| lists_02_a | ordinary | `[1,2,3,4,5], 2` | `[3,4,5,1,2]` | `[3,4,5,1,2]` | yes |
+| lists_02_b | ordinary | `[7,8,9], 0` | `[7,8,9]` | `[7,8,9]` | yes |
+| lists_02_c | edge | `[], 3` | `[]` | `[]` | yes |
+| lists_02_d | edge | `[1,2,3], 7` | `[2,3,1]` (7 mod 3 = 1) | `[2,3,1]` | yes |
+| dictionaries_01_a | ordinary | `{a:2}, {b:3}` | `{a:2, b:3}` | same | yes |
+| dictionaries_01_b | ordinary | `{a:2,b:1}, {a:3,c:4}` | `{a:5, b:1, c:4}` | same | yes |
+| dictionaries_01_c | edge | `{}, {}` | `{}` | `{}` | yes |
+| dictionaries_01_d | edge | `{x:0}, {x:0}` | `{x:0}` | `{x:0}` | yes |
+| dictionaries_02_a | ordinary | `{a:x, b:y, c:x}` | `{x:[a,c], y:[b]}` | same | yes |
+| dictionaries_02_b | ordinary | `{b:k, a:k}` | `{k:[a,b]}` (sorted) | same | yes |
+| dictionaries_02_c | edge | `{}` | `{}` | `{}` | yes |
+| dictionaries_02_d | edge | `{only:""}` | `{"":[only]}` | same | yes |
+| numeric_logic_01_a | ordinary | 38 | 2 (38→11→2) | 2 | yes |
+| numeric_logic_01_b | ordinary | 999 | 9 (999→27→9) | 9 | yes |
+| numeric_logic_01_c | edge | 0 | 0 | 0 | yes |
+| numeric_logic_01_d | edge | 10^30 | 1 | 1 | yes |
+| numeric_logic_02_a | ordinary | 6 | 8 (6,3,10,5,16,8,4,2,1) | 8 | yes |
+| numeric_logic_02_b | ordinary | 7 | 16 (7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1) | 16 | yes |
+| numeric_logic_02_c | edge | 1 | 0 | 0 | yes |
+| numeric_logic_02_d | edge | 27 | 111 (known Collatz count for 27; confirmed by executing the step rule myself) | 111 | yes |
+| parsing_formatting_01_a | ordinary | 3661 | `"1:01:01"` | same | yes |
+| parsing_formatting_01_b | ordinary | 59 | `"0:00:59"` | same | yes |
+| parsing_formatting_01_c | edge | 0 | `"0:00:00"` | same | yes |
+| parsing_formatting_01_d | edge | 360000 | `"100:00:00"` | same | yes |
+| parsing_formatting_02_a | ordinary | `"a=1;b=2"` | `{a:"1", b:"2"}` | same | yes |
+| parsing_formatting_02_b | ordinary | `" name = Ann ; city=Bern=CH"` | `{name:"Ann", city:"Bern=CH"}` | same | yes |
+| parsing_formatting_02_c | edge | `""` | `{}` | `{}` | yes |
+| parsing_formatting_02_d | edge | `"k=1;k=2;;z="` | `{k:"2", z:""}` | same | yes |
+
+### Changes made after the second review
+
+Instructions only; no case, argument, or expected answer changed, so references and the 40/40 result are unaffected (rerun after the change).
+
+- `lists_02`: added "Rotation wraps, so rotating by k is the same as rotating by k modulo the length of items." (the wrap for k beyond the length was implied, not stated).
+- `parsing_formatting_02`: "spaces" became "space characters (U+0020)" in both places, so the whitespace reading cannot become ambiguous in a later edge case.
+- Validator (`tasks.py`): positional-only parameters and missing parameter or return annotations are now rejected with their own diagnostics; benchmark v1 is unaffected.
+
+### Known limitation: empty-input edge cases
+
+Seven of the twenty edge cases are empty inputs (`strings_01_c`, `strings_02_c`, `lists_01_c`, `lists_02_c`, `dictionaries_01_c`, `dictionaries_02_c`, `parsing_formatting_02_c`). This satisfies the specification and empty input is a legitimate edge, so the cases were kept rather than rewritten, to avoid more unreviewed content late in review. It does lower edge-case diversity; later benchmark versions should prefer non-empty edges for those tasks.
 
 ## Scope exclusions checked
 
