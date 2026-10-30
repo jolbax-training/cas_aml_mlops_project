@@ -4,9 +4,9 @@ All tasks are unstarted planning items. Runner image, job names, and exact versi
 
 ## 1. Workflow
 
-- [ ] 1.1 Add a GitHub Actions workflow with a deterministic evaluator/benchmark/agent-loop group installing locked dependencies via uv and a pinned Python version.
-- [ ] 1.2 Add a Podman execution/isolation group on a compatible Linux runner, pulling the candidate image by pinned digest, with Podman-dependent skips treated as failures.
-- [ ] 1.3 Confirm the workflow defines no model secrets and that no test path issues a model request.
+- [x] 1.1 Add a GitHub Actions workflow with a deterministic evaluator/benchmark/agent-loop group installing locked dependencies via uv and a pinned Python version.
+- [x] 1.2 Add a Podman execution/isolation group on a compatible Linux runner, pulling the candidate image by pinned digest, with Podman-dependent skips treated as failures.
+- [x] 1.3 Confirm the workflow defines no model secrets and that no test path issues a model request.
 
 ## 2. Verification
 
@@ -16,5 +16,5 @@ All tasks are unstarted planning items. Runner image, job names, and exact versi
 
 ## 3. Evidence and documentation
 
-- [ ] 3.1 Document runner, Podman, Python, dependency, and image versions plus how to reproduce each group locally.
+- [x] 3.1 Document runner, Podman, Python, dependency, and image versions plus how to reproduce each group locally.
 - [ ] 3.2 Record actual CI run identifiers, commit, and results in progress and register reviewed CI references for the work log; do not record CI success before it exists.
