@@ -1,0 +1,88 @@
+# Deterministic CI: fixtures only. No secrets, no model API, no paid calls.
+# Two independent check groups (job ids/names are the required-check names):
+#   offline - locked uv environment, tests, OpenSpec, benchmark freeze, work-log check
+#   podman  - real restricted Podman containers against the digest-pinned image
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.9.3"
+  PYTHON_VERSION: "3.12"
+  OPENSPEC_VERSION: "1.14.2"
+
+jobs:
+  offline:
+    name: offline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # actions pinned to commit SHAs (checkout v4.2.2, setup-uv v6.8.0, setup-node v4.4.0)
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - name: Install locked dependencies
+        run: uv sync --python "$PYTHON_VERSION" --locked
+      - name: Tests (Podman-dependent tests skip here by design; the podman job runs them)
+        run: .venv/bin/pytest -q
+      - name: Install OpenSpec CLI
+        run: npm install --global "@fission-ai/openspec@${OPENSPEC_VERSION}"
+      - name: Validate OpenSpec changes and specs
+        run: openspec validate --all --strict --no-interactive
+      - name: Benchmark freeze check
+        run: .venv/bin/python scripts/freeze_benchmark.py --check
+      - name: Work-log sources check
+        run: .venv/bin/python scripts/build_work_log.py --check
+
+  podman:
+    name: podman
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # synthetic value the isolation probes must never see inside a candidate container
+      CODEGEN_EVAL_TEST_SECRET: present
+      RUN_SANDBOX_TESTS: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install locked dependencies
+        run: uv sync --python "$PYTHON_VERSION" --locked
+      - name: Install and verify Podman
+        run: |
+          if ! command -v podman >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y podman
+          fi
+          podman --version
+          podman info --format 'rootless={{.Host.Security.Rootless}} cgroups={{.Host.CgroupsVersion}} runtime={{.Host.OCIRuntime.Name}}'
+      - name: Pull the pinned candidate image by digest
+        run: |
+          image="$(PYTHONPATH=src .venv/bin/python -c 'from codegen_eval.sandbox import IMAGE; print(IMAGE)')"
+          echo "image: $image"
+          podman pull "$image"
+          podman image inspect "$image" --format 'digest={{.Digest}}'
+      - name: Sandbox tests (a skip is a failure)
+        run: |
+          .venv/bin/pytest -q -m sandbox -rs --junitxml=sandbox-junit.xml
+      - name: Fail on skipped, errored, or missing Podman tests
+        if: ${{ !cancelled() }}
+        run: .venv/bin/python scripts/ci_require_no_skips.py sandbox-junit.xml
