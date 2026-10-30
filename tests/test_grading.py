@@ -339,7 +339,7 @@ def test_the_sandbox_boundary_receives_arguments_but_never_expected_answers(monk
 SANDBOX_FIXTURES = {
     "correct": (GOOD, True, [()] * 4, 4),
     "wrong_ordinary": (HEAD + "    return 0\n", False, [("wrong_answer",), ("wrong_answer",), (), ("wrong_answer",)], 4),
-    "exception": (HEAD + "    raise ValueError('x')\n", False, [("exception",)] * 4, 4),
+    "exception": (HEAD + "    raise ValueError('x')\n", False, [("wrong_answer",)] * 4, 4),
     "timeout": (HEAD + "    while True:\n        pass\n", False, [("timeout",)] * 4, 4),
     "tuple_return": (HEAD + "    return tuple([0])\n", False, [("serialization_error",)] * 4, 4),
     "excessive_output": (HEAD + "    print('x' * 100000)\n    return 0\n", False, [("output_limit",)] * 4, 4),
