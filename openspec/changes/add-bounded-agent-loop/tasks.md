@@ -9,7 +9,7 @@ Planned for day 1 (agent/fixtures, 3h), after `harden-candidate-execution` provi
 
 ## 2. Tool and controller
 
-- [ ] 2.0 Obtain the user's decisions on the three open decisions in design.md (input-limit rejection outcome, submission signalling, multi-part responses) and record them in docs/progress.md before writing the affected fixtures.
+- [x] 2.0 (Resolved 2026-10-30: user accepted the proposed defaults; submission is a plain final message) Obtain the user's decisions on the three open decisions in design.md (input-limit rejection outcome, submission signalling, multi-part responses) and record them in docs/progress.md before writing the affected fixtures.
 
 - [ ] 2.1 Implement `run_checks` request validation, per-check execution through the candidate-execution mechanism, trusted strict comparison against agent-authored expectations by reusing the pilot's existing comparison and mutation detection, and bounded feedback; test that hidden data never appears.
 - [ ] 2.2 Implement the trial controller: fresh conversation, limit enforcement, fourth call with tools disabled, explicit final submission, `no_submission`, recovery feedback consuming attempts, and infrastructure-incomplete classification.

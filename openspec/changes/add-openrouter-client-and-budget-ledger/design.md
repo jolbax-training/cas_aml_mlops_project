@@ -40,8 +40,8 @@ Before freezing, recheck endpoint capabilities and prices, record the CHF conver
 
 ## Open decisions for the user
 
-1. **OPEN DECISION FOR THE USER — CHF 10 checkpoint basis (Q29).** Q29 says "Record a CHF 10 checkpoint and continue automatically" without saying whether reservations count. Proposed default: same basis as the ceiling (committed plus outstanding reservations), logged once at first crossing. Alternative: committed/reported spending only. Work continues either way; only checkpoint timing differs.
-2. The trial outcome of a pre-send input-limit rejection is an open decision recorded in `add-bounded-agent-loop/design.md`; this change only reports the rejection.
+1. **RESOLVED 2026-10-30 (user accepted the proposed default) — CHF 10 checkpoint basis (Q29).** Q29 says "Record a CHF 10 checkpoint and continue automatically" without saying whether reservations count. Proposed default: same basis as the ceiling (committed plus outstanding reservations), logged once at first crossing. Alternative: committed/reported spending only. Work continues either way; only checkpoint timing differs.
+2. The trial outcome of a pre-send input-limit rejection was resolved on 2026-10-30 (accepted default) in `add-bounded-agent-loop/design.md`; this change only reports the rejection.
 
 ## Risks / Trade-offs
 

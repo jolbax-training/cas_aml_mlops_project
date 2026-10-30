@@ -36,8 +36,8 @@ Deterministic candidate fixtures (no model): correct, ordinary-case wrong, edge-
 
 ## Open decisions for the user
 
-1. **OPEN DECISION FOR THE USER — payload-too-large hidden check.** If a final submission's source plus a hidden check's arguments exceed the 64 KiB payload limit, `harden-candidate-execution` starts no container. Q24 does not list this outcome. Proposed default: a candidate failure labelled `payload_too_large`, with that check unsuccessful and unexecuted within the planned denominator (the source is agent-authored and benchmark arguments are small). Alternative: treat it as a contract failure for all four checks.
-2. The pre-send input-limit rejection (`request_rejected`) is an open decision recorded in `add-bounded-agent-loop/design.md`; if confirmed as proposed it is a trial-level label with `no_submission` accounting.
+1. **RESOLVED 2026-10-30 (user accepted the proposed default) — payload-too-large hidden check.** If a final submission's source plus a hidden check's arguments exceed the 64 KiB payload limit, `harden-candidate-execution` starts no container. Q24 does not list this outcome. Proposed default: a candidate failure labelled `payload_too_large`, with that check unsuccessful and unexecuted within the planned denominator (the source is agent-authored and benchmark arguments are small). Alternative: treat it as a contract failure for all four checks.
+2. The pre-send input-limit rejection (`request_rejected`) was resolved on 2026-10-30 (accepted default) in `add-bounded-agent-loop/design.md`; it is a trial-level label with `no_submission` accounting.
 
 ## Risks / Trade-offs
 

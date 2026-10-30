@@ -71,7 +71,7 @@ If a trial ends without a final submission, the system SHALL record `no_submissi
 
 #### Scenario: Non-source final message
 - **WHEN** a final message is present but is not valid source (for example prose)
-- **THEN** it is labelled a contract failure or `no_submission` according to the submission-signalling mechanism chosen in design.md (an open decision); both have identical accounting under issue 03 / Q24
+- **THEN** it is labelled a contract failure under the chosen plain-final-message signalling (resolved 2026-10-30; see design.md); accounting is identical to `no_submission` under issue 03 / Q24
 
 ### Requirement: Infrastructure-incomplete trials
 Container unavailability and broken worker protocols during a trial SHALL make the trial incomplete due to infrastructure rather than an agent-performance failure. Source: issue 01 / Q17.
@@ -93,7 +93,7 @@ When the model client rejects a rendered request before sending because it excee
 #### Scenario: Input limit exceeded on a later call
 - **WHEN** the third logical call's rendered request exceeds 12,000 input tokens
 - **THEN** it is not sent, no further model calls are made, and the trial records the rejection
-- **AND** under the proposed default (OPEN DECISION, not confirmed) the rejected call is consumed and the trial is `no_submission` labelled `request_rejected`, a candidate-side outcome counted within planned denominators rather than infrastructure-incomplete
+- **AND** under the accepted default (resolved 2026-10-30) the rejected call is consumed and the trial is `no_submission` labelled `request_rejected`, a candidate-side outcome counted within planned denominators rather than infrastructure-incomplete
 
 ### Requirement: Deterministic handling of multi-part responses
 A model response containing more than one tool call, or both final content and a tool call, SHALL be handled by one documented deterministic rule that is recorded in the trace and counts toward the three-attempt limit. The rule itself is an open decision recorded in design.md. Source: issue 01 / Q13, Q16 (attempt accounting); rule not settled by the sources.

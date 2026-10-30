@@ -16,7 +16,7 @@ All tasks are unstarted planning items. Timebox: day 2, API/budget/smoke (3h). R
 ## 3. Spending ledger
 
 - [ ] 3.1 Implement the durable shared ledger with write-before-send reservations from verified prices, token caps, recorded CHF conversion, fees, and safety margin; keep reservations for timed-out or usage-missing attempts.
-- [ ] 3.2 After the user confirms the checkpoint-basis open decision in design.md, implement the CHF 10 checkpoint (log once and continue) and CHF 15 ceiling refusal; test checkpoint crossing, ceiling refusal, crash-safe ordering, and incomplete marking of blocked work.
+- [ ] 3.2 Using the checkpoint basis the user accepted on 2026-10-30 (design.md), implement the CHF 10 checkpoint (log once and continue) and CHF 15 ceiling refusal; test checkpoint crossing, ceiling refusal, crash-safe ordering, and incomplete marking of blocked work.
 - [ ] 3.3 Keep the ledger outside version control and document its location and inputs.
 
 ## 4. Smoke test and freeze
