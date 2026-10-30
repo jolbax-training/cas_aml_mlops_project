@@ -1,6 +1,6 @@
 # Tasks
 
-Tasks 1.1–1.3 and 3.1 are implemented; 2.1–2.3 and 3.2 await real GitHub Actions runs. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
+Tasks 1.1–1.3, 2.1 and 3.1 are done (green run 41128433037). 2.2 (failure demonstration, branches prepared), 2.3 (branch protection, a user step) and 3.2 (failure-demo run identifiers) remain. Runner image, job names, and exact versions are bounded implementation choices to verify and document.
 
 ## 1. Workflow
 
@@ -10,7 +10,7 @@ Tasks 1.1–1.3 and 3.1 are implemented; 2.1–2.3 and 3.2 await real GitHub Act
 
 ## 2. Verification
 
-- [ ] 2.1 Run the workflow and verify both groups pass with limits enforced on the runner; document any residual differences from the laptop environment.
+- [x] 2.1 Run the workflow and verify both groups pass with limits enforced on the runner; document any residual differences from the laptop environment.
 - [ ] 2.2 Demonstrate that deliberately breaking a fixture expectation fails the relevant group, then restore it.
 - [ ] 2.3 Mark both groups as required checks and document how they are configured.
 

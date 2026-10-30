@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md. A GitHub origin exists but no Actions workflow. Offline tests run with pytest under uv; Podman integration tests currently skip when Podman or the pinned image is unavailable. The workflow and its helper scripts exist; verification on GitHub (tasks 2.x, 3.2) is pending.
+See proposal.md. A GitHub origin exists but no Actions workflow. Offline tests run with pytest under uv; Podman integration tests currently skip when Podman or the pinned image is unavailable. The workflow passed on GitHub (run 41128433037); the failure demonstration, branch protection, and the remaining evidence entries are pending.
 
 ## Goals / Non-Goals
 

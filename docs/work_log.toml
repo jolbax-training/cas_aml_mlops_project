@@ -67,8 +67,15 @@ description = "Baseline and revised-prompt outcomes with improvements, regressio
 id = "evidence"
 title = "Local evidence and MLflow identifiers"
 kind = "pending"
-needs = ["add-run-bundles-and-grading-replay", "add-local-mlflow-tracking", "add-deterministic-ci"]
-description = "References to local run bundles, MLflow run identifiers, and CI run links, recorded as references and never fetched."
+needs = ["add-run-bundles-and-grading-replay", "add-local-mlflow-tracking"]
+description = "References to local run bundles and MLflow run identifiers, recorded as references and never fetched. CI runs are in the CI evidence section."
+
+[[section]]
+id = "ci-evidence"
+title = "Deterministic CI evidence"
+path = "docs/ci_evidence.md"
+label = "reviewed"
+status = "incomplete"
 
 [[section]]
 id = "setup"
