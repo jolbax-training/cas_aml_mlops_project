@@ -5,7 +5,7 @@
   "backoff_seconds": 1.0,
   "config_version": "openrouter_glm_v1",
   "endpoint": "https://openrouter.ai/api/v1/chat/completions",
-  "input_bound_bytes_per_token": 1,
+  "input_bound_ascii_chars_per_token": 2.0,
   "max_input_tokens": 12000,
   "max_output_tokens": 2000,
   "max_retries_per_request": 1,

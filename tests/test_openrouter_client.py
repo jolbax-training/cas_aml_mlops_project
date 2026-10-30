@@ -75,17 +75,68 @@ def test_response_is_translated_with_raw_tool_arguments_and_usage(tmp_path):
 
 # --- pre-send size check -----------------------------------------------------------
 
-def test_bound_never_undercounts_bytes_and_scales_with_messages():
-    assert input_token_bound(b"x" * 100, 0) == 100
-    assert input_token_bound(b"x" * 100, 2) == 116
-    assert input_token_bound(b"x" * 100, 0, 4) == 25
+def test_bound_counts_ascii_by_ratio_and_other_bytes_whole_and_scales_with_messages():
+    assert input_token_bound(b"x" * 100, 0) == 50
+    assert input_token_bound(b"x" * 100, 2) == 66
+    assert input_token_bound(b"x" * 100, 0, 1.0) == 100   # the provable byte bound
+    assert input_token_bound("é".encode() * 10, 0) == 20  # two bytes, two tokens each char
+    assert input_token_bound(b"x" * 101, 0, 4) == 26
+
+
+def realistic_fourth_call(code_chars, feedback_chars=1500, rounds=3):
+    """A fourth-call request after three tool rounds with the shipped prompt and tool schema."""
+    from codegen_eval.agent_config import load_prompt
+    code = ("def count_vowels(s: str) -> int:\n    total = 0\n" +
+            "    for ch in s.lower():\n        if ch in 'aeiou':\n            total += 1\n" * 30
+            )[:code_chars]
+    messages = [{"role": "system", "content": load_prompt().text},
+                {"role": "user", "content": "Count vowels.\n\nFunction signature: def "
+                                            "count_vowels(s: str) -> int"}]
+    for n in range(rounds):
+        args = json.dumps({"source": code, "checks": [{"arguments": ["abc"], "expected": 1}] * 4})
+        messages.append({"role": "assistant", "content": None, "tool_calls": [
+            {"id": f"c{n}", "name": "run_checks", "arguments": args}]})
+        messages.append({"role": "tool", "tool_call_id": f"c{n}",
+                         "content": json.dumps({"ok": False, "detail": "x" * feedback_chars})})
+    return ModelRequest(tuple(messages), (), "none")
+
+
+@pytest.mark.parametrize("code_chars,feedback_chars", [(1400, 700), (3000, 1500), (3500, 2500)])
+def test_realistic_fourth_calls_pass_under_the_limit_where_the_byte_bound_rejected(
+        tmp_path, code_chars, feedback_chars):
+    transport = FakeTransport(reply())
+    client, _, _ = make_client(tmp_path, transport, tool_definitions=(TOOL_SCHEMA,))
+    request = realistic_fourth_call(code_chars, feedback_chars)
+
+    assert isinstance(client.complete(request), ModelResponse)
+
+    body = json.dumps(transport.calls[0]["body"], separators=(",", ":"), ensure_ascii=False)
+    assert client.attempts[0]["input_token_bound"] < 12000
+    if code_chars >= 3000:  # the byte-per-token bound would have rejected these
+        assert input_token_bound(body.encode(), len(request.messages), 1.0) > 12000
+
+
+def test_bound_is_configurable_and_the_ratio_enters_the_config_hash():
+    assert ModelConfig(input_bound_ascii_chars_per_token=1.0).config_hash() != \
+        ModelConfig().config_hash()
+    with pytest.raises(ValueError):
+        ModelConfig(input_bound_ascii_chars_per_token=0)
+
+
+def test_attempt_records_the_bound_and_its_ratio_to_reported_prompt_tokens(tmp_path):
+    client, _, _ = make_client(tmp_path, FakeTransport(reply()))
+
+    client.complete(req())
+
+    a = client.attempts[0]
+    assert a["bound_to_prompt_tokens"] == round(a["input_token_bound"] / 1000, 3)
 
 
 def test_oversized_request_is_rejected_without_sending_or_reserving(tmp_path):
     transport = FakeTransport()
     client, ledger, sleeps = make_client(tmp_path, transport)
 
-    result = client.complete(req("x" * 13000))
+    result = client.complete(req("x" * 26000))
 
     assert isinstance(result, ModelFailure) and result.kind == REQUEST_REJECTED
     assert transport.calls == [] and not ledger.path.exists() and sleeps == []
@@ -98,7 +149,7 @@ def test_request_just_under_the_limit_is_sent(tmp_path):
     transport = FakeTransport(reply())
     client, _, _ = make_client(tmp_path, transport)
 
-    assert isinstance(client.complete(req("x" * 10000)), ModelResponse)
+    assert isinstance(client.complete(req("x" * 22000)), ModelResponse)
 
 
 def test_rejection_ends_a_trial_as_no_submission_request_rejected(tmp_path):
@@ -259,6 +310,7 @@ def test_attempt_record_has_metadata_usage_cost_reservation_and_no_credential(tm
     assert a["settings"]["temperature"] == 0.2 and a["retry_index"] == 0
     assert a["reservation"]["amount_chf"] == str(PRICES.reservation_chf(ModelConfig()))
     assert a["precision"] is None and a["missing_fields"] == ["precision"]
+    assert a["bound_to_prompt_tokens"] is not None
     assert a["started_at"] and a["ended_at"] and isinstance(a["latency_ms"], int)
     assert KEY not in json.dumps(client.attempts) and KEY not in ledger.path.read_text()
     assert KEY not in repr(client)
@@ -435,3 +487,73 @@ def test_http_transport_enforces_the_attempt_deadline_and_maps_connection_errors
         HttpTransport().post("http://127.0.0.1:1/x", {}, b"{}", 2)
     with pytest.raises(TransportConnectionError):
         HttpTransport().post("ftp://example.com/x", {}, b"{}", 2)
+
+
+# --- review follow-ups -------------------------------------------------------------
+
+def test_transport_failure_records_mark_all_response_metadata_missing(tmp_path):
+    client, _, _ = make_client(tmp_path, FakeTransport(TIMEOUT, RuntimeError("bug")),
+                               config=ModelConfig(max_retries_per_request=0))
+    client.complete(req())
+    with pytest.raises(RuntimeError):
+        client.complete(req())
+
+    for attempt in client.attempts:
+        assert {"returned_model", "provider", "prompt_tokens", "reported_cost_usd",
+                "precision"} <= set(attempt["missing_fields"])
+        assert attempt["requested_model"] == "z-ai/glm-5.3-flash"
+
+
+def test_a_reported_zero_cost_beside_token_usage_is_settled_on_the_estimate(tmp_path):
+    client, ledger, _ = make_client(tmp_path, FakeTransport(reply(usage={
+        "prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1100, "cost": 0})))
+
+    client.complete(req())
+
+    assert ledger.state().committed == PRICES.usage_estimate_chf(1000, 100) > 0
+    last = ledger_events(ledger)[-1]
+    assert last["basis"] == "estimated_from_usage" and last["reported_cost_usd"] == "0"
+
+
+def test_the_fixed_fee_is_committed_with_a_reported_cost(tmp_path):
+    from dataclasses import replace
+    from codegen_eval.openrouter_client import OpenRouterClient
+    prices = replace(PRICES, fixed_fee_chf=Decimal("0.002"))
+    ledger = Ledger(tmp_path / "l.jsonl")
+    client = OpenRouterClient(ModelConfig(), prices, ledger, KEY, FakeTransport(reply(usage={
+        "prompt_tokens": 10, "completion_tokens": 5, "cost": 0.0001})), sleep=lambda s: None)
+
+    client.complete(req())
+
+    assert ledger.state().committed == Decimal("0.0001") * prices.chf_per_usd + Decimal("0.002")
+
+
+def test_backoff_grows_with_the_trials_retry_count(tmp_path):
+    transport = FakeTransport(error_reply(500), reply(), error_reply(500), reply())
+    client, _, sleeps = make_client(tmp_path, transport)
+
+    client.complete(req())
+    client.complete(req())
+
+    assert sleeps == [1.0, 2.0]
+
+
+def test_tool_call_history_without_tool_definitions_is_refused_before_anything_is_sent(tmp_path):
+    transport = FakeTransport()
+    client, ledger, _ = make_client(tmp_path, transport)  # no tool_definitions
+    history = ({"role": "assistant", "content": None,
+                "tool_calls": [{"id": "c1", "name": "run_checks", "arguments": "{}"}]},)
+
+    with pytest.raises(ValueError, match="tool_definitions"):
+        client.complete(req(tools=(), choice="none", extra=history))
+
+    assert transport.calls == [] and not ledger.path.exists()
+
+
+def test_http_transport_deadline_covers_waiting_for_headers_after_the_send(server):
+    import time
+    server["slow"] = True
+    started = time.monotonic()
+    with pytest.raises(TransportTimeout):
+        HttpTransport().post(server["url"], {}, b"{}", 0.4)
+    assert time.monotonic() - started < 1.5

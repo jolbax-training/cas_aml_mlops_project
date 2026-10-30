@@ -83,6 +83,7 @@ def test_smoke_with_a_fake_transport_runs_through_ledger_and_bundle(tmp_path, in
     assert manifest["identity"]["model"]["config_hash"] == ModelConfig().config_hash()
     assert KEY not in "".join(f.read_text() for f in run.rglob("*") if f.is_file())
     assert KEY not in (tmp_path / "l.jsonl").read_text() and KEY not in out
+    assert manifest["redactions"] == 0 and "bound/actual=" in out
     state = Ledger(tmp_path / "l.jsonl").state()
     assert state.reserved == 0 and state.committed == Decimal("0.0004") * PRICES.chf_per_usd
 
@@ -172,3 +173,18 @@ def test_ledger_subcommand_reports_and_adjusts_without_any_api_use(tmp_path, cap
     assert main(["ledger", "status", "--ledger", path], env={}) == 0
     with pytest.raises(SystemExit):
         main(["ledger", "adjust", "--ledger", path, "--amount-chf", "x"], env={})
+
+
+def test_the_api_key_is_registered_for_redaction_even_outside_the_environment(tmp_path,
+                                                                              inprocess_runner):
+    leak = reply(f"def f():\n    return '{KEY}'\n")
+    transport = FakeTransport(leak)
+    ledger = Ledger(tmp_path / "l.jsonl")
+    config = ModelConfig()
+    client = OpenRouterClient(config, PRICES, ledger, KEY, transport, tool_definitions=(TOOL_SCHEMA,))
+
+    path, _ = run_recorded([TASK], lambda t, i: client, BENCHMARK, bundle_root=tmp_path / "b",
+                           run_id="run-k", runner=inprocess_runner, extra_secrets=(KEY,))
+
+    text = "".join(f.read_text() for f in path.rglob("*.json"))
+    assert KEY not in text and bundle.REDACTED in text

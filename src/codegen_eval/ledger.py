@@ -122,7 +122,9 @@ class Ledger:
 
     def _append(self, fd: int, event: Mapping[str, Any]) -> None:
         line = json.dumps({"at": _now(), **event}, sort_keys=True, ensure_ascii=False) + "\n"
-        os.write(fd, line.encode("utf-8"))
+        data = memoryview(line.encode("utf-8"))
+        while data:  # a short write must not leave a torn line behind an acknowledged event
+            data = data[os.write(fd, data):]
         os.fsync(fd)
 
     def _state(self, events: list[dict[str, Any]]) -> LedgerState:

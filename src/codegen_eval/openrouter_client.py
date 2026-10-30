@@ -71,6 +71,11 @@ class HttpTransport:
         connection = connection_class(parts.hostname, parts.port, timeout=timeout)
         try:
             connection.request("POST", parts.path or "/", body=body, headers=dict(headers))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TransportTimeout("attempt deadline passed")
+            if connection.sock is not None:  # connect and send used their own share of the deadline
+                connection.sock.settimeout(remaining)
             response = connection.getresponse()
             chunks = []
             while True:
@@ -92,14 +97,20 @@ class HttpTransport:
             connection.close()
 
 
-def input_token_bound(body: bytes, message_count: int, bytes_per_token: int = 1) -> int:
-    """Conservative upper bound on the input tokens of a serialized request.
+def input_token_bound(body: bytes, message_count: int, ascii_chars_per_token: float = 2.0) -> int:
+    """Conservative estimate of the input tokens of a serialized request.
 
-    Every token covers at least one byte of the serialized request, so the byte count bounds
-    the token count; JSON punctuation and sampling fields over-count, and a small allowance
-    per message covers template tokens. It over-estimates, never under-estimates, unless
-    `bytes_per_token` is raised above 1 by a verified calibration."""
-    return math.ceil(len(body) / bytes_per_token) + PER_MESSAGE_TOKEN_ALLOWANCE * message_count
+    ASCII characters count 1/`ascii_chars_per_token` token each (English and code run at
+    roughly 3-4 characters per token, so the default 2.0 carries about a 1.5-2x margin; JSON
+    punctuation, escapes, and the sampling fields also over-count). Every non-ASCII byte
+    counts as a whole token, the provable worst case for byte-level tokenizers, and a small
+    allowance per message covers template tokens. The ratio is unverified for the GLM
+    tokenizer until calibrated against reported `prompt_tokens` (task 4.4); a ratio of 1.0
+    is the provable bound but rejects realistic fourth-call requests."""
+    ascii_chars = sum(1 for byte in body if byte < 128)
+    other_bytes = len(body) - ascii_chars
+    return (math.ceil(ascii_chars / ascii_chars_per_token) + other_bytes
+            + PER_MESSAGE_TOKEN_ALLOWANCE * message_count)
 
 
 def _wire_message(message: Mapping[str, Any]) -> dict[str, Any]:
@@ -156,6 +167,9 @@ class OpenRouterClient:
         config = self.config
         tools = list(request.tools) or (list(self.tool_definitions)
                                         if request.tool_choice == "none" else [])
+        if not tools and any(m.get("tool_calls") for m in request.messages):
+            raise ValueError("history contains tool calls but no tool definitions are available; "
+                             "construct the client with tool_definitions")
         payload: dict[str, Any] = {
             "model": config.model,
             "messages": [_wire_message(m) for m in request.messages],
@@ -181,7 +195,7 @@ class OpenRouterClient:
         payload = self._payload(request)
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         bound = input_token_bound(body, len(request.messages),
-                                  self.config.input_bound_bytes_per_token)
+                                  self.config.input_bound_ascii_chars_per_token)
         if bound > self.config.max_input_tokens:
             detail = (f"rendered request is at most {bound} input tokens by the conservative "
                       f"bound; the limit is {self.config.max_input_tokens}")
@@ -199,7 +213,9 @@ class OpenRouterClient:
             if (request_retries < self.config.max_retries_per_request
                     and self.trial_retries < self.config.max_retries_per_trial):
                 request_retries += 1
-                self._sleep(self._backoff(request_retries, self._retry_after))
+                # The exponent is the trial-wide retry number, so the second retry in a trial
+                # waits longer than the first.
+                self._sleep(self._backoff(self.trial_retries + 1, self._retry_after))
                 continue
             return ModelFailure(TRANSPORT_EXHAUSTED,
                                 f"{outcome} after {request_retries} retry(ies) in this request; "
@@ -246,6 +262,7 @@ class OpenRouterClient:
             return self._failed(record, started, "connection_error", reservation.id)
         except BaseException as error:
             self._finish_record(record, started)
+            self._metadata(record, {})
             record.update(outcome="client_error", error_class=f"unexpected_{type(error).__name__}")
             self._keep(reservation.id, record["error_class"])
             self._record(record)
@@ -270,6 +287,7 @@ class OpenRouterClient:
     def _failed(self, record: dict[str, Any], started: float, error_class: str,
                 reservation_id: str) -> str:
         self._finish_record(record, started)
+        self._metadata(record, {})  # nothing was received: every metadata field is marked missing
         record.update(outcome="transport_failure", error_class=error_class)
         self._keep(reservation_id, error_class)
         self._record(record)
@@ -352,6 +370,9 @@ class OpenRouterClient:
             "precision": None,
         }
         record.update(fields)
+        prompt = fields["prompt_tokens"]
+        record["bound_to_prompt_tokens"] = (round(record["input_token_bound"] / prompt, 3)
+                                            if prompt else None)
         record["missing_fields"] = sorted(k for k, v in fields.items() if v is None)
         # A provider name is compared loosely (case, separators) with the pinned slug's prefix.
         pin = self.config.provider.split("/")[0].replace("-", "").lower()
@@ -363,12 +384,14 @@ class OpenRouterClient:
         """Commit the charge if it is known; otherwise leave the reservation counted."""
         cost = record["reported_cost_usd"]
         prompt, completion = record["prompt_tokens"], record["completion_tokens"]
-        if cost is not None and cost >= 0:
-            amount = Decimal(str(cost)) * self.prices.chf_per_usd
+        if cost is not None and cost > 0:
+            amount = self.prices.reported_cost_chf(cost)
             basis, reported = BASIS_REPORTED, str(cost)
         elif prompt is not None and completion is not None:
+            # No cost, or a reported zero beside real token usage (not trusted as free):
+            # commit the labelled estimate, keeping any reported value alongside.
             amount = self.prices.usage_estimate_chf(int(prompt), int(completion))
-            basis, reported = BASIS_ESTIMATED, None
+            basis, reported = BASIS_ESTIMATED, None if cost is None else str(cost)
         else:
             return False
         usage = {k: record[k] for k in ("prompt_tokens", "completion_tokens", "total_tokens")

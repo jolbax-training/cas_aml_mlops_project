@@ -43,6 +43,9 @@ def test_invalid_configuration_is_rejected():
         ModelConfig.from_dict({**ModelConfig().to_dict(), "extra": 1})
     with pytest.raises(ValueError):
         load_model_config("../openrouter_glm_v1")
+    for bad in ({"provider": "z-ai/fp8"}, {"endpoint": "http://openrouter.ai/api"}):
+        with pytest.raises(ValueError):
+            ModelConfig(**bad)
 
 
 def test_reservation_uses_caps_prices_conversion_margin_and_fees():

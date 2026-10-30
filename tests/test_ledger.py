@@ -159,6 +159,19 @@ def test_concurrent_reservations_cannot_jointly_pass_the_ceiling(tmp_path):
     assert len([e for e in events(ledger) if e["event"] == "checkpoint"]) == 1
 
 
+def test_short_writes_are_completed_before_the_event_is_acknowledged(tmp_path, monkeypatch):
+    import os
+    real = os.write
+    monkeypatch.setattr("codegen_eval.ledger.os.write",
+                        lambda fd, data: real(fd, bytes(data[:7])))
+    ledger = small(tmp_path)
+
+    ledger.reserve(D("0.1"), {"k": "v" * 40})
+
+    assert ledger.state().total == D("0.1")
+    assert json.loads(ledger.path.read_text().splitlines()[0])["event"] == "reservation"
+
+
 def test_ledger_file_is_created_private(tmp_path):
     ledger = small(tmp_path)
     ledger.reserve(D("0.1"), {})

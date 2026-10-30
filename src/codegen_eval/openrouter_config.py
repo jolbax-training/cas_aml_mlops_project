@@ -16,6 +16,7 @@ from typing import Any, Mapping
 
 CONFIG_DIR = Path(__file__).parent / "model_configs"
 DEFAULT_MODEL_CONFIG = "openrouter_glm_v1"
+PINNED_PROVIDER = "open-inference/fp4"
 
 
 @dataclass(frozen=True)
@@ -34,10 +35,12 @@ class ModelConfig:
     reasoning_effort: str = "low"
     max_output_tokens: int = 2000
     max_input_tokens: int = 12000
-    # The pre-send bound is ceil(request bytes / this) plus a per-message allowance. 1 is
-    # provably safe (a token covers at least one byte); a larger value is only justified by
-    # calibration against reported prompt tokens (see docs/model_access.md).
-    input_bound_bytes_per_token: int = 1
+    # Pre-send estimator (see `input_token_bound`): ASCII characters of the serialized request
+    # count 1/this token each; non-ASCII bytes count one token each. 2.0 is deliberately
+    # twice as pessimistic as typical English/code (3-4 characters per token) but it is NOT
+    # verified for the GLM tokenizer: task 4.4 gates the comparison on calibrating it
+    # against the smoke test's reported prompt tokens (docs/model_access.md).
+    input_bound_ascii_chars_per_token: float = 2.0
     attempt_timeout_seconds: float = 60.0
     max_retries_per_request: int = 1
     max_retries_per_trial: int = 2
@@ -57,7 +60,7 @@ class ModelConfig:
                 raise ValueError(f"{field.name} must be a non-empty string")
             if field.type == "bool" and not isinstance(value, bool):
                 raise ValueError(f"{field.name} must be a boolean")
-        for name in ("max_output_tokens", "max_input_tokens", "input_bound_bytes_per_token",
+        for name in ("max_output_tokens", "max_input_tokens", "input_bound_ascii_chars_per_token",
                      "attempt_timeout_seconds"):
             if getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be positive")
@@ -69,6 +72,10 @@ class ModelConfig:
             raise ValueError("reasoning_effort must be low, high, or max")
         if self.allow_fallbacks or not self.require_parameters:
             raise ValueError("provider fallbacks must stay disabled and required parameters on")
+        if self.provider != PINNED_PROVIDER:
+            raise ValueError(f"provider must stay pinned to {PINNED_PROVIDER!r}")
+        if not self.endpoint.startswith("https://"):
+            raise ValueError("endpoint must use https")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -178,3 +185,7 @@ class PriceInputs:
         usd = (Decimal(prompt_tokens) * self.input_usd_per_million
                + Decimal(completion_tokens) * self.output_usd_per_million) / 1_000_000
         return usd * self.chf_per_usd * (1 + self.safety_margin) + self.fixed_fee_chf
+
+    def reported_cost_chf(self, cost_usd: Any) -> Decimal:
+        """A reported USD cost in CHF, plus the applicable per-attempt fee."""
+        return Decimal(str(cost_usd)) * self.chf_per_usd + self.fixed_fee_chf

@@ -197,6 +197,7 @@ def run_recorded(
     execution_limits: ExecutionLimits = DEFAULT_LIMITS,
     runner: Callable[..., ExecutionResult] = execute_check,
     model_settings: Mapping[str, Any] | None = None,
+    extra_secrets: Sequence[str] = (),
 ) -> tuple[Path, Verification]:
     """Run every planned trial, persisting each record as it finishes; returns the bundle."""
     prompt = prompt or load_prompt()
@@ -204,7 +205,8 @@ def run_recorded(
                for t in tasks for n in range(1, trials_per_task + 1)]
     identity = build_identity(Path(benchmark_path), prompt, limits, execution_limits,
                               model_settings)
-    writer = BundleWriter(bundle_root, run_id or new_run_id(), planned, identity)
+    writer = BundleWriter(bundle_root, run_id or new_run_id(), planned, identity,
+                          extra_secrets=extra_secrets)
     by_id = {t.id: t for t in tasks}
     stopped: list[str] = []
     try:

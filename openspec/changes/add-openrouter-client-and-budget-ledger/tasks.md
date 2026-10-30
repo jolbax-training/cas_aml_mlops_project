@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are unstarted planning items. Timebox: day 2, API/budget/smoke (3h). Requires `add-bounded-agent-loop` and `add-run-bundles-and-grading-replay`; the smoke test also requires `harden-candidate-execution` probes to pass.
+Tasks 1.1-3.3 are implemented and tested offline with a fake transport (no paid call); 4.1-4.5 remain deferred to the end (paid smoke, freeze). Timebox: day 2, API/budget/smoke (3h). Requires `add-bounded-agent-loop` and `add-run-bundles-and-grading-replay`; the smoke test also requires `harden-candidate-execution` probes to pass.
 
 ## 1. Configuration and client
 
@@ -22,7 +22,7 @@ All tasks are unstarted planning items. Timebox: day 2, API/budget/smoke (3h). R
 ## 4. Smoke test and freeze
 
 - [ ] 4.1 Recheck endpoint capabilities and prices; record the CHF conversion with date and source as a preflight input.
-- [ ] 4.2 Run the paid smoke trial through the ledger and retain its trace showing tool call, feedback, final-only tool disabling, final submission, accepted parameters, usage/provider metadata, and output fitting within 2,000 tokens.
+- [ ] 4.2 Run the paid smoke trial through the ledger (the smoke command records `input_token_bound` against reported `prompt_tokens` per attempt) and retain its trace showing tool call, feedback, final-only tool disabling, final submission, accepted parameters, usage/provider metadata, and output fitting within 2,000 tokens.
 - [ ] 4.3 Compute projected total cost (360 main physical attempts plus development/smoke spend) against the CHF 15 ceiling; escalate to the user if it does not fit.
-- [ ] 4.4 Freeze settings; document any pre-freeze adjustment and the reproducibility limitation of fixed identifiers.
+- [ ] 4.4 Calibration gate: from the smoke attempts compare the pre-send `input_token_bound` with reported `usage.prompt_tokens`; the bound must be at or above the actual count with margin and not reject realistic fourth-call requests, otherwise change `input_bound_ascii_chars_per_token` (or use a verified tokenizer) and re-smoke; record the observed ratio and decision in `docs/progress.md`. The comparison MUST NOT start until this passes. Then freeze settings; document any pre-freeze adjustment and the reproducibility limitation of fixed identifiers.
 - [ ] 4.5 Run focused and offline tests; update `docs/progress.md` with frozen settings, smoke evidence location, ledger totals, and observed results, and register a reviewed summary for the work log. Do not describe metadata support as a live result.

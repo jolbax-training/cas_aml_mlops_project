@@ -64,7 +64,8 @@ def run_smoke(config: ModelConfig, prices: PriceInputs, ledger: Ledger, api_key:
                                          "trial_id": trial_id}, **kwargs)
 
     path, verification = run_recorded(tasks, client_for, benchmark, bundle_root=bundle_root,
-                                      runner=runner, model_settings=config.identity())
+                                      runner=runner, model_settings=config.identity(),
+                                      extra_secrets=(api_key,))
     print(f"bundle: {path}")
     print(f"recorded {len(verification.recorded)} of {len(verification.planned)} planned trials; "
           f"complete={verification.complete}")
@@ -76,7 +77,8 @@ def run_smoke(config: ModelConfig, prices: PriceInputs, ledger: Ledger, api_key:
             print("  attempt call={call} retry={retry_index} outcome={outcome} provider={provider} "
                   "model={returned_model} prompt_tokens={prompt_tokens} completion_tokens="
                   "{completion_tokens} cost_usd={reported_cost_usd} bound={input_token_bound} "
-                  "missing={missing_fields}".format(**{
+                  "bound/actual={bound_to_prompt_tokens} missing={missing_fields}".format(**{
+                      "bound_to_prompt_tokens": None,
                       "provider": None, "returned_model": None, "prompt_tokens": None,
                       "completion_tokens": None, "reported_cost_usd": None,
                       "missing_fields": [], **attempt}))
