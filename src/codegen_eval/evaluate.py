@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 from codegen_eval.contract import validate_source
 from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, ExecutionResult, run_case
 from codegen_eval.tasks import Case, Task
+
+if TYPE_CHECKING:
+    from codegen_eval.trial import TrialResult
+
+# Candidate outcomes that start no container, so the check is not executed.
+UNEXECUTED_CANDIDATE_STATUSES = frozenset({"payload_too_large"})
 
 
 @dataclass(frozen=True)
@@ -57,20 +63,36 @@ class RunCounts:
 
 
 def _strict_equal(actual: Any, expected: Any) -> bool:
+    """Recursive type-aware equality over JSON values: `True` is not `1`, `1.0` is not `1`,
+    list order matters, and dictionary key order does not."""
+    try:
+        return _equal(actual, expected)
+    except RecursionError:
+        return False  # a value nested deeper than the interpreter allows cannot match
+
+
+def _equal(actual: Any, expected: Any) -> bool:
     if type(actual) is not type(expected):
         return False
     if isinstance(expected, list):
         return len(actual) == len(expected) and all(
-            _strict_equal(left, right) for left, right in zip(actual, expected)
+            _equal(left, right) for left, right in zip(actual, expected)
         )
     if isinstance(expected, dict):
         return actual.keys() == expected.keys() and all(
-            _strict_equal(actual[key], value) for key, value in expected.items()
+            _equal(actual[key], value) for key, value in expected.items()
         )
     return actual == expected
 
 
-def _score_case(case: Case, execution: ExecutionResult) -> CaseResult:
+def score_case(case: Case, execution: ExecutionResult) -> CaseResult:
+    """Grade one raw execution outcome against its trusted case (also used to regrade stored outcomes).
+
+    A returned value can carry both `wrong_answer` and `mutated_input`. Every other candidate
+    outcome is a single label and counts as executed, including a `timeout`, which is an
+    attempted and unsuccessful check. `payload_too_large` starts no container, so that check
+    is unexecuted and unsuccessful. Infrastructure outcomes are unexecuted and not candidate
+    failures."""
     if execution.status == "returned":
         failures: list[str] = []
         if not _strict_equal(execution.value, case.expected):
@@ -79,8 +101,12 @@ def _score_case(case: Case, execution: ExecutionResult) -> CaseResult:
             failures.append("mutated_input")
         return CaseResult(case.id, case.kind, True, not failures, tuple(failures), execution.value)
 
-    infrastructure = execution.status in INFRASTRUCTURE_STATUSES
-    return CaseResult(case.id, case.kind, not infrastructure, False, (execution.status,))
+    executed = execution.status not in INFRASTRUCTURE_STATUSES | UNEXECUTED_CANDIDATE_STATUSES
+    return CaseResult(case.id, case.kind, executed, False, (execution.status,))
+
+
+def _unexecuted(task: Task, labels: tuple[str, ...]) -> tuple[CaseResult, ...]:
+    return tuple(CaseResult(case.id, case.kind, False, False, labels) for case in task.cases)
 
 
 def evaluate_task(
@@ -91,11 +117,66 @@ def evaluate_task(
     """Validate once, then score all four cases with separate execution calls."""
     issue = validate_source(source, task)
     if issue is not None:
-        results = tuple(CaseResult(case.id, case.kind, False, False, (issue.code,))
-                        for case in task.cases)
+        results = _unexecuted(task, (issue.code,))
     else:
-        results = tuple(_score_case(case, runner(source, task, case)) for case in task.cases)
+        results = tuple(score_case(case, runner(source, task, case)) for case in task.cases)
     return TaskResult(task.id, task.category, all(case.passed for case in results), results)
+
+
+@dataclass(frozen=True)
+class TrialGrade:
+    """Grade of one agent trial's final submission. `cases` always lists the planned checks
+    (four), so scores keep their full denominator; an incomplete trial has none to report."""
+
+    task_id: str
+    category: str
+    status: str                       # the trial's terminal state
+    labels: tuple[str, ...]           # trial-level labels, e.g. ("no_submission", "request_rejected")
+    success: bool
+    incomplete: bool                  # an infrastructure outcome made grading unreliable
+    infrastructure_status: str | None
+    cases: tuple[CaseResult, ...]
+
+    @property
+    def passed(self) -> bool:
+        return self.success
+
+
+def grade_trial(
+    task: Task,
+    trial: "TrialResult",
+    runner: Callable[[str, Task, Case], ExecutionResult] = run_case,
+) -> TrialGrade:
+    """Grade a finished trial's final submission only; tool use, revisions, latency, and
+    cost never affect success.
+
+    A submission that fails the source contract (`contract_error`, `syntax_error`) and a
+    `no_submission` (with its reason label, such as `request_rejected`) mark all four checks
+    unexecuted and unsuccessful. A trial that ended in `infrastructure_incomplete`, or whose
+    hidden checks hit an infrastructure outcome, is reported incomplete rather than failed;
+    whether and how an incomplete run is excluded is decided by the run-level classification."""
+    from codegen_eval.trial import INFRASTRUCTURE_INCOMPLETE, NO_SUBMISSION, SUBMITTED
+
+    def grade(status, labels, success, incomplete, infrastructure, cases):
+        return TrialGrade(task.id, task.category, status, labels, success, incomplete,
+                          infrastructure, cases)
+
+    if trial.status == INFRASTRUCTURE_INCOMPLETE:
+        return grade(trial.status, (), False, True, trial.infrastructure_status, ())
+    if trial.status == NO_SUBMISSION:
+        labels = ("no_submission",) + ((trial.label,) if trial.label else ())
+        return grade(trial.status, labels, False, False, None, _unexecuted(task, labels))
+    if trial.status != SUBMITTED or trial.submission is None:
+        raise ValueError(f"cannot grade trial with status {trial.status!r}")
+    if trial.contract_issue is not None:
+        labels = (trial.contract_issue.code,)
+        return grade(trial.status, labels, False, False, None, _unexecuted(task, labels))
+
+    cases = tuple(score_case(case, runner(trial.submission, task, case)) for case in task.cases)
+    infrastructure = next((f for c in cases for f in c.failures if f in INFRASTRUCTURE_STATUSES), None)
+    labels = tuple(dict.fromkeys(f for c in cases for f in c.failures))
+    return grade(trial.status, labels, infrastructure is None and all(c.passed for c in cases),
+                 infrastructure is not None, infrastructure, cases)
 
 
 def count_results(results: Iterable[TaskResult]) -> RunCounts:

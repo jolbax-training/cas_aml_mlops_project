@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 from collections import Counter
 from dataclasses import dataclass
@@ -173,3 +174,48 @@ def _build_tasks(raw: Any, expected_categories: Mapping[str, int]) -> tuple[Task
     if categories != Counter(expected_categories):
         raise ValueError(f"category counts {dict(categories)} differ from {dict(expected_categories)}")
     return tuple(tasks)
+
+
+FREEZE_FILE = "data/benchmark_v1.freeze.json"
+FROZEN_PATTERNS = ("data/benchmark_v1.json", "data/references_v1/*.py", "docs/benchmark_review.md")
+
+
+def frozen_files(root: str | Path) -> list[str]:
+    """Repository-relative paths covered by the benchmark content hash, sorted."""
+    root = Path(root)
+    return sorted({path.relative_to(root).as_posix() for pattern in FROZEN_PATTERNS
+                   for path in root.glob(pattern)})
+
+
+def freeze_manifest(root: str | Path) -> dict[str, Any]:
+    """Version, per-file SHA-256, and one content hash over the benchmark, references, and review.
+
+    The content hash is the SHA-256 of one `<path>\\t<file sha256>\\n` line per file, in path
+    order, so it changes when any file is edited, added, or removed. The manifest itself is
+    not hashed; it records the result."""
+    root = Path(root)
+    benchmark = json.loads((root / "data" / "benchmark_v1.json").read_text(encoding="utf-8"))
+    files = {path: hashlib.sha256((root / path).read_bytes()).hexdigest() for path in frozen_files(root)}
+    canonical = "".join(f"{path}\t{digest}\n" for path, digest in files.items())
+    return {
+        "schema_version": benchmark["schema_version"],
+        "benchmark_version": benchmark["benchmark_version"],
+        "files": files,
+        "content_hash": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    }
+
+
+def check_freeze(root: str | Path) -> None:
+    """Raise ValueError naming the differences if the recorded freeze no longer matches the files."""
+    root = Path(root)
+    recorded = json.loads((root / FREEZE_FILE).read_text(encoding="utf-8"))
+    current = freeze_manifest(root)
+    if recorded == current:
+        return
+    changed = sorted(path for path in set(recorded["files"]) | set(current["files"])
+                     if recorded["files"].get(path) != current["files"].get(path))
+    raise ValueError(
+        f"benchmark content differs from the recorded freeze ({recorded['content_hash']}); "
+        f"changed files: {changed or 'none (version fields differ)'}; create a new benchmark "
+        "version and re-record the freeze instead of editing a frozen version"
+    )

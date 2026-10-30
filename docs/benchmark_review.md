@@ -1,6 +1,6 @@
 # Benchmark v1 review evidence
 
-This records the review of the ten-task benchmark in [`data/benchmark_v1.json`](../data/benchmark_v1.json) (schema version 1, benchmark version `1`, **not yet frozen**; the content hash is recorded when the benchmark is frozen, change task 4.3).
+This records the review of the ten-task benchmark in [`data/benchmark_v1.json`](../data/benchmark_v1.json) (schema version 1, benchmark version `1`, **frozen 2026-10-30**; see Freeze and rerun rule below).
 
 ## Reviewer and limitations
 
@@ -104,6 +104,10 @@ Seven of the twenty edge cases are empty inputs (`strings_01_c`, `strings_02_c`,
 
 No case uses floating point, an expected exception, a non-JSON value, or an input outside its stated type; `tasks.py` rejects floats, booleans in integer positions, and other mismatches against the signature when the benchmark is loaded.
 
-## Still to do before freezing
+## Freeze and rerun rule
 
-Section 3 (grading and accounting) and section 4 (fixtures, freeze, hash, progress entry) of `add-reviewed-benchmark-and-graders` are outstanding. This evidence is not frozen until the version and hash are recorded.
+Benchmark version `1` was frozen on 2026-10-30 after both reviews and the reference run above. The content hash covers `data/benchmark_v1.json`, every file in `data/references_v1/`, and this review file. The hash and per-file digests are recorded in [`data/benchmark_v1.freeze.json`](../data/benchmark_v1.freeze.json) and in `docs/progress.md`, not here, because this file is part of the hashed content. `scripts/freeze_benchmark.py --check` and `tests/test_benchmark.py::test_recorded_freeze_matches_the_benchmark_and_review_files` fail if any covered file changes.
+
+**Rerun rule.** A frozen version is not edited. Any change to a task, instruction, case, expected answer, reference, or this review, including a corrected typo, changes the hash and must be made as a new benchmark version (for example `benchmark_v2.json` with a new `benchmark_version`), re-reviewed for the changed items, recorded in a new freeze file, and noted in `docs/progress.md`. Results produced under an earlier hash are not compared with the new version unless the affected tasks are rerun (or, for a change that only affects grading, the stored outputs are rescored and labelled as rescored). A change to the evaluator that does not alter any covered file does not change the hash, so the grader version must be recorded with the results separately.
+
+Grading, labels, and accounting for this benchmark are implemented in `src/codegen_eval/evaluate.py` and exercised by deterministic fixtures in `tests/test_grading.py`; those fixtures validate the evaluator and say nothing about model quality. No model result has been produced or claimed for this benchmark.

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "1",
+  "files": {
+    "data/benchmark_v1.json": "d75c06ae3a8d8d98fbe2bdeb8ec36e4d80f6279c0040a394aee2247a20f556b6",
+    "data/references_v1/dictionaries_01.py": "a1e27e000b844ba327558513a3789ba36181d59cec7fbaaf59b193f5156cc1b6",
+    "data/references_v1/dictionaries_02.py": "d5fbacb641426bfc8eb4553f04d70158498f85ec5ecc4150312826914655c466",
+    "data/references_v1/lists_01.py": "7faafc05f53e20dce42000378f7be0ee86cf93ad2893e285d153ab4183d49df5",
+    "data/references_v1/lists_02.py": "66dfcde7966b63a9c8b0da9f763ea1398983e94fced2edb29bfca2e1a604e146",
+    "data/references_v1/numeric_logic_01.py": "14b0607875fc97d6edc3b21741a7f3e918213df0bfecb3bdfc965843d7259b68",
+    "data/references_v1/numeric_logic_02.py": "c35b730c863f4a7144654d14e8661c0feb323683d0e7c04ef649cfd02519206f",
+    "data/references_v1/parsing_formatting_01.py": "1975b120c6c89041e341b8b769740ebdfc056974f0de0ae97a8fe7e6d089136d",
+    "data/references_v1/parsing_formatting_02.py": "a7943ffb06dd69a9866944088ea0b8b3d8a20b5df6dde7b781435f7d7e0ffe13",
+    "data/references_v1/strings_01.py": "d5ed8560eb9b59cf00105d9fcbd4af313ae905c1bb290923fc98a197df67b092",
+    "data/references_v1/strings_02.py": "89dead3ec3b9f0eb2848a8687d74471a42cd7b4185cd3b32e4ea33d00d2a3eac",
+    "docs/benchmark_review.md": "00bb63c1ded6aaaf7702c88309469f792cdac33073d9504a5bd430bb71a4d0eb"
+  },
+  "content_hash": "a001191f288d1140bd62c7f38932a1bd9900e230a9ad2f5a7d75a23ab33aafee"
+}

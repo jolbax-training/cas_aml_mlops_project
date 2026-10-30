@@ -1,6 +1,6 @@
 # Tasks
 
-Sections 1–2 implemented 2026-10-30; sections 3–4 open. Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
+Sections 1–2 and 3.1–3.2, 4.1–4.4 implemented 2026-10-30; 3.3 open (needs the run-evidence completeness check from `add-run-bundles-and-grading-replay`). Timebox: day 2, benchmark/reference review (3h). Requires `harden-candidate-execution` and `add-bounded-agent-loop` outcomes; must be frozen before `run-prompt-comparison`.
 
 ## 1. Benchmark structure and validation
 
@@ -15,13 +15,13 @@ Sections 1–2 implemented 2026-10-30; sections 3–4 open. Timebox: day 2, benc
 
 ## 3. Grading and accounting
 
-- [ ] 3.1 Verify and extend the existing pilot comparison (`_strict_equal`) and mutation detection in `src/codegen_eval/evaluate.py` against Q23 (type confusion, nested types, list order, dictionary key order, null), keeping them in trusted orchestration and shared with `run_checks`; add tests.
-- [ ] 3.2 Record per-check results and multiple failure labels; implement trial success, unexecuted-check accounting for contract errors and `no_submission`, and attempted/unsuccessful deadline interruptions.
+- [x] 3.1 Verify and extend the existing pilot comparison (`_strict_equal`) and mutation detection in `src/codegen_eval/evaluate.py` against Q23 (type confusion, nested types, list order, dictionary key order, null), keeping them in trusted orchestration and shared with `run_checks`; add tests.
+- [x] 3.2 Record per-check results and multiple failure labels; implement trial success, unexecuted-check accounting for contract errors and `no_submission`, and attempted/unsuccessful deadline interruptions.
 - [ ] 3.3 Implement fixed-denominator summaries with counts and rates, and incomplete-run classification for infrastructure, exhausted-transport, and failed-completeness outcomes, consuming the completeness check from `add-run-bundles-and-grading-replay` (task 2.3) rather than reimplementing it.
 
 ## 4. Fixtures, freeze, and evidence
 
-- [ ] 4.1 Add deterministic evaluator fixtures for correct, ordinary/edge wrong, syntax/signature/contract errors, exceptions, mutation, timeouts, excessive output, an infrastructure failure, and (once the open decisions in design.md are confirmed) payload-too-large and `request_rejected` outcomes; assert labels and accounting.
-- [ ] 4.2 Run the focused and offline test suites and record observed results.
-- [ ] 4.3 Freeze the benchmark: record version and content hash over benchmark and review files; document the rerun rule for later changes.
-- [ ] 4.4 Update `docs/progress.md` with the benchmark version/hash, review evidence location, and test results, and register the reviewed benchmark summary as a work-log source; claim no model results.
+- [x] 4.1 Add deterministic evaluator fixtures for correct, ordinary/edge wrong, syntax/signature/contract errors, exceptions, mutation, timeouts, excessive output, an infrastructure failure, and (once the open decisions in design.md are confirmed) payload-too-large and `request_rejected` outcomes; assert labels and accounting.
+- [x] 4.2 Run the focused and offline test suites and record observed results.
+- [x] 4.3 Freeze the benchmark: record version and content hash over benchmark and review files; document the rerun rule for later changes.
+- [x] 4.4 Update `docs/progress.md` with the benchmark version/hash, review evidence location, and test results, and register the reviewed benchmark summary as a work-log source; claim no model results.

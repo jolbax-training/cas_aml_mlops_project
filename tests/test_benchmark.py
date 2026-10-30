@@ -8,7 +8,9 @@ import pytest
 
 from codegen_eval.contract import validate_source
 from codegen_eval.evaluate import _strict_equal, count_results, evaluate_task
-from codegen_eval.tasks import BENCHMARK_CATEGORIES, load_benchmark, load_tasks
+from codegen_eval.tasks import (
+    BENCHMARK_CATEGORIES, FREEZE_FILE, check_freeze, load_benchmark, load_tasks,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,3 +116,43 @@ def test_references_pass_every_case_in_the_sandbox():
     assert all(result.passed for result in results)
     assert (counts.tasks_passed, counts.cases_passed, counts.edge_cases_passed) == (10, 40, 20)
     assert counts.infrastructure_failures == 0
+
+
+def test_recorded_freeze_matches_the_benchmark_and_review_files():
+    check_freeze(ROOT)
+    manifest = json.loads((ROOT / FREEZE_FILE).read_text(encoding="utf-8"))
+    assert manifest["benchmark_version"] == "1" and len(manifest["content_hash"]) == 64
+    assert set(manifest["files"]) == {
+        "data/benchmark_v1.json", "docs/benchmark_review.md",
+        *(f"data/references_v1/{task.id}.py" for task in TASKS),
+    }
+
+
+def _copy_frozen_tree(tmp_path):
+    for relative in [FREEZE_FILE, *json.loads((ROOT / FREEZE_FILE).read_text())["files"]]:
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / relative).read_bytes())
+    return tmp_path
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        lambda root: _append(root / "data" / "benchmark_v1.json", " "),
+        lambda root: _append(root / "data" / "references_v1" / "lists_02.py", "# edited\n"),
+        lambda root: _append(root / "docs" / "benchmark_review.md", "\n"),
+        lambda root: (root / "data" / "references_v1" / "lists_02.py").unlink(),
+        lambda root: (root / "data" / "references_v1" / "extra.py").write_text("x = 1\n"),
+    ],
+)
+def test_any_edit_to_a_frozen_file_is_reported(tmp_path, edit):
+    root = _copy_frozen_tree(tmp_path)
+    check_freeze(root)
+    edit(root)
+    with pytest.raises(ValueError, match="differs from the recorded freeze"):
+        check_freeze(root)
+
+
+def _append(path, text):
+    path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")

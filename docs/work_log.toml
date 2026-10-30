@@ -52,9 +52,9 @@ status = "implemented"
 [[section]]
 id = "benchmark-review"
 title = "Reviewed ten-task benchmark and graders"
-kind = "pending"
-needs = ["add-reviewed-benchmark-and-graders"]
-description = "Independent task and grader review records, the frozen ten-task benchmark, and its forty hidden checks."
+path = "docs/benchmark_review.md"
+label = "reviewed"
+status = "implemented"
 
 [[section]]
 id = "results"

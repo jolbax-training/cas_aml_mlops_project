@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from codegen_eval.evaluate import _score_case
+from codegen_eval.evaluate import score_case
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
 from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, execute_check, run_case
 from codegen_eval.tasks import load_tasks
@@ -37,7 +37,7 @@ def run_unique(body: str, imports: str = ""):
 def trusted_failures(source: str):
     """Classify like the evaluator would: expected values live only on this side."""
     case = UNIQUE.cases[0]
-    return _score_case(case, run_case(source, UNIQUE, case)).failures
+    return score_case(case, run_case(source, UNIQUE, case)).failures
 
 
 # --- host isolation -------------------------------------------------------
@@ -251,7 +251,7 @@ def test_forged_worker_response_is_never_accepted(source):
     execution = run_case(source, UNIQUE, case)
 
     assert execution.status == "protocol_violation"
-    assert _score_case(case, execution).failures == ("protocol_violation",)
+    assert score_case(case, execution).failures == ("protocol_violation",)
     assert execution.value is None
 
 
@@ -340,7 +340,7 @@ def assert_candidate_outcome(source: str, expected_status: str):
 
     assert execution.status == expected_status, execution
     assert execution.status not in INFRASTRUCTURE_STATUSES
-    assert not set(_score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
+    assert not set(score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
     return execution
 
 
@@ -439,7 +439,7 @@ def test_candidate_induced_container_oom_is_never_infrastructure(source):
     # candidate_crash, or timeout; all are candidate outcomes.
     assert execution.status in {"returned", "candidate_crash", "timeout"}, execution
     assert execution.status not in INFRASTRUCTURE_STATUSES
-    assert not set(_score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
+    assert not set(score_case(case, execution).failures) & INFRASTRUCTURE_STATUSES
 
 
 def test_lone_surrogate_return_value_is_a_scorable_candidate_outcome():
@@ -447,4 +447,4 @@ def test_lone_surrogate_return_value_is_a_scorable_candidate_outcome():
     execution = run_case(f"{UNIQUE_HEAD}    return ['\\ud800']\n", UNIQUE, case)
 
     assert execution.status == "returned"
-    assert _score_case(case, execution).failures == ("wrong_answer",)
+    assert score_case(case, execution).failures == ("wrong_answer",)
