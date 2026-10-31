@@ -30,15 +30,30 @@ _IMAGE_BY_ARCH = {
 _ARCH_ALIASES = {"aarch64": "arm64", "x86_64": "amd64"}
 
 
+def normalize_platform(machine: str) -> str:
+    """The architecture name used by the image pins (`arm64`, `amd64`)."""
+    return _ARCH_ALIASES.get(machine.lower(), machine.lower())
+
+
 def _select_image(machine: str) -> str:
-    arch = _ARCH_ALIASES.get(machine.lower(), machine.lower())
     try:
-        return _IMAGE_BY_ARCH[arch]
+        return _IMAGE_BY_ARCH[normalize_platform(machine)]
     except KeyError:
         raise RuntimeError(f"no pinned candidate image for architecture {machine!r}") from None
 
 
-IMAGE = _select_image(platform.machine())
+def image_for_platform(arch: str) -> str:
+    """The image pinned for `arch`, so a recorded platform can be checked on any host."""
+    return _select_image(arch)
+
+
+def platform_of_image(image: str) -> str | None:
+    """The architecture an image pin is for, or None for an image that is not a pin."""
+    return next((arch for arch, pinned in _IMAGE_BY_ARCH.items() if pinned == image), None)
+
+
+HOST_PLATFORM = normalize_platform(platform.machine())
+IMAGE = _select_image(HOST_PLATFORM)
 
 # Container names carry the process id, so concurrent runs sharing one Podman VM (parallel
 # test sessions, CI) can each list and clean up only their own containers.

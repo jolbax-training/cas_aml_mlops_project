@@ -34,7 +34,9 @@ from codegen_eval.openrouter_config import (
     DEFAULT_MODEL_CONFIG, ModelConfig, PriceInputs, load_model_config,
 )
 from codegen_eval.run_recording import ROOT, freeze_content_hash, run_recorded
-from codegen_eval.sandbox import IMAGE, ExecutionResult, execute_check
+from codegen_eval.sandbox import (
+    HOST_PLATFORM, ExecutionResult, execute_check, image_for_platform, platform_of_image,
+)
 from codegen_eval.tasks import Task, check_freeze, load_benchmark
 
 CONFIG_SCHEMA_VERSION = 1
@@ -89,12 +91,13 @@ def prompt_file_hashes() -> dict[str, str]:
 
 
 def settings_hash(model: ModelConfig, agent_limits: AgentLimits,
-                  execution_limits: ExecutionLimits) -> str:
-    """One hash over everything that must stay fixed between the variants besides the prompt."""
+                  execution_limits: ExecutionLimits, container_platform: str = HOST_PLATFORM) -> str:
+    """One hash over everything that must stay fixed between the variants besides the prompt.
+    The image is the one pinned for the recorded container platform, not for this host."""
     return _sha256({"model_config_hash": model.config_hash(),
                     "agent_limits_hash": agent_limits.config_hash(),
                     "execution_limits_hash": execution_limits.config_hash(),
-                    "container_image": IMAGE})
+                    "container_image": image_for_platform(container_platform)})
 
 
 def build_schedule(tasks: Sequence[Task], trials_per_task: int = TRIALS_PER_TASK) -> list[dict[str, str]]:
@@ -114,9 +117,12 @@ def build_config(benchmark_path: str | Path = DEFAULT_BENCHMARK, *,
                  model_config_version: str = DEFAULT_MODEL_CONFIG,
                  baseline_prompt: str = BASELINE_PROMPT, revised_prompt: str | None = None,
                  agent_limits: AgentLimits = DEFAULT_AGENT_LIMITS,
-                 execution_limits: ExecutionLimits = DEFAULT_LIMITS) -> dict[str, Any]:
+                 execution_limits: ExecutionLimits = DEFAULT_LIMITS,
+                 container_platform: str = HOST_PLATFORM) -> dict[str, Any]:
     """The configuration as it should be recorded now. The revised prompt stays unset until a
-    revision has been written from inspected baseline failures."""
+    revision has been written from inspected baseline failures. The configuration names the
+    platform the experiment will run on and the image pinned for it, so checking it for drift
+    gives the same answer on every host; `check_preconditions` refuses a different host."""
     path = Path(benchmark_path)
     envelope = json.loads(path.read_text(encoding="utf-8"))
     model = load_model_config(model_config_version)
@@ -134,8 +140,10 @@ def build_config(benchmark_path: str | Path = DEFAULT_BENCHMARK, *,
                      "model_config_hash": model.config_hash(),
                      "agent_limits_hash": agent_limits.config_hash(),
                      "execution_limits_hash": execution_limits.config_hash(),
-                     "container_image": IMAGE,
-                     "settings_hash": settings_hash(model, agent_limits, execution_limits)},
+                     "container_platform": container_platform,
+                     "container_image": image_for_platform(container_platform),
+                     "settings_hash": settings_hash(model, agent_limits, execution_limits,
+                                                    container_platform)},
         "trials_per_task": TRIALS_PER_TASK,
         "trial_order": TRIAL_ORDER,
         "variants": [_variant_entry(BASELINE, baseline_prompt),
@@ -221,12 +229,14 @@ def config_drift(config: ExperimentConfig, *, benchmark_path: str | Path = DEFAU
     data = config.data
     try:
         current = build_config(benchmark_path,
+                               container_platform=str(data["settings"].get("container_platform",
+                                                                           HOST_PLATFORM)),
                                model_config_version=data["settings"].get("model_config_version",
                                                                           DEFAULT_MODEL_CONFIG),
                                baseline_prompt=config.variant(BASELINE)["prompt_version"] or BASELINE_PROMPT,
                                revised_prompt=config.variant(REVISED)["prompt_version"],
                                agent_limits=agent_limits, execution_limits=execution_limits)
-    except (OSError, ValueError, BundleError) as error:
+    except (OSError, ValueError, RuntimeError, BundleError) as error:
         return [f"cannot rebuild the configuration to compare ({error})"]
     drift = []
     for section in ("benchmark", "settings", "variants", "trials_per_task", "trial_order", "schedule"):
@@ -250,7 +260,8 @@ def _read_evidence(path: Path, what: str) -> dict[str, Any]:
 
 
 def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *,
-                          command: str, junit_xml: str | None = None) -> Path:
+                          command: str, junit_xml: str | None = None,
+                          container_platform: str = HOST_PLATFORM) -> Path:
     """Record one run of the sandbox probe suite, bound to the evaluator code it ran against.
     The junit report is kept beside the record and its SHA-256 stored in it, so the counts
     can be checked against the report afterwards."""
@@ -258,7 +269,8 @@ def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *
     directory.mkdir(parents=True, exist_ok=True)
     record: dict[str, Any] = {
         "schema_version": 1, "recorded_at": utc_now(), "command": command,
-        "evaluator_code_sha256": evaluator_code_sha256(), "container_image": IMAGE,
+        "evaluator_code_sha256": evaluator_code_sha256(),
+        "container_platform": container_platform, "container_image": image_for_platform(container_platform),
         **{key: int(counts[key]) for key in ("tests", "failures", "errors", "skipped")}}
     if junit_xml is not None:
         data = junit_xml.encode("utf-8")
@@ -269,7 +281,7 @@ def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *
     return path
 
 
-def probes_problems(evidence_dir: str | Path) -> list[str]:
+def probes_problems(evidence_dir: str | Path, host_platform: str = HOST_PLATFORM) -> list[str]:
     try:
         record = _read_evidence(Path(evidence_dir) / PROBES_FILE, "probe")
     except ExperimentError as error:
@@ -283,8 +295,10 @@ def probes_problems(evidence_dir: str | Path) -> list[str]:
         problems.append("probe run recorded no tests")
     if record.get("evaluator_code_sha256") != evaluator_code_sha256():
         problems.append("probe evidence is for different evaluator code; re-run the probes")
-    if record.get("container_image") != IMAGE:
-        problems.append("probe evidence is for a different container image")
+    if record.get("container_image") != image_for_platform(host_platform):
+        recorded = platform_of_image(str(record.get("container_image"))) or "an unknown image"
+        problems.append(f"probe evidence is for container platform {recorded}, but this host is "
+                        f"{host_platform}; re-run the probes on this host")
     junit = Path(evidence_dir) / str(record.get("junit_file") or JUNIT_FILE)
     try:
         matches = sha256_file(junit) == record.get("junit_sha256")
@@ -466,8 +480,10 @@ def check_preconditions(
     agent_limits: AgentLimits = DEFAULT_AGENT_LIMITS,
     execution_limits: ExecutionLimits = DEFAULT_LIMITS,
     allow_rerun: bool = False,
+    host_platform: str = HOST_PLATFORM,
 ) -> list[Failure]:
-    """Every unmet precondition for starting `variant_name`; empty means the run may start."""
+    """Every unmet precondition for starting `variant_name`; empty means the run may start.
+    `host_platform` is this machine's architecture (a parameter so tests can simulate another)."""
     failures: list[Failure] = []
 
     def fail(check: str, detail: str) -> None:
@@ -491,6 +507,19 @@ def check_preconditions(
                                execution_limits=execution_limits):
         fail("config_current", detail)
 
+    # Host: the configuration records the platform it was built for; candidates would run in
+    # the image pinned for this host, which must be that same image.
+    recorded_platform = config.data["settings"].get("container_platform")
+    try:
+        host_image = image_for_platform(host_platform)
+    except RuntimeError as error:
+        fail("container_host", str(error))
+    else:
+        if config.data["settings"].get("container_image") != host_image:
+            fail("container_host", f"the configuration is for container platform {recorded_platform}, "
+                                   f"but this host is {host_platform}; run on a {recorded_platform} host "
+                                   "or rebuild and re-freeze the configuration for this one")
+
     # Benchmark freeze: a recorded, still-matching freeze whose hash the configuration names.
     try:
         root = Path(benchmark_path).resolve().parent.parent
@@ -501,7 +530,7 @@ def check_preconditions(
     except (ValueError, OSError) as error:
         fail("benchmark_freeze", f"benchmark is not frozen or no longer matches its freeze: {error}")
 
-    for detail in probes_problems(evidence_dir):
+    for detail in probes_problems(evidence_dir, host_platform):
         fail("probes", detail)
 
     # Settings freeze, retained smoke trace, calibration: recomputed from the bundle.

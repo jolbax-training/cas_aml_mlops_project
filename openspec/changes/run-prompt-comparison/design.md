@@ -14,7 +14,7 @@ See proposal.md. All mechanisms — execution, agent loop, bundles, grading, mod
 
 ### 1. Protocol
 
-1. Confirm preconditions: probes pass, benchmark frozen (version/hash recorded), settings frozen, ledger projection fits CHF 15, MLflow reachable (a tracking outage does not block local bundles; upload later).
+1. Confirm preconditions: probes pass, benchmark frozen (version/hash recorded), settings frozen (the configuration records its container platform and the image pinned for it; a host that would run another image is refused), ledger projection fits CHF 15, MLflow reachable (a tracking outage does not block local bundles; upload later).
 2. Version the baseline prompt and run 10 tasks × 3 trials as a fresh conversation each, with trial order as an implementation choice recorded in the bundle.
 3. Inspect baseline failures and selected traces. Document one intended prompt change and its motivation. If the baseline has no failures, state that and motivate the revision from available trace/efficiency evidence; do not invent failures.
 4. Version the revised prompt and run the identical schedule.

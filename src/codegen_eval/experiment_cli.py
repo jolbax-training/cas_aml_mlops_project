@@ -36,7 +36,7 @@ from codegen_eval.openrouter_client import HttpTransport, OpenRouterClient, Tran
 from codegen_eval.openrouter_config import PriceInputs, load_model_config
 from codegen_eval.run_checks import TOOL_SCHEMA
 from codegen_eval.run_recording import ROOT
-from codegen_eval.sandbox import execute_check
+from codegen_eval.sandbox import HOST_PLATFORM, execute_check
 
 PROBE_COMMAND = ("-m", "pytest", "-q", "-m", "sandbox")
 
@@ -76,6 +76,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
     build = sub.add_parser("build-config", help="write or verify the versioned experiment configuration")
     common(build)
     build.add_argument("--revised-prompt", help="version (file stem) of the revised prompt, once it exists")
+    build.add_argument("--container-platform", choices=("arm64", "amd64"),
+                       help="platform the experiment runs on (default: the recorded one, else this host)")
     build.add_argument("--check", action="store_true",
                        help="only verify the recorded configuration matches the repository")
     common(sub.add_parser("record-probes",
@@ -128,7 +130,12 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
                 return 1 if drift else 0
             current = load_config(args.config) if Path(args.config).is_file() else None
             revised = args.revised_prompt or (current.variant("revised")["prompt_version"] if current else None)
-            path = write_config(build_config(args.benchmark, revised_prompt=revised), args.config)
+            # An existing configuration keeps its recorded platform: regenerating it on another
+            # host must not silently change what the experiment is for.
+            recorded = current.data["settings"].get("container_platform") if current else None
+            platform_name = args.container_platform or recorded or HOST_PLATFORM
+            path = write_config(build_config(args.benchmark, revised_prompt=revised,
+                                             container_platform=platform_name), args.config)
             print(f"wrote {path}")
             return 0
         config = load_config(args.config)

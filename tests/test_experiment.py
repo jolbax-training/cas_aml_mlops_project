@@ -18,6 +18,7 @@ from codegen_eval.ledger import Ledger
 from codegen_eval.agent_config import DEFAULT_AGENT_LIMITS
 from codegen_eval.openrouter_client import OpenRouterClient
 from codegen_eval.openrouter_config import ModelConfig
+from codegen_eval.sandbox import HOST_PLATFORM, image_for_platform
 from codegen_eval.run_checks import TOOL_SCHEMA
 from experiment_support import (
     BENCHMARK, JUNIT, TASKS, make_env, make_smoke, real_prompt_file, reference, solving, local_grader,
@@ -180,6 +181,57 @@ def test_settings_freeze_is_refused_until_calibration_passes_and_names_its_evide
 
 
 # --- preconditions -----------------------------------------------------------------
+
+OTHER_PLATFORM = "amd64" if HOST_PLATFORM == "arm64" else "arm64"
+
+
+def test_committed_configuration_records_its_platform_and_the_image_pinned_for_it():
+    settings = load_config(DEFAULT_CONFIG).data["settings"]
+
+    assert settings["container_platform"] == "arm64"
+    assert settings["container_image"] == image_for_platform("arm64")
+
+
+@pytest.mark.parametrize("platform_name", ["arm64", "amd64"])
+def test_drift_check_does_not_depend_on_the_host_architecture(platform_name):
+    data = build_config(BENCHMARK, container_platform=platform_name)
+
+    assert data["settings"]["container_image"] == image_for_platform(platform_name)
+    assert config_drift(parse_config(data), benchmark_path=BENCHMARK) == []
+    other = build_config(BENCHMARK, container_platform=OTHER_PLATFORM)
+    assert other["settings"]["settings_hash"] != data["settings"]["settings_hash"] or \
+        platform_name == OTHER_PLATFORM
+
+
+def test_configuration_for_another_platform_is_drift_when_its_image_is_edited():
+    data = build_config(BENCHMARK, container_platform="amd64")
+    data["settings"]["container_image"] = image_for_platform("arm64")
+
+    assert any("settings" in line for line in config_drift(parse_config(data), benchmark_path=BENCHMARK))
+
+
+def test_a_host_of_another_platform_than_the_configuration_is_refused(tmp_path, inprocess_runner):
+    env = make_env(tmp_path, inprocess_runner)
+    recorded = env.config.data["settings"]["container_platform"]
+
+    failures = check_preconditions(env.config, BASELINE, **env.options, host_platform=OTHER_PLATFORM)
+
+    host = [f for f in failures if f.check == "container_host"]
+    assert len(host) == 1 and recorded in host[0].detail and OTHER_PLATFORM in host[0].detail
+    # Probe evidence is bound to the same platform, so it is refused too, naming both.
+    probes = [f for f in failures if f.check == "probes"]
+    assert probes and recorded in probes[0].detail and OTHER_PLATFORM in probes[0].detail
+    assert "config_current" not in checks(failures)          # drift itself is host-independent
+
+
+def test_probe_evidence_from_another_platform_does_not_count(tmp_path):
+    counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT, container_platform="amd64")
+
+    assert probes_problems(tmp_path, "amd64") == []
+    (problem,) = probes_problems(tmp_path, "arm64")
+    assert "amd64" in problem and "arm64" in problem
+
 
 def test_all_preconditions_met_means_no_failures(tmp_path, inprocess_runner):
     env = make_env(tmp_path, inprocess_runner)
