@@ -4,7 +4,7 @@
 
 See proposal.md for motivation and scope. The current repository has Python 3.12/uv/pytest, an offline evaluator, Markdown sources, a configured GitHub origin, and no HTML builder. The user-confirmed [specification](../../../docs/project_spec.md) budgets a two-hour foundation on day two and later report completion. The previous report-first sequence and extensive report engine are superseded.
 
-This design produces a view of reviewed documentation, not a runtime interface or proof that source claims are true. The day-two foundation was implemented 2026-10-30; tasks 3.1 and 4.2 (real-browser inspection and completion evidence) remain open.
+This design produces a view of reviewed documentation, not a runtime interface or proof that source claims are true. The day-two foundation was implemented 2026-10-30; the architecture figure (3.1) was completed 2026-10-31; only task 4.2 (real-browser inspection and completion evidence) remains open.
 
 ## Goals / Non-Goals
 

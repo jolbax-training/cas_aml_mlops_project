@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 840" width="960" height="840" role="img" aria-labelledby="arch-title arch-desc">
   <title id="arch-title">Goal architecture of the agent evaluation and MLOps project</title>
-  <desc id="arch-desc">The task and versioned prompt go to a bounded coding agent (trial.py) that calls an external model through an OpenRouter client with a spending ledger; that client is built and tested offline only, with no live call yet. The agent runs agent-authored development checks (run_checks.py) in fresh Podman containers (sandbox.py, worker.py), which hold only candidate code. An explicit final submission passes source validation (contract.py) and separate hidden acceptance grading (evaluate.py), whose expected answers and scoring stay outside candidate containers. Results go to local run bundles (bundle.py, run_recording.py), which feed grading replay (replay.py) and local MLflow recording (mlflow_tracking.py, not yet used on a real run). Comparison tooling (comparison.py, experiment.py) is built offline but no comparison has run, so reviewed Markdown summaries of results are pending. Deterministic CI covers fixtures and probes, and the report builder (scripts/build_work_log.py) turns selected Markdown into the local report. Solid blue boxes are implemented; solid yellow boxes are partly implemented with no live or real run yet; dashed boxes are pending.</desc>
+  <desc id="arch-desc">The task and versioned prompt go to a bounded coding agent (trial.py) that calls an external model through an OpenRouter client with a spending ledger; that client is built and tested offline only, with no live call yet. The agent runs agent-authored development checks (run_checks.py) in fresh Podman containers (sandbox.py, worker.py), which hold only candidate code. An explicit final submission passes source validation (contract.py) and separate hidden acceptance grading (evaluate.py), whose expected answers and scoring stay outside candidate containers. Results go to local run bundles (bundle.py, run_recording.py), which feed grading replay (replay.py) and local MLflow recording (mlflow_tracking.py, so far only a fixture bundle recorded against the local service). Comparison metrics are computed from the bundles, not read back from MLflow (comparison.py; experiment.py writes the bundles). The tooling is built offline but no comparison has run, so reviewed Markdown summaries of results are pending. Deterministic CI covers fixtures and probes and reaches the report through the reviewed CI evidence page, and the report builder (scripts/build_work_log.py) turns selected Markdown into the local report. Solid blue boxes are implemented; solid yellow boxes are partly implemented with no live or real run yet; dashed boxes are pending.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" class="arch-head"/>
@@ -86,8 +86,7 @@
     <text x="312" y="352" class="arch-st">IMPLEMENTED</text>
     <text x="312" y="372">Hidden acceptance grading</text>
     <text x="312" y="390">evaluate.py (grade_trial); answers</text>
-    <text x="312" y="408">and scoring stay outside</text>
-    <text x="312" y="426">candidate containers</text>
+    <text x="312" y="408">and scoring stay outside candidates</text>
   </g>
   <g class="arch-box arch-impl">
     <rect x="640" y="330" width="300" height="100" rx="8"/>
@@ -123,8 +122,8 @@
     <rect x="640" y="460" width="300" height="100" rx="8"/>
     <text x="652" y="482" class="arch-st">PARTIAL: NO LIVE RUN YET</text>
     <text x="652" y="502">Local MLflow recording</text>
-    <text x="652" y="520">mlflow_tracking.py, built from</text>
-    <text x="652" y="538">bundles; no real run recorded</text>
+    <text x="652" y="520">mlflow_tracking.py: from bundles;</text>
+    <text x="652" y="538">only a fixture recorded so far</text>
   </g>
   <path class="arch-edge" d="M790,430 L790,460" marker-end="url(#arrow)"/>
   <path class="arch-edge" d="M690,430 L690,445 L620,445 L620,510 L600,510" marker-end="url(#arrow)"/>
@@ -153,16 +152,16 @@
     <text x="652" y="660">comparison.py, experiment.py:</text>
     <text x="652" y="678">offline tooling done, no paid run</text>
   </g>
-  <path class="arch-edge" d="M790,560 L790,600" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M940,380 L952,380 L952,650 L940,650" marker-end="url(#arrow)"/>
   <path class="arch-edge" d="M640,650 L600,650" marker-end="url(#arrow)"/>
   <path class="arch-edge" d="M300,650 L260,650" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M140,560 L140,580 L330,580 L330,600" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M140,560 L140,600" marker-end="url(#arrow)"/>
 
   <!-- Legend -->
   <g class="arch-box arch-impl"><rect x="20" y="720" width="60" height="28" rx="5"/></g>
   <text x="92" y="739">Implemented and exercised (solid blue)</text>
   <g class="arch-box arch-part"><rect x="500" y="720" width="60" height="28" rx="5"/></g>
-  <text x="572" y="739">Built offline; no live or real run yet (solid yellow)</text>
+  <text x="572" y="739">Built and tested offline; no live model run yet (solid yellow)</text>
   <g class="arch-box arch-plan"><rect x="20" y="760" width="60" height="28" rx="5"/></g>
   <text x="92" y="779">Pending: evidence does not exist yet (dashed)</text>
   <rect class="arch-bound" x="500" y="760" width="60" height="28" rx="5"/>

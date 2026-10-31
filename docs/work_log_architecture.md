@@ -1,4 +1,4 @@
-Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemented modules under `src/codegen_eval/`. **Implemented** means code exists on `main` and its tests ran; **partial** means built and tested offline, but with no live call or real run yet; **pending** means the evidence does not exist. Status comes from the [progress record](progress.md) and the [CI evidence](ci_evidence.md), not from this page.
+Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemented modules under `src/codegen_eval/`. **Implemented** means code exists on `main` and its tests ran; **partial** means built and tested offline, but with no live model run yet; **pending** means the evidence does not exist. Status comes from the [progress record](progress.md) and the [CI evidence](ci_evidence.md), not from this page.
 
 **Agent flow (implemented, offline-tested only for the model)**
 
@@ -19,8 +19,8 @@ Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemente
 
 **Evidence flow**
 
-6. Implemented: every finished trial is written to a durable local run bundle first (`bundle.py`, `run_recording.py`). Grading replay (`replay.py`) re-runs hidden grading on saved final candidates without any model generation and still uses Podman. Deterministic CI (`.github/workflows/ci.yml`) covers fixtures and probes only; its green runs are in the CI evidence section.
-7. Partial: local MLflow recording (`mlflow_tracking.py`) is built from bundles, but no real run has been recorded. The comparison tooling (`comparison.py`, `experiment.py`, `experiment_cli.py`) and fixed-denominator summaries (`summary.py`) are built and tested offline; the baseline-versus-revised comparison itself has not run.
+6. Implemented: every finished trial is written to a durable local run bundle first (`bundle.py`, `run_recording.py`). Grading replay (`replay.py`) re-runs hidden grading on saved final candidates without any model generation and still uses Podman. Deterministic CI (`.github/workflows/ci.yml`) covers fixtures and probes only; its green runs reach this report through the separate CI evidence section (`docs/ci_evidence.md`), not through the evidence flow above.
+7. Partial: local MLflow recording (`mlflow_tracking.py`) is built from bundles and has so far recorded only a fixture bundle against the local service; no live model or comparison run has been recorded. MLflow is a secondary record and is never read back: comparison metrics come from the bundles. The comparison tooling (`comparison.py`, `experiment.py`, `experiment_cli.py`) and fixed-denominator summaries (`summary.py`) are built and tested offline; the baseline-versus-revised comparison itself has not run.
 8. Pending: reviewed Markdown summaries of the comparison (results, evidence identifiers, limitations). They need the comparison runs and are not invented here.
 9. Implemented: this report builder (`scripts/build_work_log.py`) turns the selected Markdown into `report/index.html`.
 
