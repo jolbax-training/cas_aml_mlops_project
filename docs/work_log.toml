@@ -86,9 +86,9 @@ label = "current"
 [[section]]
 id = "demo"
 title = "Replay and demo instructions"
-kind = "pending"
-needs = ["prepare-reproducible-demo"]
-description = "Commands to replay saved candidates offline and walk through the evidence."
+path = "docs/demo.md"
+label = "current"
+status = "incomplete"
 
 [[section]]
 id = "guide"

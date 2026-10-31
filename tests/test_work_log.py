@@ -395,9 +395,12 @@ def test_actual_repository_builds_and_checks_offline():
     assert tree_state(root / "docs") == before
 
     assert page.index('<section id="architecture"') < page.index('<nav id="sections"')
-    for pending in ("results", "evidence", "demo"):
+    for pending in ("results", "evidence"):
         section = re.search(rf'<section id="{pending}".*?</section>', page, re.S).group(0)
         assert "Pending" in section
+    # the demo path is a registered source whose comparison part is still pending: marked incomplete
+    demo = re.search(r'<section id="demo".*?</section>', page, re.S).group(0)
+    assert "PENDING" in demo and "Pending evidence" not in demo
     # the benchmark review and evaluation-design guide documents are registered sources, not pending
     for source in ("benchmark-review", "guide", "coordinator-example"):
         section = re.search(rf'<section id="{source}".*?</section>', page, re.S).group(0)

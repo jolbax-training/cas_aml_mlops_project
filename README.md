@@ -188,6 +188,10 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 - **Pending evidence:** sections whose reviewed record does not exist yet are `kind = "pending"` and render as visibly pending. After a milestone, write or update the reviewed Markdown summary (results, run and MLflow identifiers, limitations), replace the pending entry with a `kind = "document"` entry, `label = "reviewed"` and that path, then rebuild. Link local evidence from that summary rather than embedding raw bundles; external CI/MLflow URLs are references that are never fetched.
 - **Diagram:** edit `docs/work_log_architecture.svg` (plain SVG, reviewed: no scripts or external references) and its text equivalent `docs/work_log_architecture.md` together; solid outline means implemented, dashed means planned. Update both when a component is implemented.
 
+## Verified demo path
+
+[docs/demo.md](docs/demo.md) lists the setup, image restore, inspection (no API, no Podman), grading replay (Podman, no credentials), MLflow, report build/open, and local CI commands with the date, versions, and observed results of their re-execution, and the demo walk-through. Its comparison and keep/reject section is explicitly PENDING until real runs exist.
+
 ## Plan and report sources
 
 - [Working specification](docs/project_spec.md): scope, local-first milestones, completion evidence, and unresolved implementation decisions.

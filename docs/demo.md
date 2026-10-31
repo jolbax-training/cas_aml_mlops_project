@@ -1,0 +1,96 @@
+# Replay and demo path
+
+This is the walk-through for the final demo, ordered so that everything before the comparison needs no model credentials and no new paid generation. Run every command from the repository root. The shell prefix used for the credential-free checks is `env -i HOME=$HOME PATH=/opt/podman/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`, which starts the command with no inherited environment (no API keys, no `OPENROUTER_*`); the commands below omit it for readability.
+
+## Status
+
+| Part | State |
+| --- | --- |
+| Setup, inspection, replay, MLflow navigation, offline report, local CI commands | Commands re-executed 2026-10-30/31 on the laptop; see [Verified commands](#verified-commands) |
+| Comparison and keep/reject decision | **PENDING**: no comparison run exists yet ([section 6](#6-the-comparison-and-keep-or-reject-decision-pending)) |
+| Full rehearsal with no model credentials | Not done (task 2.2 of `prepare-reproducible-demo`, after the comparison) |
+
+The demo path below uses a **fixture-client bundle** (scripted model responses). It demonstrates the tooling, not model quality, and any numbers it shows are not results of the project's experiment.
+
+## Verified commands
+
+Recorded from a re-execution on 2026-10-30 (UTC 23:55 onward) on macOS arm64, `main` at `0c8b0ff` plus this change: uv 0.9.3, Python 3.12.12, Podman 6.1.4 (libkrun VM running), pinned image `python@sha256:950206c3…` (arm64), MLflow image v3.17.2 (`sha256:1a8e9dba…`), mlflow-skinny 3.17.2, OpenSpec CLI 1.14.2.
+
+| Step | Command | Observed |
+| --- | --- | --- |
+| Environment | `uv sync --python 3.12` (add `--group tracking` for MLflow) | succeeded |
+| Restore candidate image | `podman pull docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5` | succeeded; image id `8630ab77c5ad` |
+| Offline tests (no credentials) | `.venv/bin/pytest -q` | 490 passed, 90 skipped (Podman tests skip unless `RUN_SANDBOX_TESTS=1`; MLflow tests skip without `--group tracking`); with `--group tracking`: 513 passed, 67 skipped |
+| Fixture bundle | `PYTHONPATH=src .venv/bin/python -m codegen_eval.run_recording --scenario tool_use_and_revision --task strings_01 --trials 2 --grade` | bundle `run_bundles/20261030T235533Z-3dba0d`, 2 of 2 trials, complete |
+| Inspect, no Podman, no API | `PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect list` / `verify <run_id>` / `show <run_id>` | run with `PATH=/usr/bin:/bin` (Podman not findable) and an empty environment: `complete`, "2 of 2 planned trials have intact records", bundle digest `785069e0…ae94f` |
+| Grading replay | `PYTHONPATH=src .venv/bin/python -m codegen_eval.replay <run_id>` | empty environment; evidence `replays/replay-20261030T235558Z-079d7d.json`; `regraded 2, compared 2, mismatched 0, incomplete 0` |
+| MLflow service | `scripts/mlflow_service.sh start` then `status` | "running and healthy at http://127.0.0.1:5000" |
+| Record to MLflow | `PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking record <run_id>` (then `status`) | recorded as MLflow run `c89b068e…` plus the replay run; a second `record` printed `already recorded (unchanged)` |
+| Report | `.venv/bin/python scripts/build_work_log.py --check`, then build, then `open report/index.html` | check passed (11 sources, 3 pending sections before this change; 12 sources, 2 pending after registering this document); built; opened |
+| Local CI equivalents | `scripts/ci_validate_openspec.sh`; `.venv/bin/python scripts/freeze_benchmark.py --check`; `.venv/bin/python scripts/build_work_log.py --check` | all exit 0 (`benchmark freeze matches`) |
+| Podman suite | `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` | second run: 67 passed, 513 deselected (254 s). A first run under load from parallel workers on the same Podman VM had 4 failures (three in `tests/test_mlflow_service_integration.py` and `tests/test_run_bundle.py::test_replay_regrades_known_candidates_in_podman`; the fourth was not captured); the replay test passed alone and the whole suite passed on the rerun, so the cause is unconfirmed and presumed contention, not a fix |
+
+The run ID and MLflow run IDs above belong to the **fixture** bundle created for this verification. `run_bundles/` and `mlflow_data/` are Git-ignored, so a fresh checkout has to create its own bundle with the fixture command; use the IDs it prints. They are not comparison evidence.
+
+## The demo path
+
+### 1. Setup (about 2 minutes)
+
+```sh
+uv sync --python 3.12 --group tracking
+podman pull docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5   # arm64 pin
+.venv/bin/pytest -q
+```
+
+On x86-64, pull the `IMAGE` that `PYTHONPATH=src .venv/bin/python -c 'from codegen_eval.sandbox import IMAGE; print(IMAGE)'` prints.
+
+### 2. Trace inspection: no API, no Podman
+
+```sh
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect list
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect verify <run_id>
+PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect show <run_id> --trial <trial_id>
+```
+
+Show: completeness against the planned trial IDs, the manifest identity (prompt/benchmark/limits hashes, image digest, evaluator revision), and one trial's requests, tool interactions, drafts and final source. Inspection never executes code.
+
+### 3. Grading replay: Podman, no model API
+
+```sh
+PYTHONPATH=src .venv/bin/python -m codegen_eval.replay <run_id>
+```
+
+Say it plainly: this **regrades saved final candidates**; it is not a fresh agent trial and calls no model. The evidence is a separate file under `replays/`; the original grades are never overwritten, and any mismatch or environment difference is reported rather than reconciled.
+
+### 4. MLflow navigation
+
+```sh
+scripts/mlflow_service.sh start
+PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking record <run_id>
+open http://127.0.0.1:5000
+```
+
+In the UI: experiment `codegen-eval-runs` → the run named after the run ID. Show tags (`codegen_eval.headline_candidate`, bundle digest), parameters (identity, limits, hashes), metrics (`success_rate` over the planned denominator, `trial/<id>/…`), the **Traces** tab (one trace per trial: `AGENT` root, `CHAT_MODEL` per model call, `TOOL` per `run_checks`, final `submission`), and artifacts under `bundle/`. The replay appears as a nested run tagged `grading_replay`, `headline_candidate=false`. MLflow is a secondary record; the bundle is the primary evidence and everything above works with the service stopped. If the service is down, `record` exits 3 and can be rerun later.
+
+### 5. Offline report
+
+```sh
+.venv/bin/python scripts/build_work_log.py
+open report/index.html
+```
+
+Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (solid = implemented, dashed = planned), then the status, benchmark review, CI evidence, setup, and this demo section. Sections without a reviewed record are shown as pending or incomplete; say so rather than skipping them.
+
+### 6. The comparison and keep-or-reject decision (PENDING)
+
+> **PENDING: no real comparison exists.** The baseline and revised-prompt runs (`run-prompt-comparison`: sixty task trials, 240 hidden-check outcomes, shared CHF 10 checkpoint / CHF 15 ceiling) have not been run, and the paid OpenRouter smoke is also deferred. No run IDs, scores, MLflow links, or decision are recorded here, and none may be filled in until the retained bundles exist.
+>
+> When the runs exist, replace this block with: the two run IDs and bundle digests (from `trace_inspect verify`), the MLflow run links, the fixed-denominator summary and per-task improvements/regressions/unchanged outcomes, two or three selected traces that explain them, the limits (three trials per task do not establish precise reliability; no generalization claim), and the keep/reject decision with its reason. Then update the report's `results` and `evidence` sections and rerun the commands in section 5.
+
+### 7. Transfer guide
+
+Open the [evaluation design guide](evaluation_design_guide.md) (seven steps, each tied to what this project retained) and the [research-coordinator example](research_coordinator_example.md) (design only: six scenarios, not executed). Point out which parts carry over to a different agent: outcome definition, frozen tasks, deterministic graders first, bounded trials, trace review, replay, keep/reject rule.
+
+## Credential-free expectations
+
+Inspection, replay, the offline report, and navigation of already-recorded evidence need no model credentials; sections 2 and 3 were executed above with an empty environment (section 5's build was run from the normal shell; it reads no credentials), and section 7 is reading only. A live call, if one is ever shown, is charged to the shared ledger under the CHF 15 ceiling and is not part of this path. Personal reflections in the [learning journal](learning_journal.md) are not required and are not filled in by this document.

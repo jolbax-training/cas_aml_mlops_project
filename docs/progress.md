@@ -21,6 +21,13 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
 
+## 2026-10-31 — Offline demo path and command re-execution (`prepare-reproducible-demo`, tasks 1.1, 1.2, 2.1)
+
+- **Done:** every documented command was re-executed on the laptop (uv 0.9.3, Python 3.12.12, Podman 6.1.4, pinned arm64 image, MLflow v3.17.2) and recorded with observed results in [demo.md](demo.md#verified-commands), with the demo path (inspection, replay, MLflow navigation, offline report, transfer guide). The demo doc is registered in the work log as an `incomplete` source; README links to it.
+- **1.2 evidence, kept distinct from original grading:** inspection (`trace_inspect list/verify/show`) ran with an empty environment and `PATH=/usr/bin:/bin` (no Podman reachable) on a fixture bundle. Grading replay ran with Podman and an empty environment (no credentials): `regraded 2, compared 2, mismatched 0, incomplete 0`, written as a separate `replays/` file, not over the original grades. These are fixture-client bundles (scripted responses), not experiment results; IDs are in demo.md and are not comparison evidence.
+- **Tests:** `.venv/bin/pytest -q` 490 passed, 90 skipped (513 passed, 67 skipped with `--group tracking`). Podman suite: first run 4 failed, 63 passed under load from parallel workers on the same VM (failures included two MLflow service tests and the Podman replay test; the replay test passed alone); rerun 67 passed, 513 deselected. Cause of the first failures not diagnosed.
+- **Not done:** the comparison and keep/reject section is a marked PENDING placeholder; the credential-free full rehearsal (2.2), checklist mapping (3.1), cut-order accounting (3.2) and final work-log status (3.3) wait for the comparison. No run IDs, results, or reflections were invented.
+
 ## 2026-10-30 — Reviewed ten-task benchmark and graders (`add-reviewed-benchmark-and-graders`)
 
 - **Benchmark:** `data/benchmark_v1.json` (schema version 1, benchmark version `1`): ten tasks, two each in strings, lists, dictionaries, numeric logic, and parsing/formatting; four cases per task (two ordinary, two edge), forty checks and twenty edge cases per trial of every task. The three pilot tasks were re-reviewed and reused with identical cases; the `strings_01` instruction was corrected (see the review record). The pilot file is kept unchanged.
