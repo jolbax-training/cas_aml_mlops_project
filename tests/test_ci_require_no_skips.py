@@ -44,18 +44,61 @@ def test_usage_error():
 
 
 def _module_level_skips(path):
-    """Calls that skip a whole module at collection time, even inside module-level if/else."""
+    """Calls that skip a whole module at collection time: any call in a top-level statement
+    (assignments, if/try handlers, finally, with) outside function and class bodies, however
+    `pytest` or the skip functions were imported."""
     tree = ast.parse(path.read_text())
-    pending, found = list(tree.body), []
-    while pending:
-        node = pending.pop()
-        if isinstance(node, (ast.If, ast.Try, ast.With)):
-            pending += node.body + getattr(node, "orelse", [])
-        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            call = ast.unparse(node.value.func)
-            if call in {"pytest.importorskip", "pytest.skip"}:
-                found.append(f"{path.name}:{node.lineno} {call}")
-    return found
+    modules, functions = {"pytest"}, {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules |= {a.asname or a.name for a in node.names if a.name == "pytest"}
+        elif isinstance(node, ast.ImportFrom) and node.module == "pytest":
+            functions |= {a.asname or a.name: a.name for a in node.names}
+    found = []
+    for statement in tree.body:
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        for node in ast.walk(statement):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) \
+                    and func.value.id in modules and func.attr in {"importorskip", "skip"}:
+                name = func.attr
+            elif isinstance(func, ast.Name) and functions.get(func.id) in {"importorskip", "skip"}:
+                name = functions[func.id]
+            else:
+                continue
+            found.append((node.lineno, f"{path.name}:{node.lineno} {name}"))
+    return [hit for _, hit in sorted(found)]
+
+
+def test_module_level_skip_detection_covers_assignments_aliases_and_handlers(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text("""import pytest
+import pytest as pt
+from pytest import importorskip, skip as bail
+a = pytest.importorskip("a")
+importorskip("b")
+try:
+    import c
+except ImportError:
+    pt.skip("c", allow_module_level=True)
+finally:
+    bail("d", allow_module_level=True)
+
+
+def test_fine():
+    pytest.skip("inside a test is fine")
+
+
+class TestFine:
+    def test_it(self):
+        pytest.importorskip("e")
+""")
+
+    assert [hit.split()[0] for hit in _module_level_skips(probe)] == [
+        "test_probe.py:4", "test_probe.py:5", "test_probe.py:9", "test_probe.py:11"]
 
 
 def test_no_test_module_skips_at_collection():

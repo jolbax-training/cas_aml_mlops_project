@@ -123,6 +123,9 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
             return 0
         if args.command == "build-config":
             if args.check:
+                if args.container_platform:
+                    parser.error("--container-platform cannot be combined with --check "
+                                 "(the check uses the platform the configuration records)")
                 drift = config_drift(load_config(args.config), benchmark_path=args.benchmark)
                 for line in drift:
                     print(f"drift: {line}")

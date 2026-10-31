@@ -200,6 +200,13 @@ def test_build_config_check_passes_on_the_committed_configuration(capsys):
     assert "matches the repository" in capsys.readouterr().out
 
 
+def test_build_config_check_refuses_a_container_platform_flag(capsys):
+    with pytest.raises(SystemExit) as exit_:
+        main(["build-config", "--check", "--container-platform", "amd64"], env={})
+
+    assert exit_.value.code == 2 and "cannot be combined with --check" in capsys.readouterr().err
+
+
 def test_record_probes_writes_evidence_and_keeps_the_report(tmp_path, capsys):
     code = main(["record-probes", "--evidence", str(tmp_path)], env={},
                 probe_suite=lambda: {"tests": 56, "failures": 0, "errors": 0, "skipped": 0,

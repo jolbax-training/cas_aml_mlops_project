@@ -296,9 +296,13 @@ def probes_problems(evidence_dir: str | Path, host_platform: str = HOST_PLATFORM
     if record.get("evaluator_code_sha256") != evaluator_code_sha256():
         problems.append("probe evidence is for different evaluator code; re-run the probes")
     if record.get("container_image") != image_for_platform(host_platform):
-        recorded = platform_of_image(str(record.get("container_image"))) or "an unknown image"
-        problems.append(f"probe evidence is for container platform {recorded}, but this host is "
-                        f"{host_platform}; re-run the probes on this host")
+        recorded = platform_of_image(str(record.get("container_image")))
+        if recorded is None:
+            problems.append("probe evidence names no pinned container image; re-run the probes "
+                            f"on this host ({host_platform})")
+        else:
+            problems.append(f"probe evidence is for container platform {recorded}, but this host is "
+                            f"{host_platform}; re-run the probes on this host")
     junit = Path(evidence_dir) / str(record.get("junit_file") or JUNIT_FILE)
     try:
         matches = sha256_file(junit) == record.get("junit_sha256")
@@ -470,6 +474,14 @@ def prior_runs(bundle_root: str | Path, experiment_id: str) -> list[dict[str, An
     return records
 
 
+def _smoke_image(bundle: Path) -> str | None:
+    try:
+        manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+        return manifest["identity"]["container_image"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def check_preconditions(
     config: ExperimentConfig, variant_name: str, *,
     ledger: Ledger, prices: PriceInputs | None, accept_cost: bool, api_key: str | None,
@@ -559,6 +571,10 @@ def check_preconditions(
         else:
             if sha256_file(bundle / "manifest.json") != smoke.get("manifest_sha256"):
                 fail("smoke_trace", "the smoke bundle differs from the one recorded at the freeze")
+            smoke_image = _smoke_image(bundle)
+            if smoke_image != config.data["settings"].get("container_image"):
+                fail("settings_frozen", "the smoke trace ran in a different container image than the "
+                                        f"configuration records ({smoke_image or 'none recorded'})")
             if model is not None:
                 calibration = calibrate(bundle, model)
                 for detail in calibration.problems:

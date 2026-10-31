@@ -233,6 +233,31 @@ def test_probe_evidence_from_another_platform_does_not_count(tmp_path):
     assert "amd64" in problem and "arm64" in problem
 
 
+def test_probe_evidence_without_a_pinned_image_is_named_as_such(tmp_path):
+    counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
+    record = json.loads((tmp_path / "probes.json").read_text())
+    del record["container_image"]
+    (tmp_path / "probes.json").write_text(json.dumps(record))
+
+    (problem,) = probes_problems(tmp_path)
+    assert "no pinned container image" in problem and "unknown" not in problem
+
+
+def test_a_smoke_trace_from_another_image_does_not_freeze_the_configuration(tmp_path, inprocess_runner):
+    env = make_env(tmp_path, inprocess_runner)
+    data = json.loads(json.dumps(env.config.data))
+    data["settings"]["container_image"] = image_for_platform(OTHER_PLATFORM)
+
+    failures = check_preconditions(parse_config(data), BASELINE, **env.options,
+                                   host_platform=OTHER_PLATFORM)
+
+    assert any(f.check == "settings_frozen" and "smoke trace ran in a different container image" in f.detail
+               for f in failures)
+    assert not any("smoke trace ran" in f.detail
+                   for f in check_preconditions(env.config, BASELINE, **env.options))
+
+
 def test_all_preconditions_met_means_no_failures(tmp_path, inprocess_runner):
     env = make_env(tmp_path, inprocess_runner)
 

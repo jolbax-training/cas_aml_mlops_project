@@ -28,6 +28,10 @@ Source: issue 04 / answer; issue 02 / Q18; issue 03 / Q21.
 - **WHEN** a main run is requested before the benchmark freeze is recorded
 - **THEN** the run does not start
 
+#### Scenario: Host of another container platform
+- **WHEN** a main run is requested on a host whose pinned candidate image differs from the container image recorded in the experiment configuration, or the probe evidence or smoke trace was produced with another image
+- **THEN** the run does not start and the message names both platforms
+
 ### Requirement: Repeated independent trials
 Each variant SHALL run three independent trials of each of the ten tasks: thirty task trials, 120 hidden check outcomes, and sixty edge-case outcomes per variant, sixty task trials and 240 hidden check outcomes overall. Each trial MUST start a fresh conversation and receive no earlier-trial results.
 
