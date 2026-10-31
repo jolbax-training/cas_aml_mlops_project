@@ -41,16 +41,18 @@ from codegen_eval.sandbox import execute_check
 PROBE_COMMAND = ("-m", "pytest", "-q", "-m", "sandbox")
 
 
-def run_probe_suite(argv: Sequence[str] = PROBE_COMMAND) -> dict[str, int]:
-    """Run the Podman probe tests and return the junit counts. The tests skip without the
-    sandbox switches, and skips are recorded, so a skipped suite can never pass the gate."""
+def run_probe_suite(argv: Sequence[str] = PROBE_COMMAND) -> dict[str, Any]:
+    """Run the Podman probe tests and return the junit counts plus the report text (key
+    `junit_xml`). The tests skip without the sandbox switches, and skips are recorded, so a
+    skipped suite can never pass the gate."""
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "junit.xml"
         env = {**os.environ, "CODEGEN_EVAL_TEST_SECRET": "present", "RUN_SANDBOX_TESTS": "1"}
         subprocess.run([sys.executable, *argv, f"--junitxml={report}"], cwd=ROOT, env=env, check=False)
         suites = ElementTree.parse(report).getroot()
         suite = suites if suites.tag == "testsuite" else suites.find("testsuite")
-        return {key: int(suite.attrib.get(key, 0)) for key in ("tests", "failures", "errors", "skipped")}
+        counts = {key: int(suite.attrib.get(key, 0)) for key in ("tests", "failures", "errors", "skipped")}
+        return {**counts, "junit_xml": report.read_text(encoding="utf-8")}
 
 
 def _ledger(args: argparse.Namespace, env: Mapping[str, str]) -> Ledger:
@@ -60,7 +62,7 @@ def _ledger(args: argparse.Namespace, env: Mapping[str, str]) -> Ledger:
 def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = None,
          transport: Transport | None = None, runner: Callable[..., Any] = execute_check,
          sleep: Callable[[float], None] | None = None,
-         probe_suite: Callable[[], dict[str, int]] = run_probe_suite,
+         probe_suite: Callable[[], dict[str, Any]] = run_probe_suite,
          grader: Any = None, record_run: Callable[[Path, str], str | None] | None = None) -> int:
     env = os.environ if env is None else env
     parser = argparse.ArgumentParser(description="Prompt-comparison experiment tooling.")
@@ -112,7 +114,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
 
     try:
         if args.command == "record-probes":
-            path = write_probes_evidence(args.evidence, probe_suite(),
+            suite = probe_suite()
+            path = write_probes_evidence(args.evidence, suite, junit_xml=suite.get("junit_xml"),
                                          command="python " + " ".join(PROBE_COMMAND))
             print(f"probe evidence: {path}")
             return 0
@@ -135,7 +138,9 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
             print(json.dumps(calibration.to_dict(), indent=2))
             return 0 if calibration.ok else 1
         if args.command == "freeze-settings":
-            print(f"freeze record: {write_settings_freeze(config, args.smoke_bundle, args.evidence, note=args.note)}")
+            print("freeze record: " + str(write_settings_freeze(
+                config, args.smoke_bundle, args.evidence, benchmark_path=args.benchmark,
+                note=args.note)))
             return 0
         if args.command == "compare":
             result = compare_runs(resolve_bundle(args.bundles, args.baseline),
@@ -164,7 +169,14 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
         print("all preconditions hold" if not failures else f"{len(failures)} unmet precondition(s)")
         return 1 if failures else 0
 
-    model = load_model_config(config.data["settings"]["model_config_version"])
+    try:
+        model = load_model_config(config.data["settings"]["model_config_version"])
+        if record_run is None and not args.no_tracking:
+            from codegen_eval.mlflow_tracking import bundle_recorder
+            record_run = bundle_recorder(args.tracking_uri)
+    except (ValueError, KeyError, ImportError) as error:
+        print(f"refusing to run: {error}", file=sys.stderr)
+        return REFUSED
     http = transport or HttpTransport()
     kwargs = {"sleep": sleep} if sleep else {}
 
@@ -174,9 +186,6 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
                                          "variant": args.variant, "task_id": task.id,
                                          "trial_id": trial_id}, **kwargs)
 
-    if record_run is None and not args.no_tracking:
-        from codegen_eval.mlflow_tracking import bundle_recorder
-        record_run = bundle_recorder(args.tracking_uri)
     try:
         result = run_variant(config, args.variant, client_for, runner=runner, grader=grader,
                              record_run=record_run, **options)
@@ -186,7 +195,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
         return REFUSED
     print(f"bundle: {result.bundle}")
     print(f"complete={result.complete}; ledger CHF {result.ledger_total_before_chf} -> "
-          f"{result.ledger_total_after_chf}; tracking: {result.tracking}")
+          f"{result.ledger_total_after_chf}; CHF 10 checkpoint reached: {result.checkpoint_reached} "
+          f"(before this run: {result.checkpoint_reached_before}); tracking: {result.tracking}")
     for problem in result.schedule.problems:
         print(f"schedule: {problem}")
     return 0 if result.complete else 1

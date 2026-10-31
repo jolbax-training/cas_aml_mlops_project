@@ -2,6 +2,7 @@
 retained smoke bundle made through the fake transport, and scripted per-task solutions."""
 
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +26,7 @@ TASKS = load_benchmark(BENCHMARK)
 SOURCE = "def count_vowels(text: str) -> int:\n    return sum(c in 'aeiou' for c in text.lower())\n"
 CALL = tool_call(json.dumps({"source": SOURCE, "checks": [{"arguments": ["abc"], "expected": 1}]}))
 REVISED_PROMPT = "revised_test_v1"
+JUNIT = '<testsuite tests="56" failures="0" errors="0" skipped="0"/>'
 
 
 def reference(task):
@@ -83,7 +85,7 @@ def make_env(tmp_path, inprocess_runner, *, revised=None, **overrides):
     evidence = tmp_path / "evidence"
     config = parse_config(build_config(BENCHMARK, revised_prompt=revised))
     write_probes_evidence(evidence, {"tests": 56, "failures": 0, "errors": 0, "skipped": 0},
-                          command="pytest -m sandbox")
+                          command="pytest -m sandbox", junit_xml=JUNIT)
     smoke = make_smoke(tmp_path, inprocess_runner)
     write_settings_freeze(config, smoke, evidence)
     ledger = Ledger(tmp_path / "ledger.jsonl")
@@ -102,3 +104,16 @@ def with_revised_prompt(monkeypatch, tmp_path, text="You are a careful coder. Re
     (prompts / f"{REVISED_PROMPT}.md").write_text(text, encoding="utf-8")
     monkeypatch.setattr(agent_config, "PROMPT_DIR", prompts)
     return REVISED_PROMPT
+
+
+@contextmanager
+def real_prompt_file(name="revised_protocol_test_v1", text="You are a careful coder. Revised.\n"):
+    """Add a prompt file to the real package directory for the duration of a test, exactly
+    as the protocol does (it changes the source-tree hash and the Git state), then remove it."""
+    path = Path(agent_config.PROMPT_DIR) / f"{name}.md"
+    assert not path.exists()
+    path.write_text(text, encoding="utf-8")
+    try:
+        yield name
+    finally:
+        path.unlink(missing_ok=True)

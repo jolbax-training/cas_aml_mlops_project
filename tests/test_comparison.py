@@ -5,12 +5,15 @@ import json
 import pytest
 
 from codegen_eval.comparison import compare_runs, render_comparison, variant_metrics
-from codegen_eval.experiment import BASELINE, REVISED, run_variant
+from codegen_eval.bundle import BundleError, load_manifest
+from codegen_eval.experiment import (
+    BASELINE, REVISED, build_config, parse_config, probes_problems, run_variant,
+)
 from codegen_eval.experiment_cli import main
 from codegen_eval.model_client import FixtureClient, load_fixtures
 from codegen_eval.summary import summarize_bundle
 from experiment_support import (
-    BENCHMARK, ROOT, TASKS, make_env, local_grader, reference, solving, with_revised_prompt, wrong,
+    BENCHMARK, JUNIT, ROOT, TASKS, make_env, local_grader, real_prompt_file, reference, solving, with_revised_prompt, wrong,
 )
 from openrouter_support import KEY, PRICES, FakeTransport, reply
 
@@ -117,7 +120,8 @@ def test_efficiency_and_recovery_diagnostics_come_from_the_records(env, grader, 
     assert metrics["recovery"]["trials_with_failed_development_check"] == 3
     assert metrics["model_calls"] == 3 * 3 + 27
     assert metrics["trials_measured"] == 30
-    assert metrics["latency_ms"]["trials_with_latency"] == 0 and metrics["cost"]["reported_usd"] is None
+    assert metrics["model_latency_ms"]["trials_measured"] == 0 and metrics["cost"]["reported_usd"] is None
+    assert metrics["trial_wall_clock_ms"]["trials_measured"] == 30        # from started_at to the record
 
 
 # --- CLI ---------------------------------------------------------------------------
@@ -196,8 +200,93 @@ def test_build_config_check_passes_on_the_committed_configuration(capsys):
     assert "matches the repository" in capsys.readouterr().out
 
 
-def test_record_probes_writes_evidence_from_the_suite_counts(tmp_path, capsys):
+def test_record_probes_writes_evidence_and_keeps_the_report(tmp_path, capsys):
     code = main(["record-probes", "--evidence", str(tmp_path)], env={},
-                probe_suite=lambda: {"tests": 56, "failures": 0, "errors": 0, "skipped": 0})
+                probe_suite=lambda: {"tests": 56, "failures": 0, "errors": 0, "skipped": 0,
+                                     "junit_xml": JUNIT})
 
-    assert code == 0 and json.loads((tmp_path / "probes.json").read_text())["tests"] == 56
+    record = json.loads((tmp_path / "probes.json").read_text())
+    assert code == 0 and record["tests"] == 56 and (tmp_path / "probes.junit.xml").read_text() == JUNIT
+    assert probes_problems(tmp_path) == []
+
+
+# --- the real protocol order (review finding 1) ------------------------------------
+
+def protocol_runs(tmp_path, inprocess_runner, grader, *, revised_source=reference):
+    """Baseline first with the revised variant unset, then the revised prompt file is added to
+    the repository, the configuration is rebuilt, and the revised schedule is run."""
+    env = make_env(tmp_path, inprocess_runner)
+    assert env.config.variant(REVISED)["prompt_version"] is None
+    base = run(env, BASELINE, solving(baseline_misses_strings_01), grader, inprocess_runner)
+    with real_prompt_file() as revised:
+        config = parse_config(build_config(BENCHMARK, revised_prompt=revised))
+        rev = run_variant(config, REVISED, solving(revised_source), grader=grader,
+                          runner=inprocess_runner, **env.options)
+    return env, config, base, rev
+
+
+def test_following_the_protocol_order_gives_a_headline_comparison(tmp_path, inprocess_runner, grader):
+    env, config, base, rev = protocol_runs(tmp_path, inprocess_runner, grader)
+
+    assert base.complete and rev.complete
+    result = compare_runs(base.bundle, rev.bundle, BENCHMARK, config)
+
+    assert result["headline_comparison"], result["reasons_not_headline"]
+    assert result["delta"]["gained_tasks"] == ["strings_01"]
+    # Adding the prompt file changes the source-tree hash (and usually the Git state); that is
+    # reported, not treated as a different evaluator.
+    assert any("evaluator_source_sha256 differs" in c for c in result["caveats"])
+    assert "note: evaluator_source_sha256 differs" in render_comparison(result)
+    ids = (load_manifest(base.bundle)["identity"], load_manifest(rev.bundle)["identity"])
+    assert ids[0]["experiment"]["evaluator_code_sha256"] == ids[1]["experiment"]["evaluator_code_sha256"]
+    assert ids[0]["experiment"]["config_sha256"] != ids[1]["experiment"]["config_sha256"]
+    assert ids[0]["evaluator_source_sha256"] != ids[1]["evaluator_source_sha256"]
+    assert ids[0]["prompt"]["version"] != ids[1]["prompt"]["version"]
+
+
+def tamper(bundle, change):
+    path = bundle / "manifest.json"
+    manifest = json.loads(path.read_text())
+    change(manifest["identity"])
+    path.write_text(json.dumps(manifest))
+
+
+@pytest.mark.parametrize("name,change", [
+    ("model settings", lambda i: i["model"].update(temperature=0.9)),
+    ("model settings hash", lambda i: i["model"].update(config_hash="0" * 64)),
+    ("benchmark hash", lambda i: i["benchmark"].update(sha256="0" * 64)),
+    ("benchmark freeze hash", lambda i: i["benchmark"].update(freeze_content_hash="0" * 64)),
+    ("agent limits", lambda i: i["agent_limits"].update(max_model_calls=5)),
+    ("execution limits", lambda i: i["execution_limits"].update(hash="0" * 64)),
+    ("container image", lambda i: i.update(container_image="other@sha256:0")),
+    ("dependencies", lambda i: i["dependencies"].update(uv_lock_sha256="0" * 64)),
+    ("runtime", lambda i: i["runtime"].update(python="3.11.0")),
+    ("settings hash", lambda i: i["experiment"].update(settings_hash="0" * 64)),
+    ("schedule", lambda i: i["experiment"].update(schedule_sha256="0" * 64)),
+    ("trial order", lambda i: i["experiment"].update(trial_order="trial_major")),
+    ("experiment id", lambda i: i["experiment"].update(experiment_id="other")),
+    ("evaluator code", lambda i: i["experiment"].update(evaluator_code_sha256="0" * 64)),
+    ("baseline prompt file", lambda i: i["experiment"]["prompt_files"].update(baseline_agent_v1="0" * 64)),
+    ("code hash not recorded", lambda i: i["experiment"].pop("evaluator_code_sha256")),
+])
+def test_any_other_difference_than_the_prompt_variant_blocks_the_headline(
+        tmp_path, inprocess_runner, grader, name, change):
+    env, config, base, rev = protocol_runs(tmp_path, inprocess_runner, grader)
+    tamper(rev.bundle, change)
+
+    try:
+        result = compare_runs(base.bundle, rev.bundle, BENCHMARK, config)
+    except BundleError:      # a benchmark that is not the recorded one is refused outright
+        return
+    assert not result["headline_comparison"] and result["delta"] is None, name
+    assert result["reasons_not_headline"], name
+
+
+def test_a_changed_baseline_prompt_file_is_not_a_prompt_variant(tmp_path, inprocess_runner, grader):
+    env, config, base, rev = protocol_runs(tmp_path, inprocess_runner, grader)
+    tamper(base.bundle, lambda i: i["experiment"]["prompt_files"].update(baseline_agent_v1="0" * 64))
+
+    result = compare_runs(base.bundle, rev.bundle, BENCHMARK, config)
+
+    assert not result["headline_comparison"]
+    assert any("prompt files other than the revised one" in r for r in result["reasons_not_headline"])

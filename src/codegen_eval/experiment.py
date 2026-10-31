@@ -20,12 +20,12 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from codegen_eval.agent_config import (
-    BASELINE_PROMPT, DEFAULT_AGENT_LIMITS, AgentLimits, AgentPrompt, load_prompt,
+    BASELINE_PROMPT, DEFAULT_AGENT_LIMITS, PROMPT_DIR, AgentLimits, AgentPrompt, load_prompt,
 )
 from codegen_eval.bundle import (
     DEFAULT_BUNDLE_ROOT, GRADE_GRADED, GRADE_INCOMPLETE, STATUS_COMPLETE, BundleError, Grader,
-    Verification, atomic_write, load_manifest, load_trial, new_run_id, sha256_file,
-    source_tree_sha256, utc_now, verify_bundle,
+    Verification, atomic_write, load_manifest, load_trial, new_run_id, sha256_bytes, sha256_file,
+    utc_now, verify_bundle,
 )
 from codegen_eval.ledger import Ledger
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
@@ -45,6 +45,7 @@ DEFAULT_EVIDENCE_DIR = EXPERIMENT_DIR / "evidence"
 DEFAULT_BENCHMARK = ROOT / "data" / "benchmark_v1.json"
 PROBES_FILE = "probes.json"
 FREEZE_RECORD_FILE = "settings_freeze.json"
+JUNIT_FILE = "probes.junit.xml"
 
 TRIALS_PER_TASK = 3
 TRIAL_ORDER = "task_major"           # all trials of one task, then the next task
@@ -70,6 +71,21 @@ def _canonical(data: Any) -> bytes:
 
 def _sha256(data: Any) -> str:
     return hashlib.sha256(_canonical(data)).hexdigest()
+
+
+def evaluator_code_sha256() -> str:
+    """Hash of the evaluator's Python modules only. Prompts are excluded on purpose: adding
+    the revised prompt file is the intended change between the variants and must not look
+    like a change to the evaluator (probe evidence and comparability bind to this hash)."""
+    package = Path(__file__).resolve().parent
+    lines = "".join(f"{path.relative_to(package).as_posix()}\t{sha256_file(path)}\n"
+                    for path in sorted(package.rglob("*.py")) if "__pycache__" not in path.parts)
+    return hashlib.sha256(lines.encode("utf-8")).hexdigest()
+
+
+def prompt_file_hashes() -> dict[str, str]:
+    """Every versioned prompt file present now, by file stem."""
+    return {path.stem: sha256_file(path) for path in sorted(PROMPT_DIR.glob("*.md"))}
 
 
 def settings_hash(model: ModelConfig, agent_limits: AgentLimits,
@@ -234,13 +250,21 @@ def _read_evidence(path: Path, what: str) -> dict[str, Any]:
 
 
 def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *,
-                          command: str) -> Path:
-    """Record one run of the sandbox probe suite, bound to the evaluator source it ran against."""
-    record = {"schema_version": 1, "recorded_at": utc_now(), "command": command,
-              "evaluator_source_sha256": source_tree_sha256(), "container_image": IMAGE,
-              **{key: int(counts[key]) for key in ("tests", "failures", "errors", "skipped")}}
-    path = Path(evidence_dir) / PROBES_FILE
-    path.parent.mkdir(parents=True, exist_ok=True)
+                          command: str, junit_xml: str | None = None) -> Path:
+    """Record one run of the sandbox probe suite, bound to the evaluator code it ran against.
+    The junit report is kept beside the record and its SHA-256 stored in it, so the counts
+    can be checked against the report afterwards."""
+    directory = Path(evidence_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    record: dict[str, Any] = {
+        "schema_version": 1, "recorded_at": utc_now(), "command": command,
+        "evaluator_code_sha256": evaluator_code_sha256(), "container_image": IMAGE,
+        **{key: int(counts[key]) for key in ("tests", "failures", "errors", "skipped")}}
+    if junit_xml is not None:
+        data = junit_xml.encode("utf-8")
+        atomic_write(directory / JUNIT_FILE, data)
+        record["junit_file"], record["junit_sha256"] = JUNIT_FILE, sha256_bytes(data)
+    path = directory / PROBES_FILE
     atomic_write(path, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
     return path
 
@@ -257,10 +281,17 @@ def probes_problems(evidence_dir: str | Path) -> list[str]:
     tests = record.get("tests")
     if not isinstance(tests, int) or isinstance(tests, bool) or tests <= 0:
         problems.append("probe run recorded no tests")
-    if record.get("evaluator_source_sha256") != source_tree_sha256():
+    if record.get("evaluator_code_sha256") != evaluator_code_sha256():
         problems.append("probe evidence is for different evaluator code; re-run the probes")
     if record.get("container_image") != IMAGE:
         problems.append("probe evidence is for a different container image")
+    junit = Path(evidence_dir) / str(record.get("junit_file") or JUNIT_FILE)
+    try:
+        matches = sha256_file(junit) == record.get("junit_sha256")
+    except OSError:
+        matches = False
+    if not matches:
+        problems.append("the retained junit report is missing or does not match the probe record")
     return problems
 
 
@@ -360,6 +391,7 @@ def calibrate(bundle_dir: str | Path, model: ModelConfig) -> Calibration:
 
 def write_settings_freeze(config: ExperimentConfig, smoke_bundle: str | Path,
                           evidence_dir: str | Path = DEFAULT_EVIDENCE_DIR, *,
+                          benchmark_path: str | Path = DEFAULT_BENCHMARK,
                           model: ModelConfig | None = None, note: str = "") -> Path:
     """Record the settings freeze. Refuses unless the smoke bundle calibrates and the
     configuration still matches the repository, so a freeze record always has both behind it."""
@@ -368,7 +400,7 @@ def write_settings_freeze(config: ExperimentConfig, smoke_bundle: str | Path,
     calibration = calibrate(bundle, model)
     if not calibration.ok:
         raise ExperimentError("calibration gate failed: " + "; ".join(calibration.problems))
-    drift = config_drift(config)
+    drift = config_drift(config, benchmark_path=benchmark_path)
     if drift:
         raise ExperimentError("configuration is out of date: " + "; ".join(drift))
     record = {"schema_version": 1, "frozen_at": utc_now(), "experiment_id": config.experiment_id,
@@ -415,8 +447,9 @@ def prior_runs(bundle_root: str | Path, experiment_id: str) -> list[dict[str, An
         try:
             record = json.loads(path.read_text(encoding="utf-8"))
         except ValueError:
+            # Unreadable: possibly an earlier spend, so it blocks every variant (see prior_run).
             records.append({"run_id": path.name, "experiment_id": experiment_id, "variant": None,
-                            "status": "unreadable"})  # unreadable: treat as possibly spent
+                            "status": "unreadable"})
             continue
         if record.get("experiment_id") == experiment_id:
             records.append(record)
@@ -518,7 +551,10 @@ def check_preconditions(
 
     if not allow_rerun:
         for record in prior_runs(bundle_root, config.experiment_id):
-            if record.get("variant") == variant_name:
+            if record.get("status") == "unreadable":
+                fail("prior_run", f"an unreadable run marker ({record.get('run_id')}) may hide "
+                                  "an earlier spend; inspect it, then allow_rerun")
+            elif record.get("variant") == variant_name:
                 fail("prior_run", f"a run for {variant_name} already exists "
                                   f"({record.get('run_id')}, {record.get('status')}); re-running "
                                   "spends again and is a recorded decision (allow_rerun)")
@@ -589,6 +625,8 @@ class VariantRun:
     ledger_total_before_chf: str
     ledger_total_after_chf: str
     tracking: str
+    checkpoint_reached: bool    # the ledger had logged its CHF 10 checkpoint when the run ended
+    checkpoint_reached_before: bool
 
     @property
     def complete(self) -> bool:
@@ -635,11 +673,13 @@ def run_variant(
     root = Path(bundle_root)
     root.mkdir(parents=True, exist_ok=True)
     marker = _sidecar_path(root, run_id)
-    before = ledger.state().total
+    state_before = ledger.state()
+    before, checkpoint_before = state_before.total, state_before.checkpoint_logged
     record: dict[str, Any] = {"experiment_id": config.experiment_id, "variant": variant_name,
                               "run_id": run_id, "config_sha256": config.sha256,
                               "started_at": utc_now(), "status": "started",
                               "ledger_total_before_chf": str(before),
+                              "checkpoint_reached_before": checkpoint_before,
                               "allow_rerun": allow_rerun}
     # Written first: a crash or interrupt leaves a marker, so a second start is a recorded decision.
     atomic_write(marker, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
@@ -647,7 +687,9 @@ def run_variant(
         "experiment_id": config.experiment_id, "variant": variant_name,
         "config_sha256": config.sha256, "schedule_sha256": config.schedule_sha256,
         "trial_order": config.data["trial_order"],
-        "settings_hash": config.data["settings"]["settings_hash"]}}
+        "settings_hash": config.data["settings"]["settings_hash"],
+        "evaluator_code_sha256": evaluator_code_sha256(),
+        "prompt_files": prompt_file_hashes()}}
     try:
         bundle, verification = run_recorded(
             tasks, client_for, benchmark_path, bundle_root=root, run_id=run_id,
@@ -656,7 +698,9 @@ def run_variant(
             model_settings=model.identity(), extra_secrets=(api_key,) if api_key else (),
             identity_extra=identity_extra)
     except BaseException:
-        record.update(status="interrupted", ledger_total_after_chf=str(ledger.state().total))
+        state = ledger.state()
+        record.update(status="interrupted", ledger_total_after_chf=str(state.total),
+                      checkpoint_reached=state.checkpoint_logged)
         atomic_write(marker, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
         raise
     schedule = verify_schedule(bundle, config, variant_name)
@@ -666,10 +710,11 @@ def run_variant(
             tracking = record_run(bundle, variant_name) or "recorded"
         except Exception as error:  # noqa: BLE001 - a tracking outage never blocks or alters a run
             tracking = f"tracking failed ({type(error).__name__}); upload later from the bundle"
-    after = ledger.state().total
+    state = ledger.state()
+    after = state.total
     record.update(status="complete" if verification.complete and schedule.ok else "incomplete",
-                  finished_at=utc_now(), ledger_total_after_chf=str(after),
+                  checkpoint_reached=state.checkpoint_logged, finished_at=utc_now(), ledger_total_after_chf=str(after),
                   bundle=str(bundle), schedule_problems=list(schedule.problems), tracking=tracking)
     atomic_write(marker, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
     return VariantRun(variant_name, run_id, bundle, verification, schedule, str(before), str(after),
-                      tracking)
+                      tracking, state.checkpoint_logged, checkpoint_before)

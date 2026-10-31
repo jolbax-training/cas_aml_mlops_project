@@ -115,10 +115,11 @@ def _latency_total(attempts: Sequence[Mapping[str, Any]]) -> int | None:
 
 
 def trial_record(trial_id: str, task: Task, result: TrialResult, client: RecordingClient,
-                 grades: dict[str, Any]) -> dict[str, Any]:
+                 grades: dict[str, Any], started_at: str | None = None) -> dict[str, Any]:
     return {
         "trial_id": trial_id,
         "task_id": task.id,
+        "started_at": started_at,      # wall clock from before the first call to the record
         "recorded_at": utc_now(),
         "status": result.status,
         "label": result.label,
@@ -223,10 +224,11 @@ def run_recorded(
             trial_id = item["trial_id"]
             client = RecordingClient(client_for(task, trial_id),
                                      lambda entry, t=trial_id: writer.append_call(t, entry))
+            started_at = utc_now()
             result = run_trial(task, client, prompt=prompt, limits=limits,
                                execution_limits=execution_limits, runner=runner)
             grades = grades_record(grader(task, result)) if grader else dict(PENDING_GRADES)
-            writer.write_trial(trial_record(item["trial_id"], task, result, client, grades))
+            writer.write_trial(trial_record(item["trial_id"], task, result, client, grades, started_at))
             if result.infrastructure_status == BUDGET_CEILING:
                 # The ledger ceiling blocks every further paid attempt: keep the bundle and
                 # leave the unfinished trials unrecorded, so the run is incomplete.

@@ -9,6 +9,7 @@ denominators are the planned ones either way."""
 from __future__ import annotations
 
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -16,11 +17,17 @@ from codegen_eval.bundle import BundleError, load_manifest, load_trial
 from codegen_eval.experiment import BASELINE, REVISED, ExperimentConfig, verify_schedule
 from codegen_eval.summary import RunSummary, summarize_bundle
 
-# Identity sections that legitimately differ between the variants. Everything else recorded
-# (benchmark, limits, evaluator, container image, model settings, dependencies) must match.
+# What may differ between the two runs is exactly the intended intervention: the prompt (its
+# version and hash, and the experiment record naming the variant), and what adding the revised
+# prompt file does to the repository: the Git revision and the hash over the evaluator source
+# tree, which includes prompt files. They are only caveats, because the code-only hash and the
+# per-file prompt hashes below must still match. Everything else recorded (benchmark and freeze
+# hash, agent and execution limits, container image, model settings, dependencies, runtime)
+# must be identical, as must the experiment's schedule and settings hash.
 VARIANT_SECTIONS = ("prompt", "experiment")
-SAME_EXPERIMENT_FIELDS = ("experiment_id", "config_sha256", "schedule_sha256", "trial_order",
-                          "settings_hash")
+REPOSITORY_FIELDS = ("evaluator_revision", "evaluator_source_sha256")
+SAME_EXPERIMENT_FIELDS = ("experiment_id", "schedule_sha256", "trial_order", "settings_hash",
+                          "evaluator_code_sha256")
 
 
 def _ratio(count: int, total: int) -> dict[str, Any]:
@@ -29,6 +36,13 @@ def _ratio(count: int, total: int) -> dict[str, Any]:
 
 def _sum(values: list[float | int]) -> float | int | None:
     return sum(values) if values else None
+
+
+def _elapsed_ms(start: Any, end: Any) -> float | None:
+    try:
+        return (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds() * 1000
+    except (TypeError, ValueError):
+        return None
 
 
 def _dev_failed(draft: Mapping[str, Any]) -> bool:
@@ -47,7 +61,8 @@ def variant_metrics(bundle_dir: str | Path, summary: RunSummary) -> dict[str, An
     labels: Counter[str] = Counter()
     totals = {"model_calls": 0, "tool_attempts": 0, "revisions": 0, "failed_dev_trials": 0,
               "recovered_trials": 0, "measured": 0}
-    latency: list[int] = []
+    model_latency: list[int] = []
+    wall_clock: list[float] = []
     tokens: dict[str, list[float]] = {"prompt_tokens": [], "completion_tokens": [], "total_tokens": []}
     reported_usd: list[float] = []
     charged_chf: list[float] = []
@@ -77,7 +92,10 @@ def variant_metrics(bundle_dir: str | Path, summary: RunSummary) -> dict[str, An
             totals["failed_dev_trials"] += 1
             totals["recovered_trials"] += success
         if isinstance(record.get("latency_ms"), int):
-            latency.append(record["latency_ms"])
+            model_latency.append(record["latency_ms"])
+        elapsed = _elapsed_ms(record.get("started_at"), record.get("recorded_at"))
+        if elapsed is not None:
+            wall_clock.append(elapsed)
         for key, bucket in tokens.items():
             value = (record.get("usage") or {}).get(key)
             if isinstance(value, (int, float)):
@@ -121,26 +139,50 @@ def variant_metrics(bundle_dir: str | Path, summary: RunSummary) -> dict[str, An
         "revisions": totals["revisions"],
         "recovery": {"trials_with_failed_development_check": totals["failed_dev_trials"],
                      "of_which_final_success": totals["recovered_trials"]},
-        "latency_ms": {"total": _sum(latency), "trials_with_latency": len(latency),
-                       "mean_per_trial": (sum(latency) / len(latency)) if latency else None},
+        # Time spent in model HTTP attempts only (retries included); no checks, no controller.
+        "model_latency_ms": {"total": _sum(model_latency), "trials_measured": len(model_latency),
+                             "mean_per_trial": (sum(model_latency) / len(model_latency))
+                             if model_latency else None},
+        # End to end per trial: from before the first call to the written record, so it includes
+        # development checks and grading. Second resolution (the record timestamps).
+        "trial_wall_clock_ms": {"total": _sum(wall_clock), "trials_measured": len(wall_clock),
+                                "mean_per_trial": (sum(wall_clock) / len(wall_clock))
+                                if wall_clock else None},
         "tokens": {key: _sum(values) for key, values in tokens.items()},
         "attempts": {"physical": attempts, "retries": retries,
                      "without_reported_cost": attempts_missing_cost},
+        # reserved_before_send_chf sums each attempt's worst-case reservation as made before the
+        # send; settled attempts release it, so it is not what remained outstanding.
         "cost": {"reported_usd": _sum(reported_usd), "charged_chf": _sum(charged_chf),
-                 "reserved_chf": _sum(reserved_chf)},
+                 "reserved_before_send_chf": _sum(reserved_chf)},
     }
 
 
-def _identity_differences(baseline: Mapping[str, Any], revised: Mapping[str, Any]) -> list[str]:
-    differences = []
-    for key in sorted((set(baseline) | set(revised)) - set(VARIANT_SECTIONS)):
+def _identity_differences(baseline: Mapping[str, Any],
+                          revised: Mapping[str, Any]) -> tuple[list[str], list[str]]:
+    """(reasons the pair is not comparable, caveats that are reported but allowed)."""
+    differences, caveats = [], []
+    ignored = set(VARIANT_SECTIONS) | set(REPOSITORY_FIELDS)
+    for key in sorted((set(baseline) | set(revised)) - ignored):
         if baseline.get(key) != revised.get(key):
             differences.append(f"identity section {key!r} differs between the runs")
     left, right = baseline.get("experiment", {}), revised.get("experiment", {})
     for key in SAME_EXPERIMENT_FIELDS:
-        if left.get(key) != right.get(key):
-            differences.append(f"experiment field {key!r} differs between the runs")
-    return differences
+        if left.get(key) is None or left.get(key) != right.get(key):
+            differences.append(f"experiment field {key!r} differs or is missing between the runs")
+    # The baseline's prompt files must be byte-identical in the revised run; only added files
+    # (the revised prompt) may differ.
+    changed = sorted(name for name, digest in (left.get("prompt_files") or {}).items()
+                     if (right.get("prompt_files") or {}).get(name) != digest)
+    if changed or "prompt_files" not in left or "prompt_files" not in right:
+        differences.append("prompt files other than the revised one changed between the runs"
+                           + (f": {', '.join(changed)}" if changed else " (not recorded)"))
+    for key in REPOSITORY_FIELDS:
+        if baseline.get(key) != revised.get(key):
+            caveats.append(f"{key} differs ({baseline.get(key)} vs {revised.get(key)}); the evaluator "
+                           "code and prompt files are otherwise identical, so this is the revised "
+                           "prompt being added")
+    return differences, caveats
 
 
 def compare_runs(baseline_bundle: str | Path, revised_bundle: str | Path,
@@ -165,7 +207,7 @@ def compare_runs(baseline_bundle: str | Path, revised_bundle: str | Path,
                                "infrastructure_statuses": list(summary.classification.infrastructure_statuses)},
             "schedule_complete": schedule.ok, "schedule_problems": list(schedule.problems),
             "metrics": metrics}
-    reasons = _identity_differences(identities[BASELINE], identities[REVISED])
+    reasons, caveats = _identity_differences(identities[BASELINE], identities[REVISED])
     for name, run in runs.items():
         if not run["metrics"]["headline_eligible"]:
             reasons.append(f"the {name} run is not headline-eligible (incomplete, ungraded, or "
@@ -184,7 +226,7 @@ def compare_runs(baseline_bundle: str | Path, revised_bundle: str | Path,
             "unchanged_tasks": sorted(t for t, (b, r) in tasks.items() if r == b),
         }
     return {"experiment_id": config.experiment_id, "headline_comparison": headline,
-            "reasons_not_headline": reasons, "runs": runs, "delta": delta}
+            "reasons_not_headline": reasons, "caveats": caveats, "runs": runs, "delta": delta}
 
 
 def _fmt(ratio: Mapping[str, Any]) -> str:
@@ -198,6 +240,8 @@ def render_comparison(result: Mapping[str, Any]) -> str:
              + ("headline comparison" if result["headline_comparison"] else "NOT a headline comparison")]
     for reason in result["reasons_not_headline"]:
         lines.append(f"  - {reason}")
+    for caveat in result.get("caveats", []):
+        lines.append(f"  note: {caveat}")
     for name in (BASELINE, REVISED):
         run = result["runs"][name]
         m = run["metrics"]
@@ -211,7 +255,8 @@ def render_comparison(result: Mapping[str, Any]) -> str:
                   f"  failure labels: {m['failure_labels'] or 'none'}",
                   f"  model calls {m['model_calls']}, tool attempts {m['tool_attempts']}, "
                   f"revisions {m['revisions']}, recovery {m['recovery']}",
-                  f"  latency ms {m['latency_ms']}; tokens {m['tokens']}",
+                  f"  model latency ms {m['model_latency_ms']}; trial wall clock ms "
+                  f"{m['trial_wall_clock_ms']}; tokens {m['tokens']}",
                   f"  attempts {m['attempts']}; cost {m['cost']}"]
     if result["delta"]:
         d = result["delta"]

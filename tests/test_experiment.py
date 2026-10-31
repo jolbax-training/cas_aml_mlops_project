@@ -20,7 +20,8 @@ from codegen_eval.openrouter_client import OpenRouterClient
 from codegen_eval.openrouter_config import ModelConfig
 from codegen_eval.run_checks import TOOL_SCHEMA
 from experiment_support import (
-    BENCHMARK, TASKS, make_env, make_smoke, reference, solving, local_grader, with_revised_prompt,
+    BENCHMARK, JUNIT, TASKS, make_env, make_smoke, real_prompt_file, reference, solving, local_grader,
+    with_revised_prompt,
 )
 from openrouter_support import KEY, PRICES, FakeTransport, ledger_events, reply
 
@@ -94,15 +95,39 @@ def test_attempt_cap_matches_the_agreed_budget_split():
 
 def test_probe_evidence_must_be_clean_nonempty_and_for_this_code(tmp_path):
     assert "not found" in probes_problems(tmp_path)[0]
-    write_probes_evidence(tmp_path, {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}, command="x")
+    counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
     assert probes_problems(tmp_path) == []
-    write_probes_evidence(tmp_path, {"tests": 10, "failures": 0, "errors": 0, "skipped": 3}, command="x")
+    write_probes_evidence(tmp_path, {**counts, "skipped": 3}, command="x", junit_xml=JUNIT)
     assert any("skipped" in p for p in probes_problems(tmp_path))      # a skipped suite proves nothing
-    write_probes_evidence(tmp_path, {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}, command="x")
+    write_probes_evidence(tmp_path, {**counts, "tests": 0}, command="x", junit_xml=JUNIT)
     assert any("no tests" in p for p in probes_problems(tmp_path))
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
     record = json.loads((tmp_path / "probes.json").read_text())
-    record.update(tests=10, evaluator_source_sha256="0" * 64)
+    record.update(evaluator_code_sha256="0" * 64)
     (tmp_path / "probes.json").write_text(json.dumps(record))
+    assert any("different evaluator code" in p for p in probes_problems(tmp_path))
+
+
+def test_probe_evidence_needs_its_retained_junit_report(tmp_path):
+    counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
+    write_probes_evidence(tmp_path, counts, command="x")                 # no report kept
+    assert any("junit report" in p for p in probes_problems(tmp_path))
+
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
+    assert probes_problems(tmp_path) == []
+    (tmp_path / "probes.junit.xml").write_text(JUNIT.replace("56", "99"))   # edited afterwards
+    assert any("junit report" in p for p in probes_problems(tmp_path))
+
+
+def test_probe_evidence_survives_adding_a_prompt_file_but_not_a_code_change(
+        tmp_path, monkeypatch):
+    counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
+    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
+    with real_prompt_file():                      # a real file in src/codegen_eval/prompts
+        assert probes_problems(tmp_path) == []
+
+    monkeypatch.setattr("codegen_eval.experiment.evaluator_code_sha256", lambda: "1" * 64)
     assert any("different evaluator code" in p for p in probes_problems(tmp_path))
 
 
@@ -186,7 +211,7 @@ def test_each_missing_evidence_item_blocks_the_start(tmp_path, inprocess_runner)
 def test_probes_that_ran_against_other_code_do_not_count(tmp_path, inprocess_runner):
     env = make_env(tmp_path, inprocess_runner)
     record = json.loads((env.evidence / "probes.json").read_text())
-    record["evaluator_source_sha256"] = "0" * 64
+    record["evaluator_code_sha256"] = "0" * 64
     (env.evidence / "probes.json").write_text(json.dumps(record))
 
     assert "probes" in checks(check_preconditions(env.config, BASELINE, **env.options))
@@ -414,3 +439,41 @@ def test_verify_schedule_reports_missing_wrong_variant_and_wrong_schedule(tmp_pa
     shorter["trials_per_task"] = 3
     other = parse_config({**shorter, "benchmark": env.config.data["benchmark"]})
     assert any("differ" in p for p in verify_schedule(run.bundle, other, BASELINE).problems)
+
+
+def test_unreadable_run_marker_blocks_every_variant_until_allow_rerun(tmp_path, inprocess_runner):
+    env = make_env(tmp_path, inprocess_runner)
+    env.bundles.mkdir()
+    (env.bundles / "broken.experiment.json").write_text("{not json")
+
+    for variant in (BASELINE, REVISED):
+        assert "prior_run" in checks(check_preconditions(env.config, variant, **env.options))
+    assert "prior_run" not in checks(check_preconditions(env.config, BASELINE, allow_rerun=True,
+                                                         **env.options))
+
+
+def test_checkpoint_state_is_recorded_before_and_after_a_run(tmp_path, inprocess_runner, grader):
+    env = make_env(tmp_path, inprocess_runner)
+    run = run_variant(env.config, BASELINE, solving(reference), grader=grader, runner=inprocess_runner,
+                      **env.options)
+    marker = json.loads((env.bundles / f"{run.run_id}.experiment.json").read_text())
+    assert (run.checkpoint_reached_before, run.checkpoint_reached) == (False, False)
+    assert marker["checkpoint_reached"] is False and marker["checkpoint_reached_before"] is False
+
+    env2 = make_env(tmp_path / "b", inprocess_runner)
+    env2.ledger.adjust(Decimal("10"), "earlier spend")             # crosses the CHF 10 checkpoint
+    run2 = run_variant(env2.config, BASELINE, solving(reference), grader=grader,
+                       runner=inprocess_runner, **env2.options)
+    assert (run2.checkpoint_reached_before, run2.checkpoint_reached) == (True, True)
+
+
+def test_freeze_checks_drift_against_the_benchmark_it_is_given(tmp_path, inprocess_runner):
+    config = parse_config(build_config(BENCHMARK))
+    smoke = make_smoke(tmp_path, inprocess_runner)
+    copy = tmp_path / "other" / "benchmark_v1.json"
+    copy.parent.mkdir()
+    shutil.copy(BENCHMARK, copy)
+
+    with pytest.raises(ExperimentError, match="out of date"):
+        write_settings_freeze(config, smoke, tmp_path / "evidence", benchmark_path=copy)
+    assert write_settings_freeze(config, smoke, tmp_path / "evidence", benchmark_path=BENCHMARK)

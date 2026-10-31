@@ -40,6 +40,8 @@ credentials*.json
 /mlflow_data/
 /mlflow.sqlite*
 /report/
+# Machine-specific experiment evidence (absolute smoke-bundle path, probe junit); results go in docs/progress.md
+/experiments/evidence/
 *.log
 
 # Machine/editor state; shared .agents/skills are intentionally tracked
