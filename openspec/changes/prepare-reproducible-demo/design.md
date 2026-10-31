@@ -14,7 +14,7 @@ See proposal.md. The specification defines a four-day, 32-hour plan with day exi
 
 ### 1. Commands are documented only after re-execution
 
-README/setup documentation lists commands for environment setup, image restoration, MLflow service start, trace inspection, grading replay, report build/open, and CI reproduction. Each is re-executed from a clean-ish environment before being recorded; exact names come from the implementing changes.
+README/setup documentation (or the demo document it links) lists commands for environment setup, image restoration, MLflow service start, trace inspection, grading replay, report build/open, and CI reproduction. Each is re-executed from a clean-ish environment before being recorded; exact names come from the implementing changes.
 
 ### 2. Demo path without new paid generation
 

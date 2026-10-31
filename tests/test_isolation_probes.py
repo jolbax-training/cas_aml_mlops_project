@@ -13,8 +13,9 @@ import pytest
 from codegen_eval import sandbox
 from codegen_eval.evaluate import score_case
 from codegen_eval.limits import DEFAULT_LIMITS, ExecutionLimits
-from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES, execute_check, run_case
+from codegen_eval.sandbox import INFRASTRUCTURE_STATUSES
 from codegen_eval.tasks import load_tasks
+from sandbox_support import execute_check, generous_limits, run_case
 
 
 pytestmark = [pytest.mark.sandbox, pytest.mark.skipif(
@@ -141,7 +142,8 @@ def test_oversized_return_value_exceeds_protocol_limit():
 
 def test_custom_limits_are_enforced_in_the_container():
     small = ExecutionLimits(print_bytes=100)
-    result = execute_check(f"{VOWEL_HEAD}    print('x' * 200)\n    return 2\n", "count_vowels", ["a"], small)
+    result = execute_check(f"{VOWEL_HEAD}    print('x' * 200)\n    return 2\n", "count_vowels", ["a"],
+                           generous_limits(small))
 
     assert result.status == "output_limit"
 

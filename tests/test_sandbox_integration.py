@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from codegen_eval.evaluate import count_results, evaluate_task
-from codegen_eval.sandbox import run_case
+from sandbox_support import run_case
 from codegen_eval.tasks import load_tasks
 
 
@@ -31,7 +31,7 @@ def count_vowels(text: str) -> int:
     normalized = unicodedata.normalize("NFD", text).casefold()
     return sum(char in "aeiou" for char in normalized)
 '''
-    result = evaluate_task(TASKS[0], source)
+    result = evaluate_task(TASKS[0], source, run_case)
 
     assert result.passed
     assert count_results([result]).cases_passed == 4
@@ -40,7 +40,7 @@ def count_vowels(text: str) -> int:
 
 def test_wrong_candidate_keeps_per_case_failure_evidence():
     source = "def count_vowels(text: str) -> int:\n    return 0\n"
-    result = evaluate_task(TASKS[0], source)
+    result = evaluate_task(TASKS[0], source, run_case)
 
     assert not result.passed
     assert [case.failures for case in result.cases] == [
@@ -61,7 +61,7 @@ def test_correct_return_does_not_hide_input_mutation():
     items[:] = list(dict.fromkeys(items))
     return items
 '''
-    result = evaluate_task(TASKS[1], source)
+    result = evaluate_task(TASKS[1], source, run_case)
 
     assert not result.passed
     assert result.cases[0].failures == ("mutated_input",)

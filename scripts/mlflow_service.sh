@@ -9,6 +9,7 @@
 #   MLFLOW_DATA_DIR        host directory for durable data           (default ./mlflow_data)
 #   MLFLOW_CONTAINER_NAME  container name                            (default codegen-eval-mlflow)
 #   MLFLOW_IMAGE           image reference; keep it pinned by digest
+#   MLFLOW_HEALTH_TIMEOUT  seconds to wait for /health after start (default 60)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,12 +19,14 @@ PORT="${MLFLOW_PORT:-5000}"
 DATA_DIR="${MLFLOW_DATA_DIR:-$ROOT/mlflow_data}"
 NAME="${MLFLOW_CONTAINER_NAME:-codegen-eval-mlflow}"
 URL="http://127.0.0.1:${PORT}"
+HEALTH_TIMEOUT="${MLFLOW_HEALTH_TIMEOUT:-60}"
+case "$HEALTH_TIMEOUT" in ''|*[!0-9]*|0) echo "MLFLOW_HEALTH_TIMEOUT must be a positive integer" >&2; exit 2;; esac
 
 exists() { podman container exists "$NAME"; }
 running() { [ "$(podman inspect --format '{{.State.Running}}' "$NAME" 2>/dev/null || true)" = "true" ]; }
 
 wait_healthy() {
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 "$HEALTH_TIMEOUT"); do
     if curl -fsS --max-time 2 "$URL/health" >/dev/null 2>&1; then return 0; fi
     sleep 1
   done

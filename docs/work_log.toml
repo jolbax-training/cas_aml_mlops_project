@@ -16,7 +16,9 @@
 #
 # To fill a pending section after a milestone, replace its entry with a
 # kind = "document" entry (same id, label "reviewed") that names the reviewed
-# Markdown summary. Rebuild afterwards.
+# Markdown summary. Rebuild afterwards. A document that is only partly done (the demo
+# path, whose comparison part awaits real runs) is registered with label "current" and
+# status "incomplete" until its last placeholder is filled; then it becomes "reviewed".
 
 [architecture]
 diagram = "docs/work_log_architecture.svg"

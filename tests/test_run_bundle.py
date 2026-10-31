@@ -9,6 +9,7 @@ import pytest
 from codegen_eval import bundle, sandbox
 from codegen_eval.bundle import BundleError, load_trial, verify_bundle
 from codegen_eval.evaluate import CaseResult, TrialGrade
+from sandbox_support import run_case as sandbox_run_case
 from codegen_eval.model_client import FixtureClient, ModelResponse, load_fixtures
 from codegen_eval.replay import make_grader, replay_bundle
 from codegen_eval.run_recording import run_recorded
@@ -639,7 +640,9 @@ def test_replay_refuses_a_matching_benchmark_whose_freeze_differs(good, tmp_path
 @pytest.mark.skipif(os.environ.get("RUN_SANDBOX_TESTS") != "1", reason="requires a running local Podman VM")
 def test_replay_regrades_known_candidates_in_podman(tmp_path, inprocess_runner, local_runner):
     path, _ = record(tmp_path, inprocess_runner, local_runner, trials=1, run_id="run-p")
-    _, evidence = replay_bundle(path, BENCHMARK)  # real container runner
+    # real container runner; the deadline is scaled to the measured startup (a timeout here would be a
+    # load artefact, not a grading difference) and the recorded limits hash is unaffected
+    _, evidence = replay_bundle(path, BENCHMARK, runner=sandbox_run_case)
 
     trial = evidence["trials"][0]
     assert evidence["summary"] == {"regraded": 1, "compared": 1, "mismatched": 0, "incomplete": 0}

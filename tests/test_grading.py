@@ -11,6 +11,7 @@ from codegen_eval.bundle import Verification
 from codegen_eval.contract import ContractIssue
 from codegen_eval.evaluate import _strict_equal, count_results, evaluate_task, grade_trial, score_case
 from codegen_eval.limits import DEFAULT_LIMITS
+from sandbox_support import generous_limits, run_case as sandbox_run_case
 from codegen_eval.sandbox import ExecutionResult, execute_check
 from codegen_eval.tasks import Case, load_benchmark
 from codegen_eval.trial import TrialResult
@@ -359,7 +360,10 @@ SANDBOX_FIXTURES = {
 @pytest.mark.parametrize("name", sorted(SANDBOX_FIXTURES))
 def test_sandbox_fixture_accounting(name):
     source, success, failures, executed = SANDBOX_FIXTURES[name]
-    fast = lambda s, task, case: execute_check(s, task.function_name, case.args, DEFAULT_LIMITS.with_deadline(3.0))
+    # Only the timeout fixture asserts the deadline, so only it keeps the short exact one; the
+    # others run with a deadline scaled to the measured container startup.
+    limits = DEFAULT_LIMITS.with_deadline(3.0) if name == "timeout" else generous_limits()
+    fast = lambda s, task, case: execute_check(s, task.function_name, case.args, limits)
     result = evaluate_task(VOWELS, source, fast)
     assert result.passed is success
     assert [c.failures for c in result.cases] == failures
@@ -372,12 +376,12 @@ def test_sandbox_fixture_accounting(name):
 def test_sandbox_mutation_and_payload_limit_fixtures():
     mutate = (ROTATE_HEAD + "    result = [items[(i + k) % len(items)] for i in range(len(items))]\n"
               "    items.append(0)\n    return result\n")
-    mutated = evaluate_task(ROTATE, mutate)
+    mutated = evaluate_task(ROTATE, mutate, sandbox_run_case)
     assert not mutated.passed
     assert [c.failures for c in mutated.cases] == [("mutated_input",)] * 4
 
     big = GOOD + "# " + "x" * 70_000 + "\n"
-    oversized = evaluate_task(VOWELS, big)
+    oversized = evaluate_task(VOWELS, big, sandbox_run_case)
     assert [c.failures for c in oversized.cases] == [("payload_too_large",)] * 4
     assert count_results([oversized]).cases_executed == 0
 

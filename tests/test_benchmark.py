@@ -8,6 +8,7 @@ import pytest
 
 from codegen_eval.contract import validate_source
 from codegen_eval.evaluate import _strict_equal, count_results, evaluate_task
+from sandbox_support import run_case as sandbox_run_case
 from codegen_eval.tasks import (
     BENCHMARK_CATEGORIES, FREEZE_FILE, check_freeze, load_benchmark, load_tasks,
 )
@@ -109,7 +110,8 @@ def test_reference_satisfies_the_source_contract_and_all_four_cases(task):
 @pytest.mark.skipif(os.environ.get("RUN_SANDBOX_TESTS") != "1", reason="requires a running local Podman VM")
 def test_references_pass_every_case_in_the_sandbox():
     results = [
-        evaluate_task(task, (REFERENCES / f"{task.id}.py").read_text(encoding="utf-8")) for task in TASKS
+        evaluate_task(task, (REFERENCES / f"{task.id}.py").read_text(encoding="utf-8"), sandbox_run_case)
+        for task in TASKS
     ]
 
     counts = count_results(results)

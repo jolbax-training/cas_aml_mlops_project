@@ -8,6 +8,7 @@ from codegen_eval.agent_config import AgentLimits
 from codegen_eval.model_client import FixtureClient, load_fixtures
 from codegen_eval.run_checks import TOOL_SCHEMA
 from codegen_eval.sandbox import ExecutionResult
+from sandbox_support import generous_limits
 from codegen_eval.tasks import Case, Task, load_tasks
 from codegen_eval.trial import run_trial
 
@@ -288,7 +289,7 @@ def test_every_trial_stays_within_the_limits(name, inprocess_runner):
 @pytest.mark.sandbox
 def test_development_checks_run_through_the_real_container_path():
     client = FixtureClient.from_data(SCENARIOS["tool_use_and_revision"])
-    result = run_trial(TASK, client)
+    result = run_trial(TASK, client, execution_limits=generous_limits())
 
     assert result.status == "submitted" and result.contract_valid
     first = tool_feedback(client, 2)[0]
