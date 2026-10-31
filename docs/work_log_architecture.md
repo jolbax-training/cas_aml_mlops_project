@@ -1,17 +1,27 @@
-Text equivalent of the figure above, as of 2026-10-30. **Implemented** means code exists in this repository today; **planned** means it is specified in the [working specification](project_spec.md) but not built. Status comes from the [progress record](progress.md), not from this page.
+Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemented modules under `src/codegen_eval/`. **Implemented** means code exists on `main` and its tests ran; **partial** means built and tested offline, but with no live call or real run yet; **pending** means the evidence does not exist. Status comes from the [progress record](progress.md) and the [CI evidence](ci_evidence.md), not from this page.
 
-**Implemented**
+**Agent flow (implemented, offline-tested only for the model)**
 
-1. The offline pilot loads three tasks and twelve cases, validates one-function Python source without running it, runs one case at a time in a restricted Podman container, and scores the returned value outside that container.
-2. The container receives only source and one case's arguments. Expected answers, scoring, credentials, and repository files stay outside it. The execution boundary has not yet had its integrity review, so live model comparisons stay disabled.
-3. This report builder turns the selected Markdown sources into `report/index.html`.
+1. A task instruction and signature (`tasks.py`) and the versioned baseline prompt (`prompts/baseline_agent_v1.md`, `agent_config.py`) go to the bounded agent in `trial.py`: four model calls, three development-tool attempts, at most four checks per request.
+2. The agent calls the model through the OpenRouter client (`openrouter_client.py`) behind the `ModelClient` interface (`model_client.py`); every paid attempt is reserved in the spending ledger (`ledger.py`) first. **Partial:** this is tested with fixtures and fakes only. No live model call has been made.
 
-**Planned**
+**Development-check flow (implemented)**
 
-1. Task instruction and signature plus a versioned prompt go to a bounded coding agent (four model calls, three development-tool attempts, at most four checks per request) that calls the model through OpenRouter.
-2. The agent may write its own example checks. `run_checks` runs them in fresh containers and returns bounded development feedback. This feedback never contains hidden expected answers.
-3. An explicit final submission passes source validation and then separate hidden acceptance grading in fresh containers.
-4. Results are written to durable local run bundles first. Grading replay re-runs hidden grading on saved final candidates without any model generation, and still uses Podman. Containerized local MLflow records the runs after the local bundles exist.
-5. Deterministic CI covers fixtures and probes only. A baseline and one revised prompt are compared on the same benchmark, and reviewed Markdown summaries of that comparison are registered as report sources.
+3. The agent may write its own example checks. `run_checks` (`run_checks.py`) runs them, one per fresh container, and returns bounded feedback. It uses only the function name and signature, so feedback never contains hidden expected answers.
+
+**Hidden-grading flow (implemented)**
+
+4. An explicit final submission is validated as source (`contract.py`, never executed) and then graded against the hidden acceptance cases (`evaluate.py`, `grade_trial`) in fresh containers. Expected answers and scoring stay in the trusted host process.
+
+**Trust boundary (implemented)**
+
+5. The only code that runs inside a container (`sandbox.py`, with the in-container `worker.py`) is candidate source plus one case's arguments. Expected answers, scoring, credentials, repository files, network, tracking, and Podman controls stay outside. The [threat model](threat_model.md) records the residual limitations; the sandbox probes ran locally and on GitHub Actions.
+
+**Evidence flow**
+
+6. Implemented: every finished trial is written to a durable local run bundle first (`bundle.py`, `run_recording.py`). Grading replay (`replay.py`) re-runs hidden grading on saved final candidates without any model generation and still uses Podman. Deterministic CI (`.github/workflows/ci.yml`) covers fixtures and probes only; its green runs are in the CI evidence section.
+7. Partial: local MLflow recording (`mlflow_tracking.py`) is built from bundles, but no real run has been recorded. The comparison tooling (`comparison.py`, `experiment.py`, `experiment_cli.py`) and fixed-denominator summaries (`summary.py`) are built and tested offline; the baseline-versus-revised comparison itself has not run.
+8. Pending: reviewed Markdown summaries of the comparison (results, evidence identifiers, limitations). They need the comparison runs and are not invented here.
+9. Implemented: this report builder (`scripts/build_work_log.py`) turns the selected Markdown into `report/index.html`.
 
 Sections of this report whose evidence does not exist yet are labelled pending. No result, URL, or reflection is invented to fill them.

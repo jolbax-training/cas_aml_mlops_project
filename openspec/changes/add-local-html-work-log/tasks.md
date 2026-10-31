@@ -1,6 +1,6 @@
 # Tasks
 
-Revised after Q37/Q42 on 2026-10-23. Day-two foundation tasks 1.1–2.2 and 4.1 were implemented 2026-10-30; 3.1 and 4.2 await real-browser inspection. The day-two foundation and day-four completion replace the previous report-first sequence. Build/report tooling is independent of agent execution, CI, and MLflow services; this change does not implement those systems.
+Revised after Q37/Q42 on 2026-10-23. Day-two foundation tasks 1.1–2.2 and 4.1 were implemented 2026-10-30; 3.1 was completed 2026-10-31 (structure verified headlessly); 4.2 awaits real-browser inspection by the student. The day-two foundation and day-four completion replace the previous report-first sequence. Build/report tooling is independent of agent execution, CI, and MLflow services; this change does not implement those systems.
 
 ## 1. Small independent builder
 
@@ -14,7 +14,7 @@ Revised after Q37/Q42 on 2026-10-23. Day-two foundation tasks 1.1–2.2 and 4.1 
 
 ## 3. Opening architecture and accessibility
 
-- [ ] 3.1 Add the small editable local diagram/text showing the agreed agent/development/hidden-grading/trust/evidence flows; verify architecture-first order, correct status, local-only assets, accessible explanation, and keyboard navigation, and document diagram maintenance without a generic graph engine.
+- [x] 3.1 Add the small editable local diagram/text showing the agreed agent/development/hidden-grading/trust/evidence flows; verify architecture-first order, correct status, local-only assets, accessible explanation, and keyboard navigation, and document diagram maintenance without a generic graph engine.
 
 ## 4. Repository integration and observed evidence
 

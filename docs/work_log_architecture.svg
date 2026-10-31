@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 790" width="960" height="790" role="img" aria-labelledby="arch-title arch-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 840" width="960" height="840" role="img" aria-labelledby="arch-title arch-desc">
   <title id="arch-title">Goal architecture of the agent evaluation and MLOps project</title>
-  <desc id="arch-desc">A bounded coding agent calls an external model and runs agent-authored development checks in fresh Podman containers. An explicit final submission passes source validation and separate hidden acceptance grading, whose expected answers and scoring stay outside candidate containers. Results go to local run bundles, which feed grading replay and a local MLflow service. Comparison results, deterministic CI evidence and reviewed Markdown summaries feed the local report. Boxes with a solid outline are implemented; boxes with a dashed outline are planned.</desc>
+  <desc id="arch-desc">The task and versioned prompt go to a bounded coding agent (trial.py) that calls an external model through an OpenRouter client with a spending ledger; that client is built and tested offline only, with no live call yet. The agent runs agent-authored development checks (run_checks.py) in fresh Podman containers (sandbox.py, worker.py), which hold only candidate code. An explicit final submission passes source validation (contract.py) and separate hidden acceptance grading (evaluate.py), whose expected answers and scoring stay outside candidate containers. Results go to local run bundles (bundle.py, run_recording.py), which feed grading replay (replay.py) and local MLflow recording (mlflow_tracking.py, not yet used on a real run). Comparison tooling (comparison.py, experiment.py) is built offline but no comparison has run, so reviewed Markdown summaries of results are pending. Deterministic CI covers fixtures and probes, and the report builder (scripts/build_work_log.py) turns selected Markdown into the local report. Solid blue boxes are implemented; solid yellow boxes are partly implemented with no live or real run yet; dashed boxes are pending.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" class="arch-head"/>
@@ -12,6 +12,7 @@
     text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; fill: #111827; }
     .arch-box rect { stroke: #1f2937; stroke-width: 2; fill: #ffffff; }
     .arch-impl rect { fill: #e0efff; stroke-width: 4; }
+    .arch-part rect { fill: #fff1b8; stroke-width: 4; }
     .arch-plan rect { stroke-dasharray: 8 5; }
     .arch-st { font-weight: 700; font-size: 12px; letter-spacing: 0.05em; }
     .arch-bound { fill: #fff4e5; stroke: #9a3412; stroke-width: 3; stroke-dasharray: 3 4; }
@@ -20,139 +21,150 @@
     .arch-edge { stroke: #374151; stroke-width: 2; fill: none; }
     .arch-head { fill: #374151; }
   </style>
-  <rect class="arch-bg" x="0" y="0" width="960" height="790"/>
+  <rect class="arch-bg" x="0" y="0" width="960" height="840"/>
 
   <!-- Trust boundary around candidate execution -->
   <rect class="arch-bound" x="625" y="135" width="330" height="170" rx="10"/>
   <text class="arch-bt" x="640" y="153">TRUST BOUNDARY: CANDIDATE CODE ONLY</text>
 
   <!-- Row 1: inputs, agent, model -->
-  <g class="arch-box arch-plan">
-    <rect x="20" y="30" width="240" height="82" rx="8"/>
-    <text x="32" y="52" class="arch-st">PLANNED</text>
-    <text x="32" y="72">Task instruction + signature</text>
-    <text x="32" y="90">and versioned prompt</text>
+  <g class="arch-box arch-impl">
+    <rect x="20" y="30" width="240" height="100" rx="8"/>
+    <text x="32" y="52" class="arch-st">IMPLEMENTED</text>
+    <text x="32" y="72">Task + versioned prompt</text>
+    <text x="32" y="90">tasks.py, agent_config.py,</text>
+    <text x="32" y="108">prompts/baseline_agent_v1.md</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="300" y="30" width="300" height="82" rx="8"/>
-    <text x="312" y="52" class="arch-st">PLANNED</text>
-    <text x="312" y="72">Bounded coding agent</text>
-    <text x="312" y="90">4 model calls, 3 tool attempts</text>
+  <g class="arch-box arch-impl">
+    <rect x="300" y="30" width="300" height="100" rx="8"/>
+    <text x="312" y="52" class="arch-st">IMPLEMENTED</text>
+    <text x="312" y="72">Bounded coding agent (trial.py)</text>
+    <text x="312" y="90">4 model calls, 3 tool attempts,</text>
+    <text x="312" y="108">limits in agent_config.py</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="640" y="30" width="300" height="82" rx="8"/>
-    <text x="652" y="52" class="arch-st">PLANNED</text>
-    <text x="652" y="72">Model via OpenRouter</text>
-    <text x="652" y="90">external service, budget-limited</text>
+  <g class="arch-box arch-part">
+    <rect x="640" y="30" width="300" height="100" rx="8"/>
+    <text x="652" y="52" class="arch-st">PARTIAL: NO LIVE RUN YET</text>
+    <text x="652" y="72">Model via OpenRouter (external)</text>
+    <text x="652" y="90">openrouter_client.py + ledger.py</text>
+    <text x="652" y="108">tested offline; no live call yet</text>
   </g>
-  <path class="arch-edge" d="M260,71 L300,71" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M600,71 L640,71" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M260,80 L300,80" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M600,80 L640,80" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 
   <!-- Row 2: development checks and fresh container execution -->
-  <g class="arch-box arch-plan">
-    <rect x="300" y="170" width="300" height="82" rx="8"/>
-    <text x="312" y="192" class="arch-st">PLANNED</text>
-    <text x="312" y="212">run_checks: agent-authored</text>
-    <text x="312" y="230">examples, up to 4 per request</text>
+  <g class="arch-box arch-impl">
+    <rect x="300" y="170" width="300" height="100" rx="8"/>
+    <text x="312" y="192" class="arch-st">IMPLEMENTED</text>
+    <text x="312" y="212">run_checks tool (run_checks.py)</text>
+    <text x="312" y="230">agent-authored examples, max 4</text>
+    <text x="312" y="248">feedback has no hidden answers</text>
   </g>
   <g class="arch-box arch-impl">
     <rect x="640" y="163" width="300" height="130" rx="8"/>
-    <text x="652" y="185" class="arch-st">IMPLEMENTED (PILOT)</text>
+    <text x="652" y="185" class="arch-st">IMPLEMENTED</text>
     <text x="652" y="205">Fresh Podman container per check</text>
-    <text x="652" y="223">gets source + one case's arguments</text>
-    <text x="652" y="241">no answers, scoring, credentials,</text>
-    <text x="652" y="259">repository files, tracking, network,</text>
-    <text x="652" y="277">or Podman controls</text>
+    <text x="652" y="223">(sandbox.py, worker.py) gets only</text>
+    <text x="652" y="241">source + one case's arguments;</text>
+    <text x="652" y="259">no answers, scoring, credentials,</text>
+    <text x="652" y="277">repo files, network, or tracking</text>
   </g>
-  <path class="arch-edge" d="M450,112 L450,170" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-  <text class="arch-note" x="462" y="146">checks / feedback</text>
+  <path class="arch-edge" d="M450,130 L450,170" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text class="arch-note" x="462" y="156">checks / feedback</text>
   <path class="arch-edge" d="M600,228 L640,228" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
 
   <!-- Row 3: final validation, hidden grading, bundles -->
   <g class="arch-box arch-impl">
-    <rect x="20" y="330" width="240" height="82" rx="8"/>
+    <rect x="20" y="330" width="240" height="100" rx="8"/>
     <text x="32" y="352" class="arch-st">IMPLEMENTED</text>
     <text x="32" y="372">Final source validation</text>
-    <text x="32" y="390">strict one-function contract</text>
+    <text x="32" y="390">contract.py: one-function</text>
+    <text x="32" y="408">contract, never executes code</text>
   </g>
   <g class="arch-box arch-impl">
     <rect x="300" y="330" width="300" height="100" rx="8"/>
-    <text x="312" y="352" class="arch-st">IMPLEMENTED (PILOT)</text>
+    <text x="312" y="352" class="arch-st">IMPLEMENTED</text>
     <text x="312" y="372">Hidden acceptance grading</text>
-    <text x="312" y="390">expected answers + scoring stay</text>
-    <text x="312" y="408">outside candidate containers</text>
+    <text x="312" y="390">evaluate.py (grade_trial); answers</text>
+    <text x="312" y="408">and scoring stay outside</text>
+    <text x="312" y="426">candidate containers</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="640" y="330" width="300" height="82" rx="8"/>
-    <text x="652" y="352" class="arch-st">PLANNED</text>
+  <g class="arch-box arch-impl">
+    <rect x="640" y="330" width="300" height="100" rx="8"/>
+    <text x="652" y="352" class="arch-st">IMPLEMENTED</text>
     <text x="652" y="372">Durable local run bundles</text>
-    <text x="652" y="390">traces, results, saved candidates</text>
+    <text x="652" y="390">bundle.py, run_recording.py:</text>
+    <text x="652" y="408">traces, results, saved candidates</text>
   </g>
   <path class="arch-edge" d="M300,85 L280,85 L280,300 L140,300 L140,330" marker-end="url(#arrow)"/>
   <text class="arch-note" x="272" y="200" text-anchor="end">explicit final</text>
   <text class="arch-note" x="272" y="216" text-anchor="end">submission</text>
-  <path class="arch-edge" d="M260,371 L300,371" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M600,371 L640,371" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M540,330 L680,306" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M260,380 L300,380" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M600,380 L640,380" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M540,330 L680,293" marker-end="url(#arrow)"/>
   <text class="arch-note" x="535" y="322" text-anchor="end">runs one case per container</text>
 
   <!-- Row 4: CI, replay, MLflow -->
-  <g class="arch-box arch-plan">
-    <rect x="20" y="460" width="240" height="82" rx="8"/>
-    <text x="32" y="482" class="arch-st">PLANNED</text>
-    <text x="32" y="502">Deterministic CI</text>
-    <text x="32" y="520">fixtures and probes only</text>
+  <g class="arch-box arch-impl">
+    <rect x="20" y="460" width="240" height="100" rx="8"/>
+    <text x="32" y="482" class="arch-st">IMPLEMENTED</text>
+    <text x="32" y="502">Deterministic CI (ci.yml)</text>
+    <text x="32" y="520">fixtures and probes only;</text>
+    <text x="32" y="538">green runs: CI evidence section</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="300" y="460" width="300" height="82" rx="8"/>
-    <text x="312" y="482" class="arch-st">PLANNED</text>
-    <text x="312" y="502">Grading replay of saved candidates</text>
-    <text x="312" y="520">no generation, still uses Podman</text>
+  <g class="arch-box arch-impl">
+    <rect x="300" y="460" width="300" height="100" rx="8"/>
+    <text x="312" y="482" class="arch-st">IMPLEMENTED</text>
+    <text x="312" y="502">Grading replay (replay.py)</text>
+    <text x="312" y="520">regrades saved candidates,</text>
+    <text x="312" y="538">no generation, still uses Podman</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="640" y="460" width="300" height="82" rx="8"/>
-    <text x="652" y="482" class="arch-st">PLANNED</text>
-    <text x="652" y="502">Containerized local MLflow</text>
-    <text x="652" y="520">recorded after local bundles</text>
+  <g class="arch-box arch-part">
+    <rect x="640" y="460" width="300" height="100" rx="8"/>
+    <text x="652" y="482" class="arch-st">PARTIAL: NO LIVE RUN YET</text>
+    <text x="652" y="502">Local MLflow recording</text>
+    <text x="652" y="520">mlflow_tracking.py, built from</text>
+    <text x="652" y="538">bundles; no real run recorded</text>
   </g>
-  <path class="arch-edge" d="M790,412 L790,460" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M690,412 L690,445 L620,445 L620,501 L600,501" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M790,430 L790,460" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M690,430 L690,445 L620,445 L620,510 L600,510" marker-end="url(#arrow)"/>
   <path class="arch-edge" d="M450,460 L450,430" marker-end="url(#arrow)"/>
-  <text class="arch-note" x="462" y="454">regrade, no generation</text>
+  <text class="arch-note" x="462" y="452">regrade, no generation</text>
 
   <!-- Row 5: report path -->
   <g class="arch-box arch-impl">
-    <rect x="20" y="590" width="240" height="82" rx="8"/>
-    <text x="32" y="612" class="arch-st">IMPLEMENTED</text>
-    <text x="32" y="632">report/index.html</text>
-    <text x="32" y="650">built from selected Markdown</text>
+    <rect x="20" y="600" width="240" height="100" rx="8"/>
+    <text x="32" y="622" class="arch-st">IMPLEMENTED</text>
+    <text x="32" y="642">report/index.html</text>
+    <text x="32" y="660">scripts/build_work_log.py,</text>
+    <text x="32" y="678">built from selected Markdown</text>
   </g>
   <g class="arch-box arch-plan">
-    <rect x="300" y="590" width="300" height="82" rx="8"/>
-    <text x="312" y="612" class="arch-st">PLANNED</text>
-    <text x="312" y="632">Reviewed Markdown summaries</text>
-    <text x="312" y="650">results, evidence IDs, limitations</text>
+    <rect x="300" y="600" width="300" height="100" rx="8"/>
+    <text x="312" y="622" class="arch-st">PENDING</text>
+    <text x="312" y="642">Reviewed Markdown summaries</text>
+    <text x="312" y="660">results, evidence IDs, limits;</text>
+    <text x="312" y="678">needs the comparison runs</text>
   </g>
-  <g class="arch-box arch-plan">
-    <rect x="640" y="590" width="300" height="82" rx="8"/>
-    <text x="652" y="612" class="arch-st">PLANNED</text>
-    <text x="652" y="632">Baseline vs revised comparison</text>
-    <text x="652" y="650">same benchmark, 3 trials per task</text>
+  <g class="arch-box arch-part">
+    <rect x="640" y="600" width="300" height="100" rx="8"/>
+    <text x="652" y="622" class="arch-st">PARTIAL: NO LIVE RUN YET</text>
+    <text x="652" y="642">Baseline vs revised comparison</text>
+    <text x="652" y="660">comparison.py, experiment.py:</text>
+    <text x="652" y="678">offline tooling done, no paid run</text>
   </g>
-  <path class="arch-edge" d="M790,542 L790,590" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M640,631 L600,631" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M300,631 L260,631" marker-end="url(#arrow)"/>
-  <path class="arch-edge" d="M140,542 L140,566 L330,566 L330,590" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M790,560 L790,600" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M640,650 L600,650" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M300,650 L260,650" marker-end="url(#arrow)"/>
+  <path class="arch-edge" d="M140,560 L140,580 L330,580 L330,600" marker-end="url(#arrow)"/>
 
   <!-- Legend -->
-  <g class="arch-box arch-impl">
-    <rect x="20" y="700" width="60" height="28" rx="5"/>
-  </g>
-  <text x="92" y="719">Implemented now (offline pilot or this report builder)</text>
-  <g class="arch-box arch-plan">
-    <rect x="500" y="700" width="60" height="28" rx="5"/>
-  </g>
-  <text x="572" y="719">Planned, not yet implemented (dashed)</text>
-  <rect class="arch-bound" x="20" y="740" width="60" height="28" rx="5"/>
-  <text x="92" y="759">Trust boundary: only candidate code runs inside; answers, scoring, credentials, tracking stay outside</text>
+  <g class="arch-box arch-impl"><rect x="20" y="720" width="60" height="28" rx="5"/></g>
+  <text x="92" y="739">Implemented and exercised (solid blue)</text>
+  <g class="arch-box arch-part"><rect x="500" y="720" width="60" height="28" rx="5"/></g>
+  <text x="572" y="739">Built offline; no live or real run yet (solid yellow)</text>
+  <g class="arch-box arch-plan"><rect x="20" y="760" width="60" height="28" rx="5"/></g>
+  <text x="92" y="779">Pending: evidence does not exist yet (dashed)</text>
+  <rect class="arch-bound" x="500" y="760" width="60" height="28" rx="5"/>
+  <text x="572" y="779">Trust boundary: only candidate code inside</text>
 </svg>

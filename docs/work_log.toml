@@ -63,14 +63,14 @@ id = "results"
 title = "Results, comparison, and limitations"
 kind = "pending"
 needs = ["run-prompt-comparison"]
-description = "Baseline and revised-prompt outcomes with improvements, regressions, unchanged tasks, and limits."
+description = "Baseline and revised-prompt outcomes with improvements, regressions, unchanged tasks, and limits. The comparison tooling is implemented offline; no paid comparison run has been made, so there are no results."
 
 [[section]]
 id = "evidence"
 title = "Local evidence and MLflow identifiers"
 kind = "pending"
-needs = ["add-run-bundles-and-grading-replay", "add-local-mlflow-tracking"]
-description = "References to local run bundles and MLflow run identifiers, recorded as references and never fetched. CI runs are in the CI evidence section."
+needs = ["run-prompt-comparison"]
+description = "References to the comparison's local run bundles and MLflow run identifiers, recorded as references and never fetched. The bundle, replay, and MLflow recording code is implemented, but no real comparison run exists yet, so there are no identifiers to show. CI runs are in the CI evidence section."
 
 [[section]]
 id = "ci-evidence"

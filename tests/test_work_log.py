@@ -319,6 +319,20 @@ def test_architecture_comes_first_with_accessible_text(tmp_path):
     assert "Explains the figure." in page.split('<nav id="sections"')[0]
 
 
+def test_repository_diagram_names_existing_modules_and_labels_every_status():
+    """The real figure and its text twin name only files that exist, with a text label per box."""
+    twin = (REPO / "docs" / "work_log_architecture.md").read_text(encoding="utf-8")
+    src = REPO / "src" / "codegen_eval"
+    for text in (SVG, twin):
+        for name in set(re.findall(r"\b([a-z_]+\.py)\b", text)):
+            assert (src / name).exists() or (REPO / "scripts" / name).exists(), name
+    boxes = re.findall(r'<g class="arch-box arch-(impl|part|plan)">\s*<rect[^>]*/>\s*<text[^>]*class="arch-st">([^<]+)</text>', SVG)
+    assert len(boxes) == 14
+    labels = {"impl": "IMPLEMENTED", "part": "PARTIAL: NO LIVE RUN YET", "plan": "PENDING"}
+    assert all(labels[kind] == label for kind, label in boxes)
+    builder.validate_svg(SVG)
+
+
 @pytest.mark.parametrize("bad", [
     SVG.replace("<defs>", "<script>alert(1)</script><defs>"),
     SVG.replace("<defs>", '<image href="https://example.com/x.png"/><defs>'),
