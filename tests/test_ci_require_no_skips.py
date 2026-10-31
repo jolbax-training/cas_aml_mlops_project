@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 from pathlib import Path
 
@@ -40,3 +41,25 @@ def test_empty_failed_or_missing_report_fails(tmp_path, xml):
 
 def test_usage_error():
     assert helper.main([]) == 2
+
+
+def _module_level_skips(path):
+    """Calls that skip a whole module at collection time, even inside module-level if/else."""
+    tree = ast.parse(path.read_text())
+    pending, found = list(tree.body), []
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.If, ast.Try, ast.With)):
+            pending += node.body + getattr(node, "orelse", [])
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            call = ast.unparse(node.value.func)
+            if call in {"pytest.importorskip", "pytest.skip"}:
+                found.append(f"{path.name}:{node.lineno} {call}")
+    return found
+
+
+def test_no_test_module_skips_at_collection():
+    """A module-level skip is reported even when the module's tests are deselected, which
+    fails the podman job's no-skip guard (it broke that job twice); use a skipif mark."""
+    skips = [hit for path in sorted((REPO / "tests").glob("test_*.py")) for hit in _module_level_skips(path)]
+    assert skips == []

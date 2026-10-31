@@ -1,14 +1,18 @@
 """The experiment runner's MLflow hook, against a temporary SQLite store (no service, no
 Podman, no model client): record after verification, or keep the outage marker for later."""
 
+import importlib.util
 import os
 
 import pytest
 
+HAVE_MLFLOW = importlib.util.find_spec("mlflow") is not None
 if os.environ.get("CODEGEN_EVAL_REQUIRE_TRACKING") == "1":  # CI: a missing client is a failure
     import mlflow  # noqa: F401
-else:
-    pytest.importorskip("mlflow", reason="needs `uv sync --group tracking` (MLflow client)")
+# A per-test skip mark, not a module-level skip: a module-level skip is reported even when
+# the module's tests are deselected, which would make the podman job's no-skip check fail.
+pytestmark = pytest.mark.skipif(not HAVE_MLFLOW,
+                                reason="needs `uv sync --group tracking` (MLflow client)")
 
 from codegen_eval import mlflow_tracking as mt
 from codegen_eval.bundle import sha256_file, verify_bundle

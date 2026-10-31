@@ -42,7 +42,12 @@ jobs:
       - name: Tests (Podman-dependent tests skip here by design; the podman job runs them)
         env:
           CODEGEN_EVAL_REQUIRE_TRACKING: "1"  # the MLflow unit tests must run, not skip
-        run: .venv/bin/pytest -q
+        run: .venv/bin/pytest -q -rfE --tb=short --junitxml="$RUNNER_TEMP/offline-junit.xml"
+      - name: Annotate failed tests (readable without job logs)
+        if: ${{ !cancelled() }}
+        run: |
+          .venv/bin/python scripts/ci_annotate_junit.py "$RUNNER_TEMP/offline-junit.xml"
+          echo "::notice title=Runner environment::$(.venv/bin/python -V); $(git --version); podman=$(command -v podman || echo none); cpus=$(nproc); user=$(id -un)"
       - name: Install OpenSpec CLI (npm ci from the committed lockfile)
         run: npm ci --ignore-scripts --prefix .github/openspec
       - name: Validate main specs and in-flight changes that carry specs (strict)
