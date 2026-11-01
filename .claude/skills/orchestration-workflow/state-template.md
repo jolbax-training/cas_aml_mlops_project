@@ -9,13 +9,13 @@ Copy to `STATE.md` at the primary checkout root. The file is Git-ignored and nev
 - <change> (<commit on main>)
 
 ## Merged, not archived
-- <change>: <what is open and why>
+- <change>: owner <coordinator name or session>; run <run_id>; <what is open and why>
 
 ## In flight
 - <change>: owner <coordinator name or session>; run <run_id>; branch <branch> <commit>; worker <terminal handle or task id>; review <report path or "pending">; next step <step>
 
 ## Remaining
-- <change or user step> (<reason it waits: paid phase, user action, queue>)
+- <change or user step>: owner <coordinator name or session>; run <run_id> (<reason it waits: paid phase, user action, queue>)
 
 ## CI
 - main <commit>: run <run_id> <success|failure> <url>

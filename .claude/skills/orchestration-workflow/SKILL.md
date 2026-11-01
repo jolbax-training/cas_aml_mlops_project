@@ -34,10 +34,9 @@ The code is not installed as a package: run module CLIs from the repository root
 
 ## Mechanics
 
-
 Check `orca orchestration worker-start --help` for current flags.
 
-- **One run per coordinator session:** create it with `orca orchestration run-create --objective <text>` before your first `worker-start`, then pass `--run <run_id>` on every later dispatch and check. Never wait, ack, or dispatch in another coordinator's run: per `check --help` an ack drains the batch for every listener on that run, so the other coordinator would lose messages.
+- **One run per coordinator session:** create it with `orca orchestration run-create --objective <text>` before your first `worker-start`, then pass `--run <run_id>` on every later dispatch and check. Never wait, ack, or dispatch in another coordinator's run: per `check --help`, all listeners on one run inbox get the same delivery and `--ack` acknowledges it for the run, so the other coordinator would lose the batch.
 - **Start:** `worker-start --spec <brief> --task-title <t> --worktree new-child --agent claude --model <id>` for a fresh worker; `--worktree path:<dir>` to join an existing worktree (reviewers).
 - **Follow-up:** reuse the worker with `--terminal <handle> --worktree path:<dir>`. A reused terminal keeps its model, so `--model` is rejected.
 - **After an Orca restart** the old terminals are dead: restart each affected task with `worker-start --task <task_id> --retry-of <dispatch_id>` and repeat the placement and agent choices; the branch and worktree survive ([recovery.md](recovery.md)).

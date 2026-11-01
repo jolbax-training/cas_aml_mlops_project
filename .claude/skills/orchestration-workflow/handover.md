@@ -6,9 +6,9 @@
 2. Launch the new coordinator from the primary checkout:
    `orca agent launch --agent claude --surface terminal --model claude-opus-5-5 --worktree path:<primary checkout> --prompt "<load the orchestration-workflow skill, read STATE.md, continue>"`
 3. The new session creates its own run with `orca orchestration run-create` at its first dispatch ([SKILL.md](SKILL.md)). It never waits, acks, or dispatches in your run.
-4. Keep only the changes you had in flight, in your run, until they merge; mark the new owner in `STATE.md` for everything else.
+4. Keep only the changes you had in flight, in your run, until they merge; mark the new owner in `STATE.md` on every In flight, Merged-not-archived, and Remaining row.
 
-Flags are checked against `orca agent launch --help`; `orca agent launch` and `orca orchestration --help` are the authority if they differ. The procedure was exercised once, in the first handover test, not repeatedly.
+The flags above were checked against `orca agent launch --help` and `orca orchestration --help`; if they differ from the current `--help`, the `--help` output wins. Re-check them before a handover.
 
 ## Two coordinators at once
 
