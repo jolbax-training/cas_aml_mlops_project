@@ -9,7 +9,7 @@ The skill SHALL tell the coordinator, in one short Mechanics bullet (`SKILL.md` 
 
 #### Scenario: Notice carries an actionable message
 - **WHEN** the batch holds a `worker_done`, question, or escalation
-- **THEN** the skill directs the coordinator to process it as it would a `waitloop.sh` delivery and ack it afterwards, then look at the background job: if it printed the same delivery id it has exited, so restart it with `--ack <that id>`; if it is still blocked, leave it running because it will not replay the acked delivery
+- **THEN** the skill directs the coordinator to process it as it would a `waitloop.sh` delivery and ack it afterwards, then look at the background job: if it printed the same delivery id it has exited, so restart it with `--ack <that id>`; if it exited for any other reason (rounds exhausted, `wait.sh` failure), restart it too; if it is still blocked, leave it running because it will not replay the acked delivery
 
 #### Scenario: A wait loop is already running
 - **WHEN** a notice arrives while a background wait loop runs on the run
