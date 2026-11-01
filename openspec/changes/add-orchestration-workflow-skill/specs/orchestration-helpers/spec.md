@@ -24,6 +24,10 @@ A single-batch wait script SHALL block until a `worker_done`, `escalation`, or `
 - **WHEN** a batch contains a `worker_done`, question, or escalation
 - **THEN** the script prints it with its delivery id and stops without silently acking it
 
+#### Scenario: Error or non-JSON response
+- **WHEN** the Orca call fails, prints extra diagnostic lines, or returns a body that is not the expected JSON
+- **THEN** the script prints the response and exits non-zero instead of printing a misleading summary
+
 #### Scenario: Loop exhausted
 - **WHEN** the bounded rounds pass with no actionable message
 - **THEN** the script says so and exits non-zero

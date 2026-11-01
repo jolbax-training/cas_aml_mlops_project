@@ -7,7 +7,7 @@ Record how this project is worked on so that a future Claude Code session can lo
 ## ADDED Requirements
 
 ### Requirement: Loadable project skill
-The repository SHALL provide a project skill at `.claude/skills/orchestration-workflow/SKILL.md` whose frontmatter has a `name` and a `description` that names the situations that should load it (supervising Orca workers, reviewing or fixing a change, merging and watching CI, handing off a session). The main file MUST stay concise and MUST reach situational detail only through pointers to reference files in the same skill directory.
+The repository SHALL provide a project skill at `.claude/skills/orchestration-workflow/SKILL.md` (and not a copy under `.agents/skills/`) whose frontmatter has a `name` and a `description` that names the situations that should load it (supervising Orca workers, reviewing or fixing a change, merging and watching CI, handing off a session). The main file MUST stay concise and MUST reach situational detail only through pointers to reference files in the same skill directory.
 
 #### Scenario: Session needs to coordinate
 - **WHEN** a session is asked to dispatch, supervise, review, merge, or hand off project work
@@ -72,6 +72,13 @@ The skill SHALL document the Orca mechanics the project uses: starting workers w
 - **WHEN** worker terminals are lost after an Orca restart
 - **THEN** the recovery reference directs redispatch of the affected tasks with a retry reference to the original dispatch
 
+### Requirement: Orca CLI constraints
+The skill SHALL record that `--types` only sets the wake condition while a delivery is the whole FIFO batch, that reusing a terminal requires its worktree and cannot change the model, and that a retry names the failed task and does not inherit placement.
+
+#### Scenario: Follow-up to a retained worker
+- **WHEN** the coordinator sends a follow-up to an existing worker terminal
+- **THEN** the skill directs reuse of that terminal with its worktree and without a model override
+
 ### Requirement: Unacked deliveries pitfall
 The skill SHALL record that an actionable delivery that is not acked is replayed and hides newer messages, and SHALL direct the coordinator to ack each processed delivery id explicitly, including actionable ones.
 
@@ -91,11 +98,11 @@ The skill's reference files SHALL provide templates for the shared worker rules,
 - **THEN** the reviewer writes a numbered findings list with severity (blocker, major, minor), file and line, problem, and suggested fix, and states explicitly when nothing is wrong
 
 ### Requirement: Recovery playbook
-The skill's reference files SHALL include a recovery playbook covering an Orca restart, a stalled reviewer, a Fable safeguard block, missing CI logs, and load-flaky sandbox tests, each with the symptom, the action, and the condition that ends the recovery.
+The skill's reference files SHALL include a recovery playbook covering an Orca restart, a stalled reviewer, a Fable safeguard block, missing CI logs, load-flaky sandbox tests, and architecture-specific CI failure, each with the symptom, the action, and the outcome that ends the recovery. The entries MUST be based on the coordinator's first-hand incident record and MUST state where that record is silent (such as waiting thresholds) instead of asserting a value.
 
 #### Scenario: Reviewer stalls
-- **WHEN** a reviewer produces no report and no heartbeat
-- **THEN** the playbook gives the check, the redispatch, and the point at which to escalate to the user
+- **WHEN** a reviewer or worker shows an API error (for example a cut-off mid-response) and sends no heartbeat or `worker_done`
+- **THEN** the playbook directs sending a message to its terminal to continue, write the report to the report path, and send `worker_done`, and says to ask the user where the record gives no further rule
 
 #### Scenario: CI logs unavailable
 - **WHEN** GitHub logs cannot be fetched without authentication
@@ -103,17 +110,36 @@ The skill's reference files SHALL include a recovery playbook covering an Orca r
 
 #### Scenario: Sandbox test fails only under load
 - **WHEN** a sandbox test fails when run alongside other work but passes alone
-- **THEN** the playbook directs rerunning in isolation, recording both outcomes honestly, and fixing the cause rather than skipping the test
+- **THEN** the playbook directs grepping the output for `failed`, rerunning once while inspecting host load, recording both outcomes honestly, and fixing the cause rather than skipping the test
+
+#### Scenario: Fable review blocked
+- **WHEN** a Fable reviewer is blocked by safeguards and stalls
+- **THEN** the playbook directs stopping and abandoning that dispatch, keeping its partial report under a new name, and asking the user before any other reviewer model is used
+
+#### Scenario: CI fails only on another architecture
+- **WHEN** CI fails on the runner but passes locally
+- **THEN** the playbook names an architecture-specific committed value as a suspect and directs preferring host-independent artifacts
 
 ### Requirement: Guardrails
-The skill SHALL state these guardrails: no paid OpenRouter call before the user approves the paid phase, and then only with `--i-accept-cost` and the budget ledger; never fabricate evidence, run IDs, or results; never write the user's reflections; never send the user's email to external services; every merge to main is followed by green CI; rebuild the work log after milestones while keeping pending sections visibly pending.
+The skill SHALL state these guardrails: no paid OpenRouter call before the user approves the paid phase, and then only with `--i-accept-cost` (the flag of the OpenRouter and experiment CLIs) and the budget ledger; never fabricate evidence, run IDs, or results; never write the user's reflections; never send the user's email to external services; every merge to main is followed by green CI.
 
 #### Scenario: Paid phase not yet approved
 - **WHEN** a task would make a paid model call and the user has not approved the paid phase
 - **THEN** the skill directs the task to be left unchecked and reported, not run
 
+### Requirement: Work-log rebuild
+The skill SHALL direct the coordinator to rebuild the work log after milestones with `scripts/build_work_log.py` (verified with `--check`) while keeping pending sections visibly pending.
+
+#### Scenario: Milestone reached
+- **WHEN** a change is merged and CI is green
+- **THEN** the skill directs a work-log rebuild that leaves unfinished sections marked pending
+
 ### Requirement: Session handoff state
-The skill SHALL provide a `STATE.md` template that records merged and archived changes, changes in flight with branch and review status, remaining work, and CI status, with no run-specific history included in the template itself.
+The skill SHALL provide a `STATE.md` template that records merged and archived changes, changes in flight with branch and review status, remaining work, and CI status, with no run-specific history included in the template itself. The live file SHALL be a Git-ignored `STATE.md` at the root of the primary checkout, read first by a new coordinator and created from the template when absent, and MUST NOT contain secrets or email addresses.
+
+#### Scenario: State file is ignored
+- **WHEN** a coordinator creates the live `STATE.md`
+- **THEN** `git status` does not list it and the repository's ignore rules cover it
 
 #### Scenario: New session resumes
 - **WHEN** a new coordinator session reads the filled-in state file
