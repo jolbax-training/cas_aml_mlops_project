@@ -1,0 +1,85 @@
+# Design
+
+## Context
+
+See proposal.md for motivation. Current state, observed in the repository:
+
+- Phase 1 is implemented and tested offline: `trial.py` (bounded agent), `run_checks.py`, `contract.py`, `evaluate.py`, `sandbox.py` + `worker.py` (one `podman run` per check with `--network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges --user=65534:65534` and memory/pids/cpu limits), `bundle.py` and `run_recording.py` (bundles under `run_bundles/`, Git-ignored), `replay.py`, `mlflow_tracking.py` (recorder, default `http://127.0.0.1:5000`), `scripts/mlflow_service.sh` (pinned `ghcr.io/mlflow/mlflow@sha256:…`, `--publish 127.0.0.1:PORT:5000`, durable `mlflow_data/`), `summary.py`, `comparison.py`, `experiment.py`, `experiment_cli.py`, `scripts/build_work_log.py`.
+- Phase 2 pieces exist as code but have never run live: `openrouter_client.py` (endpoint `https://openrouter.ai/api/v1/chat/completions`), `ledger.py` (default `~/.codegen_eval/spend_ledger.jsonl`, CHF 15 ceiling), and the only readers of `OPENROUTER_API_KEY` (`openrouter_cli.py`, `experiment_cli.py`). CI (`.github/workflows/ci.yml`) has `offline` and `podman` jobs on GitHub-hosted `ubuntu-24.04`, and has run green on GitHub; the candidate image comes from `docker.io/library/python` (digest-pinned per architecture; optional ECR mirror) and MLflow's from `ghcr.io`.
+- The work log (`scripts/build_work_log.py`) inlines exactly one SVG, `docs/work_log_architecture.svg`, after `validate_svg`: tag allowlist `SVG_TAGS`, no `on*`/`*href` attributes, only local `url(#id)`, `role="img"` with `aria-labelledby` naming `<title>`/`<desc>`. Output validation then forbids `script|img|link|iframe|object|embed|form|base` tags and uses a CSP with `default-src 'none'; style-src 'unsafe-inline'`.
+- draw.io desktop is at `/Applications/draw.io.app`; its CLI exports `.drawio` to SVG with `-x -f svg --embed-diagram`.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Two diagrams a reviewer can check box by box against the code, editable in draw.io, with text twins.
+- Show the work log both diagrams with no relaxation of `validate_svg` or the output checks.
+- Make drift detectable by tests (names exist, coverage of modules, statuses and key edges agree with a declared list).
+
+**Non-Goals:**
+- No new graph engine, no diagram generation from code, no draw.io dependency in CI or in the work-log builder (draw.io is an authoring tool only).
+- No change to runtime code, CI workflow, or `docs/work_log_architecture.svg`. No results or live-run claims. No hosting.
+
+## Decisions
+
+### 1. Physical view is one diagram with phase-2 elements marked
+
+One `architecture_physical.drawio.svg` shows both phases. Phase-1 elements use solid outlines; phase-2 and external elements use a dashed outline plus the literal tag `PHASE 2` or `EXTERNAL` in their label, so the marking survives greyscale. The text twin has separate "Phase 1 (local, offline)" and "Phase 2 (live)" sections and states which arrows exist in phase 1 only.
+
+Why: the user asked for "a physical overview that shows both", and one picture shows what *changes* at the boundary (the new egress arrows and the key) without comparing two images. Alternatives: (a) two files, one per phase (duplicates every local box and drifts); (b) one `.drawio` with two pages (an SVG export renders only the first page, so the second would be invisible in browsers and the work log). If phase 2 later proves too crowded, a phase-1-only variant can be exported from the same source by hiding a draw.io layer; the phase-2 elements are therefore kept on their own layer `phase2`. That is a convenience, not a deliverable.
+
+Content, each box verified against code or scripts in task 2:
+- Laptop (macOS, arm64) trust zone "trusted host": uv/Python CLI (`replay.py`, `run_recording.py`, `experiment_cli.py`, `openrouter_cli.py`, `build_work_log.py`), `run_bundles/` and the spending ledger `~/.codegen_eval/spend_ledger.jsonl` on disk, `mlflow_data/` durable storage, `report/index.html`, and the API key as an environment variable read only by the two CLIs.
+- Podman (local VM): zone "candidate containers": N disposable containers, one per check, no network, read-only root, no capabilities, non-root user, bounded memory/pids/cpu, no mounts of the repository; the MLflow container as a separate Podman service, published on `127.0.0.1` only, with the data directory as its only mount. The diagram shows no arrow from a candidate container to MLflow, the model API, Podman, or the host filesystem.
+- Phase 2: OpenRouter (HTTPS from the host process only, API key in the request header, every attempt reserved in the ledger first), GitHub repository and GitHub Actions (jobs `offline` and `podman`, `ubuntu-24.04`, rootful Podman on the runner), image registries (`docker.io/library/python` with optional ECR mirror for the candidate image; `ghcr.io` for MLflow), with pulls drawn as host-to-registry arrows only.
+
+### 2. Logical view is placement-free and uses module names
+
+`architecture_logical.drawio.svg` draws components and data flow only, with labels such as `tasks.py`, `agent_config.py`, `trial.py`, `model_client.py` / `openrouter_client.py`, `ledger.py`, `contract.py`, `run_checks.py`, `evaluate.py`, `sandbox.py` + `worker.py`, `bundle.py` / `run_recording.py`, `replay.py`, `mlflow_tracking.py`, `summary.py`, `comparison.py`, `experiment.py` / `experiment_cli.py`, `build_work_log.py`, and CI as a gate over the offline tests and sandbox probes. Verified flow facts to encode: comparison and summaries read bundles, not MLflow; MLflow records from bundles after they are written and is never read back; `run_checks` uses only function name and signature; `evaluate.grade_trial` and `replay` run hidden grading in fresh containers; the ledger reservation precedes each model attempt. Statuses use the same three labels as the existing figure, taken from `docs/progress.md` and `docs/ci_evidence.md`, with phase-2 live pieces (OpenRouter client, comparison) partial. Any arrow that cannot be tied to a call in the source is removed rather than drawn.
+
+### 3. File format and regeneration
+
+Source of truth is the `*.drawio.svg` itself (draw.io saves and reopens it). Authoring: write the diagram with draw.io desktop (or generate the first `.drawio` XML by hand, then export): `/Applications/draw.io.app/Contents/MacOS/draw.io -x -f svg --embed-diagram -o docs/architecture_physical.drawio.svg <source>.drawio`. Authoring rules chosen so the export stays inside the allowlist of decision 5: every cell has `html=0` and `whiteSpace` unset (plain `<text>` labels with explicit line breaks, no `foreignObject`), no images or gradients or shadows, no links or tooltips, no custom fonts, arrowheads as drawn paths. The intermediate `.drawio` is not committed (the embedded XML in the SVG is the editable source); a README paragraph says to open the `.drawio.svg` in draw.io, edit, save, and run the checks.
+
+Verification, written as a test and as a one-line command in the README: (a) the file parses as XML and has a `content` attribute on the root `<svg>`; (b) the `content` decodes (it is HTML-escaped `mxfile` XML, possibly deflate-compressed; export with `--uncompressed` so it is readable and diff-able in Git) to an `mxGraphModel`; (c) the set of non-empty labels in the embedded XML equals the set of `<text>` strings in the rendered SVG, so the image and the editable source cannot diverge; (d) module names match files (decision 6); (e) the sanitizer of decision 5 accepts the file. A one-time manual check opens each file with the draw.io CLI re-export (`-x -f png` of the SVG) to confirm it renders; the result is recorded in `docs/progress.md`, not claimed by CI because CI has no draw.io.
+
+### 4. Existing `docs/work_log_architecture.svg` stays as is
+
+It is the work log's opening figure, owned by `add-local-html-work-log` (task 3.1 done, reviewed). It remains the compact, status-colour overview; the new logical diagram is the detailed, editable reference and is richer in the same facts. To avoid inconsistent duplicates: (a) a test asserts that every module name in the old figure also appears in the logical twin, and that a module named with a different status in the two raises a failure (statuses are compared from the three fixed labels); (b) the old figure's text equivalent and the README gain one pointer sentence to the new diagrams (a docs-only edit of two sentences, flagged as touching that change's files). Alternative rejected: replacing the old SVG by the logical diagram now. It would edit another change's reviewed artifact and rewrite its tests while the new path is still unproven; the option is recorded as a follow-up once both stay consistent.
+
+### 5. Work-log integration: sanitize-and-rebuild, separate from `validate_svg`
+
+`validate_svg` and `SVG_TAGS` stay byte-for-byte unchanged and keep validating only `docs/work_log_architecture.svg`. A new function (`sanitize_drawio_svg`) handles registered draw.io files:
+
+- Parse with `xml.etree` after rejecting DOCTYPE/ENTITY (same first check as today).
+- Walk the tree and **fail** (never silently drop) on any element outside a closed allowlist: `svg`, `g`, `rect`, `path`, `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`, `defs` (empty only). `foreignObject`, `switch`, `image`, `a`, `script`, `style` elements, `use`, `marker`, and `filter` are errors.
+- Attributes: per-element allowlist of geometry and presentation attributes (`x y width height rx ry cx cy r d points x1 y1 x2 y2 transform fill stroke stroke-width stroke-dasharray stroke-miterlimit stroke-linecap stroke-linejoin fill-opacity stroke-opacity opacity font-family font-size font-weight font-style text-anchor dominant-baseline pointer-events visibility`), and `style` only if every declaration's property is in that same presentation set and the value has no `url(`, `expression`, `@import`, or `javascript:`. Any `on*`, `*href`, `id` references, or `url(` anywhere is an error. The root `content` attribute (the editable XML payload) is the single attribute removed on purpose and is never inlined.
+- The output is **re-serialized from the validated tree**, then given an accessible root added by the builder: `role="img"`, `aria-labelledby`, a `<title>` from the registered title, and a `<desc>` of the registered one-sentence description pointing to the text twin; ids are generated from the registered diagram id, so they cannot collide with existing ids. The re-serialized string is then also passed through the existing output validator, so the output stays free of `script|img|…` tags and `url(`.
+
+Registration in `docs/work_log.toml`: `[[diagram]]` tables with `id`, `title`, `svg` (must end in `.drawio.svg`), `text` (must end in `.md`), `description`, and a `label`; unknown keys fail as elsewhere; both paths go through `resolve_repo_path` (no escapes, symlinks, private locations); ids use the same anchor rules and cannot be reserved or duplicated; the same file may not be selected twice. In the report each diagram becomes a section after the sections navigation, in listed order, containing the scrollable figure (same focusable `.scroll` container as today) and its rendered text twin; the existing architecture-first rule is untouched. The provenance table gains rows with the sha256 of each SVG and twin.
+
+Alternatives considered: (a) widen `SVG_TAGS` to accept raw draw.io output (weakens the one reviewed gate and admits `foreignObject` HTML, which can carry markup and links); (b) embed via `<img src>` or `<object>` (forbidden by the output validator and the CSP `img-src 'none'`); (c) link the file only, plus the twin (safe, but the work log would not show the picture; kept as the defined **fallback** if the export under the authoring rules cannot be made to pass the allowlist: render the twin and a labelled "diagram file, not embedded" reference); (d) convert with a tool at build time (adds a draw.io or Node dependency to an offline builder). The sanitizer is chosen because it is closed by construction and needs only the standard library. If draw.io's real output needs an element or attribute not in the allowlist, the implementation must first try an authoring setting that avoids it and may widen the allowlist only by a reviewed, tested addition recorded in this design, never by weakening the rejections for scripts, handlers, external references, `foreignObject`, or images.
+
+### 6. Tests
+
+New `tests/test_architecture_diagrams.py` (offline, no Podman, no draw.io): both files exist, parse, and the embedded XML decodes with labels equal to rendered text; every `*.py`/`*.sh` name in the SVG labels and twins exists under `src/codegen_eval/` or `scripts/`; every public module in `src/codegen_eval/` is named in the logical twin or in an explicit "not drawn" list with a reason; each box label carries one of the status words; the twins contain the phase markers and the trust-boundary statements; no digit string looks like a result or a run identifier (a `run_…`/`wf_…`-style or URL check against an allowlist of the repository's own URLs); the "comparison reads bundles" and "MLflow never read back" statements are asserted against the source (`comparison.py` imports no `mlflow`; `mlflow_tracking` is imported only by the recording path and CLI); the candidate container flags named in the twin appear in `sandbox.py`.
+
+Additions to `tests/test_work_log.py`: a registered diagram builds, appears after navigation with title/desc/`role="img"`, its text twin, and provenance row; the embedded `content` attribute is absent from the page; the output passes `validate_output`; parametrized rejection of `script`, `foreignObject`, `image`, `switch`, `a href`, `style` element, `on*` handler, `xlink:href`, `url(https://…)`, data URI, DOCTYPE, an unknown element, and a missing file or `.svg`-only suffix; an old-figure regression test that `validate_svg` still rejects the existing parametrized unsafe inputs and does not accept a `foreignObject`; unknown `[[diagram]]` keys fail. The real repository's `--check` run covers both files.
+
+## Risks / Trade-offs
+
+- [Real draw.io output uses a construct outside the allowlist] → Resolve first by authoring settings (decision 3); widen the allowlist only through a reviewed, tested addition; fall back to link-plus-twin (decision 5c). Decided early: task 1.1 exports a spike diagram and inspects the elements before the full drawing.
+- [Image and embedded XML diverge after a hand edit] → Label-equality test (decision 3c) and a README rule to save from draw.io.
+- [The diagrams drift from the code] → Name/coverage/flag tests, plus the verify-against-source task and a Fable review; the diagrams carry a "verified against commit" line in the twin, updated with each edit.
+- [Two overview figures disagree] → Cross-test of module names and statuses (decision 4); old figure kept deliberately small.
+- [Phase 2 content mistaken for something done] → Dashed outline plus the literal `PHASE 2` tag, an explicit status line "no live run has happened", and tests for invented result strings.
+- [Embedded XML is large and noisy in Git] → `--uncompressed` export keeps diffs readable; accepted cost is file size (tens of kilobytes).
+- [draw.io CLI is not available to a reviewer or in CI] → Nothing at runtime or in CI needs it; checks use only the checked-in files and the standard library.
+
+## Migration Plan
+
+Additive: new files, new optional `[[diagram]]` entries (a source list with none still builds), and a builder extension. Roll back by removing the entries and the files; no data or runtime migration. The change is not archived by this stage.
+
+## Open Questions
+
+- Whether to replace `docs/work_log_architecture.svg` by the logical diagram once both are stable (follow-up for the owner of `add-local-html-work-log`; does not change this change's tasks).
