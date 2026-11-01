@@ -18,6 +18,13 @@ Text equivalent of the experiment-lifecycle activity diagram ([`run_flow_activit
 
 The container lane is the only trust-boundary region. Only candidate source plus one check's or one case's arguments flow in, and only one bounded report flows out, always to and from the host launcher `sandbox.py`. Expected answers, scoring, the key, and the ledger stay on the host side. No arrow joins the container lane to OpenRouter, the ledger, the bundle, or MLflow.
 
+## Notation choices
+
+- The two `run` actions are drawn as bold-bordered rounded actions with the text `[sub-activity: see frame below]` instead of the rake glyph; the frame is the expansion. `EXIT: run completed` is a plain rectangle (not on the frame border) labelled as the exit of the sub-activity, and it is not a final node.
+- `CHF 10 checkpoint: logged once, the run continues` is an annotation of the ledger write, not a step: it has an incoming dashed arrow from the ledger data store and no outgoing flow.
+- The abort path is an orange dashed arrow `any exception` from the trial-loop region to `BaseException in the loop ...`; the region is not drawn as a UML interruptible region.
+- `FINAL: refused` is in the host CLI lane (the CLI produces it). The lifecycle final nodes `check` unmet and `compare` not headline are in the human lane because the human reads the printout and decides what happens next.
+
 ## Lifecycle nodes (top part of the diagram)
 
 - (human; start node) START: experiment begins — code: `initial node of the lifecycle`
@@ -85,7 +92,7 @@ The dashed frame `activity: run --variant V (one invocation; entered from both r
 - (host CLI; decision) inputs; usable? — code: `experiment_cli.main: return 1 (config) or REFUSED`
 - (host CLI; action) check_preconditions() inside run_variant; all failures reported together:; - cost acceptance, API key, variant prompt; - config_drift, host platform and pinned image; - benchmark freeze (check_freeze); - probe evidence (probes_problems); - settings freeze, smoke bundle, calibrate; - budget projection against the CHF 15 ceiling; - no earlier run of this variant — code: `experiment.check_preconditions`
 - (host CLI; decision) any precondition; unmet? — code: `PreconditionsFailed`
-- (human; final node) FINAL: refused; exit 2 (exit 1 if the config is unreadable); nothing written, nothing spent — code: `experiment_cli.main: REFUSED = 2; PreconditionsFailed`
+- (host CLI; final node) FINAL: refused; exit 2 (exit 1 if the; config is unreadable); nothing written,; nothing spent — code: `experiment_cli.main: REFUSED = 2; PreconditionsFailed`
 - (host CLI; action) write run marker: started; experiment.run_variant atomic_write — code: `experiment.run_variant: atomic_write(marker)`
 - (on disk and MLflow; data store) run marker; <run_id>.experiment.json — code: `experiment._sidecar_path`
 - (host CLI; action) run_recorded(): plan 10 tasks x 3 trials; BundleWriter: manifest in_progress — code: `run_recording.run_recorded, bundle.BundleWriter`
@@ -95,20 +102,22 @@ The dashed frame `activity: run --variant V (one invocation; entered from both r
 - (host CLI; action) log the request; RecordingClient.complete -> append_call — code: `run_recording.RecordingClient.complete, bundle.BundleWriter.append_call`
 - (on disk and MLflow; data store) call log: request; fsync, before the send — code: `bundle.BundleWriter.append_call`
 - (host CLI; decision) bound within the; input limit? — code: `openrouter_client.input_token_bound`
-- (host CLI; action) request_rejected; no_submission (no reserve, no send) — code: `ModelFailure(request_rejected) -> trial.run_trial`
+- (host CLI; action) ModelFailure: request_rejected; (no reserve, no send) — code: `ModelFailure(request_rejected) -> trial.run_trial`
 - (host CLI; action) ledger.reserve(); before every send, retries included — code: `openrouter_client.OpenRouterClient._attempt -> ledger.Ledger.reserve`
 - (on disk and MLflow; data store) ledger: spend_ledger.jsonl; reservation (fsync, exclusive lock) — code: `ledger.Ledger.reserve`
 - (host CLI; decision) total + amount >; CHF 15 ceiling? — code: `ledger.BudgetCeiling`
-- (host CLI; action) budget_ceiling; infrastructure_incomplete — code: `ModelFailure(budget_ceiling) -> trial.run_trial`
+- (host CLI; action) ModelFailure: budget_ceiling; (reservation refused) — code: `ModelFailure(budget_ceiling) -> trial.run_trial`
 - (on disk and MLflow; action) CHF 10 checkpoint: logged once,; the run continues — code: `ledger.Ledger._log_checkpoint (reserve, settle, adjust)`
 - (OpenRouter (EXTERNAL); action) OpenRouter API (EXTERNAL, PHASE 2); POST chat completions, one reply — code: `transport.post(config.endpoint, ...)`
 - (host CLI; action) settle or keep; ledger.settle / ledger.keep — code: `openrouter_client.OpenRouterClient._interpret, _settle`
 - (on disk and MLflow; data store) ledger: settlement or kept; committed charge or counted reservation — code: `ledger.Ledger.settle, ledger.Ledger.keep`
 - (host CLI; decision) reply usable? — code: `openrouter_client.OpenRouterClient.complete / _interpret`
-- (host CLI; action) ModelFailure (transport_exhausted,; api_error, malformed_response); infrastructure_incomplete — code: `TRANSPORT_EXHAUSTED, API_ERROR, MALFORMED_RESPONSE`
+- (host CLI; action) ModelFailure: transport_exhausted,; api_error, or malformed_response — code: `TRANSPORT_EXHAUSTED, API_ERROR, MALFORMED_RESPONSE`
 - (host CLI; action) log the response; RecordingClient.complete -> append_call — code: `run_recording.RecordingClient.complete`
 - (on disk and MLflow; data store) call log: response; fsync — code: `bundle.BundleWriter.append_call`
 - (host CLI; decision) response outcome?; (trial.run_trial) — code: `trial.run_trial`
+- (host CLI; action) no_submission; (request_rejected) — code: `trial.run_trial: REQUEST_REJECTED`
+- (host CLI; action) infrastructure_incomplete; (status = the failure kind) — code: `trial.run_trial: INFRASTRUCTURE_INCOMPLETE`
 - (host CLI; action) tool call while tools disabled; no_submission (tool_request_when_disabled) — code: `tool_request_when_disabled`
 - (host CLI; action) no content; no_submission (no_final_message) — code: `no_final_message`
 - (host CLI; action) final content: contract.validate_source; submitted (issue recorded, never repaired) — code: `contract.validate_source, trial.run_trial`
@@ -160,34 +169,38 @@ The dashed frame `activity: run --variant V (one invocation; entered from both r
 - build request (trial.run_trial) → log the request
 - log the request → call log: request [writes]
 - log the request → bound within the
-- bound within the → request_rejected [no]
+- bound within the → ModelFailure: request_rejected [no]
 - bound within the → ledger.reserve() [yes]
 - ledger.reserve() → ledger: spend_ledger.jsonl [reserve]
 - ledger.reserve() → total + amount >
-- total + amount > → budget_ceiling [yes (refusal)]
+- total + amount > → ModelFailure: budget_ceiling [yes (refusal)]
 - ledger: spend_ledger.jsonl → CHF 10 checkpoint: logged once,
 - total + amount > → OpenRouter API (EXTERNAL, PHASE 2) [no: send]
 - OpenRouter API (EXTERNAL, PHASE 2) → settle or keep [reply]
 - settle or keep → ledger: settlement or kept [settle / keep]
 - settle or keep → reply usable?
 - reply usable? → ledger.reserve() [retry]
-- reply usable? → ModelFailure (transport_exhausted, [other failure]
+- reply usable? → ModelFailure: transport_exhausted, [other failure]
 - reply usable? → log the response [usable reply]
 - log the response → call log: response [writes]
 - log the response → response outcome?
-- response outcome? → tool call while tools disabled
-- response outcome? → no content
-- response outcome? → final content: contract.validate_source
+- response outcome? → no_submission [rejected]
+- response outcome? → infrastructure_incomplete [other failure]
+- response outcome? → tool call while tools disabled [tools disabled]
+- response outcome? → no content [no content]
+- response outcome? → final content: contract.validate_source [final content]
 - response outcome? → run_checks.run_checks() (tool call, tools on) [tool call, tools enabled]
 - run_checks.run_checks() (tool call, tools on) → worker.py: fresh container per check [source + one check's args]
 - worker.py: fresh container per check → compare actual with the agent's expected [bounded result]
 - compare actual with the agent's expected → infrastructure
 - infrastructure → infrastructure_incomplete [yes]
-- infrastructure → build request (trial.run_trial) [no: feedback, next call]
+- infrastructure → build request (trial.run_trial) [feedback]
+- ModelFailure: request_rejected → log the response
+- ModelFailure: budget_ceiling → log the response
+- ModelFailure: transport_exhausted, → log the response
 - final content: contract.validate_source → trial ends: TrialResult
-- request_rejected → trial ends: TrialResult
-- budget_ceiling → trial ends: TrialResult
-- ModelFailure (transport_exhausted, → trial ends: TrialResult
+- no_submission → trial ends: TrialResult
+- infrastructure_incomplete → trial ends: TrialResult
 - tool call while tools disabled → trial ends: TrialResult
 - no content → trial ends: TrialResult
 - infrastructure_incomplete → trial ends: TrialResult
@@ -220,7 +233,7 @@ The dashed frame `activity: run --variant V (one invocation; entered from both r
 - stopped at → FINAL: budget ceiling [yes]
 - stopped at → FINAL: incomplete after infrastructure [no]
 
-The ceiling decision `total + amount > CHF 15 ceiling?` is the test in `ledger.Ledger.reserve` (`state.total + amount > ceiling`, total being committed plus outstanding reservations). The CHF 10 checkpoint is logged once by `ledger.Ledger._log_checkpoint`, called from `reserve`, `settle`, and `adjust`; it only records, the run continues, and the final printout reports `checkpoint_reached`. A retry after a transient failure (timeout, connection error, HTTP 408/429/5xx) reserves again before it sends (`openrouter_client.OpenRouterClient._attempt`). When tools are not offered (`tool_choice` none) the client still sends the tool definitions so the history's tool calls stay valid.
+The response event is appended to the call log for every outcome of a model call, including the failures: `request_rejected`, `budget_ceiling`, and the transport, API, and malformed-response failures all flow into `log the response` (`run_recording.RecordingClient.complete` emits it for every return of `inner.complete`) before the five outcomes are decided. The ceiling decision `total + amount > CHF 15 ceiling?` is the test in `ledger.Ledger.reserve` (`state.total + amount > ceiling`, total being committed plus outstanding reservations). The CHF 10 checkpoint is logged once by `ledger.Ledger._log_checkpoint`, called from `reserve`, `settle`, and `adjust`; it only records, the run continues, and the final printout reports `checkpoint_reached`. A retry after a transient failure (timeout, connection error, HTTP 408/429/5xx) reserves again before it sends (`openrouter_client.OpenRouterClient._attempt`). When tools are not offered (`tool_choice` none) the client still sends the tool definitions so the history's tool calls stay valid.
 
 ## Endings
 
@@ -237,7 +250,7 @@ Final nodes (UML final nodes, seven in all). A completed run is the exit edge, n
 
 **In the lifecycle**
 
-5. **FINAL: check reports unmet preconditions.** `experiment_cli check` prints `unmet: <check>: <detail>` for every failed precondition and `N unmet precondition(s)`, exit **1**; nothing is spent and nothing is written.
+5. **FINAL: check reports unmet preconditions.** `experiment_cli check` prints `unmet: <check>: <detail>` for every failed precondition and `N unmet precondition(s)`, exit **1**; nothing is spent and nothing is written. The pre-run path is shared with `run`, so an unreadable pricing file ends `check` with `refusing to run`, exit **2**, and an unreadable configuration with `error:`, exit **1**; nothing is written in either case.
 6. **FINAL: compare is not a headline comparison.** `compare` prints the figures labelled `NOT a headline comparison` with the reasons (an incomplete, ungraded, or non-matching run), exit **1**.
 7. **FINAL: experiment complete.** After the work-log rebuild; the end of the lifecycle.
 

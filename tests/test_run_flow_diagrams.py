@@ -192,8 +192,19 @@ def test_every_file_and_function_name_written_in_the_diagram_or_twin_exists(kind
     missing = []
     for ref in sorted(refs):
         module, *rest = ref.split(".")
-        defined = _defs(module + ".py")
-        if not set(rest) <= defined:
+        if len(rest) >= 2:  # Class.member: the method or field must be defined inside that class
+            owner = next((x for x in _tree(module + ".py").body if isinstance(x, ast.ClassDef) and x.name == rest[0]), None)
+            members = set()
+            for item in (owner.body if owner else []):
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    members.add(item.name)
+                elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                    members.add(item.target.id)
+                elif isinstance(item, ast.Assign):
+                    members.update(t.id for t in item.targets if isinstance(t, ast.Name))
+            if owner is None or rest[1] not in members:
+                missing.append(ref)
+        elif not set(rest) <= _defs(module + ".py"):
             missing.append(ref)
     assert missing == []
 
@@ -408,7 +419,9 @@ def test_the_run_marker_is_written_before_the_run_and_the_recording_follows_veri
     checks = _lines("experiment.py", "run_variant", "check_preconditions")
     assert checks < marker < run < verify < record < final
     assert "except Exception" in source("experiment.py")  # a tracking outage never stops the run
-    assert source("experiment_cli.py").count("check_preconditions(") == 1  # the offline `check` command
+    callers = {p.name: p.read_text(encoding="utf-8").count("check_preconditions(") for p in SRC.glob("*.py")}
+    # the definition and its one use in run_variant (experiment.py), and the offline `check` command
+    assert {k: v for k, v in callers.items() if v} == {"experiment.py": 2, "experiment_cli.py": 1}
 
 
 def test_one_run_command_runs_one_variant_and_mlflow_is_recorded_once_per_run():
@@ -487,7 +500,10 @@ def test_sequence_participants_fragments_and_message_order():
                      "mlflow_tracking.py", "run_checks.py", "evaluate.py + contract.py", "sandbox.py + limits.py", "worker.py"]
     ops = collections.Counter(c.get("value") for c in vertices("sequence") if "shape=umlFrame" in c.get("style"))
     assert ops == {"loop": 4, "alt": 4}
-    labels = [lines(c.get("value"))[0] for c in edges("sequence") if c.get("value")]
+    def y_of(edge):
+        point = next(p for p in edge.find("mxGeometry").findall("mxPoint") if p.get("as") == "sourcePoint")
+        return float(point.get("y"))
+    labels = [lines(c.get("value"))[0] for c in sorted(edges("sequence"), key=y_of) if c.get("value")]
     def at(prefix):
         return next(i for i, l in enumerate(labels) if l.startswith(prefix))
     assert (at("run_trial(") < at("complete(request)") < at("append_call(request)") < at("inner.complete")
@@ -531,3 +547,62 @@ def test_the_work_log_shows_both_diagrams_after_the_existing_ones():
         assert "content=" not in section and "mxfile" not in section
         assert "no live run has happened" in section.lower()
     assert "run_flow_activity.drawio.svg" in text and "run_flow_sequence.md" in text  # provenance rows
+
+
+# ----------------------------------------------------------------------------- failed model calls and the five outcomes
+
+def _activity_by_title():
+    return {lines(c.get("value"))[0]: c for c in vertices("activity") if lines(c.get("value"))}
+
+
+def test_failed_model_calls_are_logged_before_the_outcome_is_decided():
+    """RecordingClient.complete appends the response event for every return, failures included."""
+    by_title = _activity_by_title()
+    log = by_title["log the response"].get("id")
+    decision = next(c for c in vertices("activity") if (c.get("value") or "").startswith("response outcome?")).get("id")
+    out = collections.defaultdict(list)
+    for e in edges("activity"):
+        out[e.get("source")].append(e.get("target"))
+    for title in ("ModelFailure: request_rejected", "ModelFailure: budget_ceiling", "ModelFailure: transport_exhausted,"):
+        assert log in out[by_title[title].get("id")], f"{title}: does not flow into `log the response`"
+        assert "trial ends: TrialResult" not in [lines(next(c for c in vertices("activity") if c.get("id") == t).get("value"))[0]
+                                                 for t in out[by_title[title].get("id")]]
+    assert decision in out[log]
+    text = source("run_recording.py")
+    complete = text[text.index("def complete"):text.index("def _usage_totals")]
+    assert "isinstance(response, ModelFailure)" in complete and complete.count('"event": "response"') == 1
+    assert complete.index("isinstance(response, ModelFailure)") < complete.index('"event": "response"')
+    assert "the response event is appended to the call log for every outcome" in twin("activity").lower()
+
+
+def test_the_response_decision_has_one_guarded_edge_per_outcome():
+    ids = {c.get("id"): lines(c.get("value"))[0] for c in vertices("activity") if lines(c.get("value"))}
+    decision = next(c.get("id") for c in vertices("activity") if (c.get("value") or "").startswith("response outcome?"))
+    guards = {e.get("value"): ids[e.get("target")] for e in edges("activity") if e.get("source") == decision}
+    assert guards == {
+        "rejected": "no_submission",
+        "other failure": "infrastructure_incomplete",
+        "tools disabled": "tool call while tools disabled",
+        "no content": "no content",
+        "final content": "final content: contract.validate_source",
+        "tool call, tools enabled": "run_checks.run_checks() (tool call, tools on)"}
+    trial = source("trial.py")
+    run = trial[trial.index("def run_trial"):trial.index("def _outcome")]
+    order = [run.index(x) for x in ("REQUEST_REJECTED", "INFRASTRUCTURE_INCOMPLETE", "tool_request_when_disabled",
+                                    "_handle_tool_calls(", "no_final_message", "validate_source(")]
+    assert order == sorted(order)  # the five outcomes the guards stand for, in the code's order
+
+
+def test_sequence_replies_are_dashed_with_an_open_head_and_calls_are_solid():
+    replies = ("ModelFailure(request_rejected)", "BudgetCeiling", "ModelFailure(budget_ceiling)", "ModelResponse, or ModelFailure",
+               "response", "ExecutionResult", "one bounded report", "feedback", "TrialResult", "TrialGrade", "reply, or transport failure")
+    for edge in edges("sequence"):
+        label = lines(edge.get("value"))[0] if edge.get("value") else ""
+        style = edge.get("style")
+        if edge.get("id").startswith("m") and label:
+            if label.startswith(replies):
+                assert "dashed=1" in style and "endArrow=open" in style, label
+            else:
+                assert "endArrow=block" in style, label
+                if not label.startswith(("POST", "client_for")):
+                    assert "dashed=1" not in style, label
