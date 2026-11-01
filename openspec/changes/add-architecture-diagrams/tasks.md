@@ -2,7 +2,7 @@
 
 ## 1. Authoring spike and diagram toolchain
 
-- [ ] 1.1 Draw a small test diagram in the draw.io XML under the authoring rules (`html=0`, no wrap, no images/gradients/links), export it with `/Applications/draw.io.app/Contents/MacOS/draw.io -x -f svg --embed-diagram --uncompressed`, and record the exact element and attribute set the export produces; verify by listing them and confirming they fit the allowlist in design.md (or record the needed reviewed widening, or the link-plus-twin fallback).
+- [ ] 1.1 Draw a small test diagram in the draw.io XML under the authoring rules (`html=0`, no wrap, no images/gradients/links), export it with `/Applications/draw.io.app/Contents/MacOS/draw.io -x -f svg --embed-diagram --svg-theme light --embed-svg-fonts false`, with the documented flags (`--svg-theme light --embed-svg-fonts false`), and confirm the element and attribute set observed in the review spike (design decision 3) against the sanitizer allowlist; verify by listing them, and also open the exported file in draw.io desktop, save it, and check the saved file's elements the same way (or record the needed reviewed widening, or the link-plus-twin fallback).
 - [ ] 1.2 Record the regeneration and verification commands in the README diagram section (edit in draw.io, save as `.drawio.svg`, run the consistency test and `build_work_log.py --check`); verify by running the documented commands as written.
 
 ## 2. Draw and verify against the code
@@ -11,10 +11,11 @@
 - [ ] 2.2 Draw `docs/architecture_physical.drawio.svg` (phase-1 local system, phase-2 elements on their own layer with dashed outline and `PHASE 2`/`EXTERNAL` tags, trust zones, no candidate-container arrows out); verify each placement and flag against `sandbox.py`, `scripts/mlflow_service.sh`, `ledger.py`, `openrouter_client.py`, `.github/workflows/ci.yml`, and `scripts/ci_pull_pinned_image.sh`.
 - [ ] 2.3 Write `docs/architecture_logical.md` and `docs/architecture_physical.md` as complete text twins (components, arrows, boundaries, phases, statuses, "no live run has happened", verified-against commit); verify by reading them without the image and checking each diagram label appears in a twin.
 - [ ] 2.4 Add `tests/test_architecture_diagrams.py` per design decision 6 (embedded XML decodes, labels equal rendered text, module names and coverage, status words, flags and "reads bundles" claims against source, no invented results); verify the test passes and fails on a deliberately wrong module name and a stale label.
-- [ ] 2.5 Render both SVGs with the draw.io CLI (PNG export) and view them; verify legibility, no overlapping labels, and record browser or CLI evidence and the draw.io version in `docs/progress.md`.
+- [ ] 2.5 Render both SVGs with the draw.io CLI (PNG export) and view them; verify legibility, no overlapping labels, and that a draw.io desktop re-save of each file still passes the sanitizer and label test; record browser or CLI evidence and the draw.io version in `docs/progress.md`.
 
 ## 3. Work-log integration
 
+- [ ] 3.0 Tell the owner of `add-local-html-work-log` (via the coordinator) that this change adds code to `scripts/build_work_log.py` and `tests/test_work_log.py`; verify the notice is sent before 3.1 starts.
 - [ ] 3.1 Add `sanitize_drawio_svg`, the `[[diagram]]` source-list tables, validation, rendering after the navigation, and provenance rows to `scripts/build_work_log.py`, leaving `validate_svg` and `SVG_TAGS` unchanged; verify with the existing `tests/test_work_log.py` still passing unmodified for the old figure.
 - [ ] 3.2 Add the work-log tests from design decision 6 (accepted build, no `content` attribute in output, output validation, parametrized unsafe-construct rejections, old-figure regression, config key errors); verify they pass and each rejection test fails when its check is removed.
 - [ ] 3.3 Register both diagrams in `docs/work_log.toml`, rebuild, and run `build_work_log.py --check`; verify the report shows both figures with twins, the old opening figure still comes first, and the page has no script, image, or external reference.
