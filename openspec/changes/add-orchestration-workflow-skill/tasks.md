@@ -28,6 +28,6 @@ Stage 2 implements sections 1 to 3 (except 3.4, which waits for the coordinator'
 
 ## 4. Left open (not implementable by the worker)
 
-- [ ] 4.0 Coordinator-owned: Fable review of the proposal before implementation (done for stage 1; findings folded into these artifacts) and Fable review of the implemented skill, scripts, and tests. Reason: the worker cannot commission reviews and the reports live in the coordinator's scratchpad, outside the repo.
+- [x] 4.0 Coordinator-owned: Fable review of the proposal before implementation (done for stage 1; findings folded into these artifacts) and Fable review of the implemented skill, scripts, and tests. Reason: the worker cannot commission reviews and the reports live in the coordinator's scratchpad, outside the repo.
 - [ ] 4.1 Try the skill in a fresh coordinator session on a real change and note gaps. Reason: needs a live Orca session and the user's judgment; do not claim it until done.
 - [ ] 4.2 Verify the scripts against live Orca and a real GitHub run. Reason: needs a push and a GitHub Actions run, which only the coordinator performs.
