@@ -1,6 +1,7 @@
 """The Podman MLflow service: persistence across restarts, outage then upload, and candidate
 isolation. Needs the local Podman VM and the pinned MLflow image; no model API is called."""
 
+import importlib.util
 import json
 import os
 import socket
@@ -19,6 +20,11 @@ from codegen_eval.tasks import load_benchmark
 pytestmark = [pytest.mark.sandbox, pytest.mark.mlflow_service, pytest.mark.skipif(
     os.environ.get("RUN_SANDBOX_TESTS") != "1", reason="requires a running local Podman VM"
 )]
+HAVE_MLFLOW = importlib.util.find_spec("mlflow") is not None
+if os.environ.get("CODEGEN_EVAL_REQUIRE_TRACKING") == "1":  # CI: a missing client is a failure
+    import mlflow  # noqa: F401
+# Per-test mark: the isolation probe below needs only the container, not the MLflow client.
+needs_client = pytest.mark.skipif(not HAVE_MLFLOW, reason="needs `uv sync --group tracking` (MLflow client)")
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "mlflow_service.sh"
 BENCHMARK = ROOT / "data" / "benchmark_v1.json"
@@ -81,6 +87,7 @@ def snapshot(uri, run_id):
     return dict(run.data.metrics), json.loads(manifest)["run_id"], len(traces)
 
 
+@needs_client
 def test_service_is_localhost_only_and_data_survives_restart_and_removal(
         tmp_path, inprocess_runner, service):
     path = make_bundle(tmp_path, inprocess_runner, "svc-run")
@@ -103,6 +110,7 @@ def test_service_is_localhost_only_and_data_survives_restart_and_removal(
     assert not again.created and again.run_id == result.run_id
 
 
+@needs_client
 def test_outage_then_later_upload_uses_the_same_bundle_and_no_model(
         tmp_path, inprocess_runner, service):
     service.ok("start")
