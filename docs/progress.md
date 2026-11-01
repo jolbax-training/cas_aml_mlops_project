@@ -21,6 +21,13 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
 
+## 2026-11-01 — Coordinator workflow skill and helper scripts (`add-orchestration-workflow-skill`)
+
+- **Added:** the project skill `.claude/skills/orchestration-workflow/` (SKILL.md plus `briefs.md`, `merge-and-ci.md`, `recovery.md`, `state-template.md`), `scripts/orchestration/{wait,waitloop,ciwatch}.sh` generalized from the coordinator's session scripts (parameterized, with `--help`/`--dry-run`, non-zero exits on errors, exhausted rounds and failed runs), `tests/test_orchestration_scripts.py`, a `/STATE.md` ignore rule (the handoff file is never committed), and a README pointer. The existing `openspec-*` skills and `.agents/skills/` are untouched.
+- **Source of the recovery playbook:** the coordinator's first-hand incident record (seven incidents); where it gives no rule (waiting thresholds, escalation timing) the playbook says so.
+- **Verified offline:** the script tests use stub `orca` and `curl` programs with canned output (no network, Orca or Podman). Local macOS run on 2026-11-01 with `--group tracking`: `.venv/bin/pytest -q` 622 passed, 67 skipped (19 of them new script tests), output free of `failed`; sandbox group 67 passed, 622 deselected; `openspec validate add-orchestration-workflow-skill --strict` and `scripts/build_work_log.py --check` passed.
+- **Not verified:** the scripts have not been run against a live Orca run or a real GitHub Actions run, and no fresh coordinator session has used the skill yet (tasks 4.1 and 4.2 stay open). The Fable review of the implementation is coordinator-owned (4.0).
+
 ## 2026-10-31 — Architecture figure brought to the implemented state (`add-local-html-work-log`, task 3.1)
 
 - **Changed:** `docs/work_log_architecture.svg` and `.md` now show the agent, development-check, hidden-grading, trust-boundary, and evidence flows with the implemented module names, and three labelled statuses: implemented, partial (built and tested offline, no live or real run: OpenRouter client, MLflow recording, comparison tooling), and pending (reviewed result summaries). The `results` and `evidence` pending sections in `docs/work_log.toml` now say that the code exists but no comparison run, result, or run/MLflow identifier does. README diagram maintenance notes updated.

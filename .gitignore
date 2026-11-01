@@ -44,6 +44,9 @@ credentials*.json
 /experiments/evidence/
 *.log
 
+# Coordinator handoff state (run/dispatch ids; session facts, never committed)
+/STATE.md
+
 # Machine/editor state; shared .agents/skills are intentionally tracked
 .DS_Store
 .idea/
