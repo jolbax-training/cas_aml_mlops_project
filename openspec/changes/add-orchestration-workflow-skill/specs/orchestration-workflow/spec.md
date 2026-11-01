@@ -156,8 +156,8 @@ The skill SHALL state that the code is not installed as a package, so module CLI
 - **WHEN** a session needs a command for the evaluator or experiment
 - **THEN** the skill directs it to copy the verified command from `README.md` or `docs/demo.md`, and not to infer a module such as the library module `codegen_eval.experiment`, which has no `__main__` block and exits 0 without output
 
-### Requirement: Coordinator-own steps and paid commands
-The skill SHALL allow the coordinator to do these small mechanical steps itself: ticking tasks with evidence, archiving, resolving documentation merge conflicts, a no-code research step such as a price recheck, and a one-line script fix with a regression test. It SHALL direct all other code and spec changes to workers. It SHALL direct the coordinator to run paid commands itself, only after the user approves, and to keep `OPENROUTER_API_KEY` and any other key out of every worker brief.
+### Requirement: Coordinator-own steps
+The skill SHALL allow the coordinator to do these small mechanical steps itself: ticking tasks with evidence, archiving, resolving documentation merge conflicts, a no-code research step such as a price recheck, and a one-line script fix with a regression test. It SHALL direct all other code and spec changes to workers.
 
 #### Scenario: Small mechanical step
 - **WHEN** the remaining work is ticking an evidenced task, archiving, or a documentation merge conflict
@@ -166,6 +166,9 @@ The skill SHALL allow the coordinator to do these small mechanical steps itself:
 #### Scenario: Code change needed
 - **WHEN** a change needs code or spec edits beyond a one-line script fix with a regression test
 - **THEN** the skill directs the coordinator to dispatch a worker
+
+### Requirement: Paid commands run by the coordinator
+The skill SHALL direct the coordinator to run paid commands itself, only after the user approves, and to keep `OPENROUTER_API_KEY` (and, as the worker brief already says, any API key) out of every worker brief.
 
 #### Scenario: Paid command approved
 - **WHEN** the user has approved a paid command
@@ -205,7 +208,7 @@ The skill SHALL provide a handover procedure in a reference file (`handover.md`)
 - **THEN** the skill directs the old coordinator to keep only the changes it had in flight and to leave its other work to the new session
 
 ### Requirement: Concurrent coordinators
-The skill SHALL direct concurrent coordinators to split ownership by change in `STATE.md` (owner and run id per change), to use separate runs, and to rebase around each other's edits to shared documents (`docs/progress.md`, `README.md`, `docs/work_log.toml`), keeping their own edits there small and self-contained. The `STATE.md` template SHALL carry an owner and run-id field per change using placeholders only.
+The skill SHALL direct concurrent coordinators, in `handover.md` with a pointer from `SKILL.md`, to split ownership by change in `STATE.md` (owner and run id per change), to use separate runs, and to rebase around each other's edits to shared documents (`docs/progress.md`, `README.md`, `docs/work_log.toml`), keeping their own edits there small and self-contained. The `STATE.md` template SHALL carry an owner and run-id field per change using placeholders only.
 
 #### Scenario: Two coordinators share the repository
 - **WHEN** two coordinators work on different changes at once

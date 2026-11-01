@@ -10,8 +10,7 @@ The project is delivered by a coordinator session that dispatches implementer an
 - Add reference files next to it, loaded only when needed: worker, fix-loop, and review brief templates; a merge-and-CI checklist; a recovery playbook (Orca restart, stalled reviewer, Fable safeguard block, missing CI logs, load-flaky sandbox tests, architecture-specific CI failure) based strictly on the coordinator's first-hand incident record; and a `STATE.md` handoff template. The live handoff file is a Git-ignored `STATE.md` at the root of the primary checkout.
 - Move the coordinator's helper scripts into the repository under `scripts/orchestration/` as generalized, parameterized versions (no scratchpad paths, run IDs, or dispatch IDs): a single-batch wait, a wait loop, and a GitHub CI watcher, each with a dry-run or stub-based check.
 - Add a short pointer to the skill in `README.md` (and in `CLAUDE.md` only if that file exists; it does not today).
-
-- Amendment (2026-11-01, from the single-handover test of task 4.1): add command facts and sources, coordinator-own steps, the failed-paid-step rule, one Orca run per coordinator, a handover procedure, and concurrent-coordinator rules (design decisions 15 to 22).
+- Amendment (2026-11-01, from the single-handover test of task 4.1): add command facts and sources, coordinator-own steps, the failed-paid-step rule, one Orca run per coordinator, a handover procedure, and concurrent-coordinator rules, with a new reference file `handover.md` and owner/run-id fields in `state-template.md` (design decisions 15 to 22).
 
 The Codex skill mirror under `.agents/skills/` is intentionally not touched: the approved description names only `.claude/skills/`, so no copy is added there.
 
@@ -30,7 +29,7 @@ None. Existing capability specs are unchanged.
 
 ## Impact
 
-Adds `.claude/skills/orchestration-workflow/` (SKILL.md plus reference files), `scripts/orchestration/` (shell scripts), a `/STATE.md` line in `.gitignore`, a `docs/progress.md` entry, tests under `tests/` for the scripts (stubbed `orca`/`curl`, no network, no Orca), and a README pointer. No new Python runtime dependencies, secrets, paid API calls, or CI changes. Existing `openspec-*` skills, other changes, and the Wayfinder files are untouched.
+Adds `.claude/skills/orchestration-workflow/` (SKILL.md plus reference files), `scripts/orchestration/` (shell scripts), a `/STATE.md` line in `.gitignore`, a `docs/progress.md` entry, tests under `tests/` for the scripts (stubbed `orca`/`curl`, no network, no Orca), and a README pointer. The 2026-11-01 amendment adds a reference file `handover.md` and owner/run-id fields in `state-template.md`, and edits `SKILL.md`, `briefs.md`, and `docs/progress.md`. No new Python runtime dependencies, secrets, paid API calls, or CI changes. Existing `openspec-*` skills, other changes, and the Wayfinder files are untouched.
 
 ## Dependencies and milestone
 
