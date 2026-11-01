@@ -37,6 +37,8 @@ rc, path = int(sys.argv[1]), sys.argv[2]
 raw = open(path).read()
 try:
     d = json.loads(raw)
+    if not isinstance(d, dict) or rc != 0 or d.get("ok") is False:
+        raise ValueError("orca failed or the response is not an object")
     d = d.get("result", d)
     if not isinstance(d, dict) or "count" not in d and "messages" not in d:
         raise ValueError("no delivery in response")

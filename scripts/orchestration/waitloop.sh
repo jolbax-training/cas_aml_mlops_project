@@ -24,7 +24,7 @@ while [ "$i" -lt "$ROUNDS" ]; do
   # shellcheck disable=SC2086
   if [ -n "$ACK" ]; then out=$("$DIR/wait.sh" $PASS --ack "$ACK"); else out=$("$DIR/wait.sh" $PASS); fi
   rc=$?
-  if [ "$rc" -ne 0 ]; then echo "$out"; exit 2; fi
+  if [ "$rc" -ne 0 ]; then echo "$out"; [ -n "$ACK" ] && echo "last delivery $ACK still unacked"; exit 2; fi
   if [ "$DRY" = 1 ]; then echo "$out"; exit 0; fi
   if echo "$out" | grep -qE '^--- (worker_done|question|escalation) '; then
     echo "$out"

@@ -1,6 +1,6 @@
 # Recovery playbook
 
-Source: the coordinator's first-hand record of incidents in this project (seven entries). Each entry gives symptom, action, and the outcome that ends the recovery. Where the record gives no rule (waiting thresholds, when to escalate), ask the user instead of choosing a number.
+Source: the coordinator's first-hand record of incidents in this project (seven entries), plus end conditions taken from `orca orchestration check --help` where marked "(CLI help)". Each entry gives symptom, action, and the outcome that ends the recovery. Where the record gives no rule (waiting thresholds, when to escalate), ask the user instead of choosing a number.
 
 ## Orca quit or restarted mid-run
 - **Symptom:** orca commands report Orca is not running; later dispatches fail with an agent-readiness timeout because the worker terminals died.
@@ -21,7 +21,7 @@ Source: the coordinator's first-hand record of incidents in this project (seven 
 - **Symptom:** the same `worker_done` or heartbeat arrives repeatedly.
 - **Cause:** deliveries were not acked. Heartbeat batches and actionable deliveries both need an ack.
 - **Action:** pass the previous delivery id with `--ack` on the next check (`wait.sh --ack <id>`).
-- **Ends when:** `check` returns `deliveryId: null`.
+- **Ends when:** `check` returns `deliveryId: null` (CLI help).
 
 ## GitHub CI logs not accessible
 - **Symptom:** a job failed, but raw logs need authentication; polling too often hit the 60 requests/hour unauthenticated limit once.
@@ -30,7 +30,7 @@ Source: the coordinator's first-hand record of incidents in this project (seven 
 
 ## Sandbox tests flaky under host load
 - **Symptom:** a few sandbox failures locally while background processes loaded the machine; a rerun passed.
-- **Action:** grep the pytest output for `failed` before pushing; on failure rerun once and inspect the load; report both outcomes. A real cause gets fixed in the tests (the recorded fix scaled non-timeout deadlines from a startup baseline and added a cross-worktree lock), never a skip.
+- **Action:** grep the pytest output for `failed` before pushing; on failure rerun once and inspect the load; report both outcomes (honesty rule from the spec, not from the incident). A real cause gets fixed in the tests (the recorded fix scaled non-timeout deadlines from a startup baseline and added a cross-worktree lock), never a skip.
 - **Ends when:** the suite passes with the expected counts and the output contains no `failed`.
 
 ## CI red only on the runner's architecture

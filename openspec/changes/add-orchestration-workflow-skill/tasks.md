@@ -24,7 +24,7 @@ Stage 2 implements sections 1 to 3 (except 3.4, which waits for the coordinator'
 - [x] 3.1 Add a short README section pointing to the skill and scripts; add a `CLAUDE.md` pointer only if that file exists. Verify: README diff is a few lines; no new `CLAUDE.md` created.
 - [x] 3.2 Run `.venv/bin/pytest -q`, the sandbox group, and `openspec validate add-orchestration-workflow-skill --strict`; confirm `git status` clean. Verify: counts reported, output grepped for `failed`.
 - [x] 3.3 Add a `docs/progress.md` entry for this change: what exists, what was verified offline, and what 4.1 and 4.2 leave open (no invented results). Verify: `.venv/bin/python scripts/build_work_log.py --check` still passes.
-- [ ] 3.4 Address every finding of the coordinator's post-implementation Fable review in the same worker session, recording each as fixed or declined with a reason in `worker_done` and in the progress entry. Verify: each finding number has a recorded disposition.
+- [x] 3.4 Address every finding of the coordinator's post-implementation Fable review in the same worker session, recording each as fixed or declined with a reason in `worker_done` and in the progress entry. Verify: each finding number has a recorded disposition.
 
 ## 4. Left open (not implementable by the worker)
 

@@ -7,7 +7,7 @@ metadata:
   version: "1.0"
 ---
 
-Run the project's change workflow as the **coordinator**: you plan, dispatch, monitor, merge, and verify; workers implement and review. Propose, apply, and archive steps live in the `openspec-*` skills; this skill adds who does what, in which order, and the guardrails. Read `STATE.md` at the repository root first (Git-ignored, never committed); create it from [state-template.md](state-template.md) when absent.
+Run the project's change workflow as the **coordinator**: you plan, dispatch, monitor, merge, and verify; workers implement and review. Propose, apply, and archive steps live in the `openspec-*` skills; this skill adds who does what, in which order, and the guardrails. Read `STATE.md` at the root of the primary checkout first (the `main` checkout you run from, not a child worktree; Git-ignored, never committed); create it from [state-template.md](state-template.md) when absent.
 
 ## Roles
 

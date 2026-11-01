@@ -115,6 +115,22 @@ def test_wait_prints_summary_and_filters_keepalives(stub):
     assert "--ack delivery_prev --wait" in (state / "calls").read_text()
 
 
+def test_wait_nonzero_exit_fails_even_when_body_parses(stub):
+    state, env = stub
+    (state / "out.1").write_text(delivery("delivery_a", [message("worker_done")]))
+    (state / "rc").write_text("1")
+    result = run("wait.sh", [], env)
+    assert result.returncode == 2 and "no usable delivery (exit 1)" in result.stdout
+
+
+@pytest.mark.parametrize("body", ["[1, 2]", '"text"', "42", '{"ok": false, "result": {"count": 0}}'])
+def test_wait_rejects_unexpected_json_without_traceback(body, stub):
+    state, env = stub
+    (state / "out.1").write_text(body)
+    result = run("wait.sh", [], env)
+    assert result.returncode == 2 and "no usable delivery" in result.stdout and "Traceback" not in result.stderr
+
+
 def test_wait_reports_non_json_and_failure(stub):
     state, env = stub
     (state / "out.1").write_text("Error: Orca is not running\n")
@@ -171,6 +187,34 @@ def test_waitloop_propagates_wait_failure(stub):
     assert result.returncode == 2 and "no usable delivery" in result.stdout
 
 
+def test_waitloop_failure_after_a_batch_names_the_unacked_delivery(stub):
+    state, env = stub
+    (state / "out.1").write_text(delivery("delivery_h", [message("heartbeat")]))
+    (state / "out.2").write_text("Error: Orca is not running")
+    result = run("waitloop.sh", [], env)
+    assert result.returncode == 2 and "last delivery delivery_h still unacked" in result.stdout
+
+
+def test_waitloop_timed_out_batch_is_not_acked_and_waiting_continues(stub):
+    state, env = stub
+    (state / "out.1").write_text(json.dumps({"result": {"deliveryId": None, "timedOut": True, "count": 0,
+                                                        "messages": []}}))
+    (state / "out.2").write_text(delivery("delivery_2", [message("worker_done")]))
+    result = run("waitloop.sh", [], env)
+    assert result.returncode == 0 and "--- worker_done" in result.stdout
+    calls = (state / "calls").read_text().splitlines()
+    assert len(calls) == 2 and all("--ack" not in call for call in calls)
+
+
+def test_waitloop_dry_run_prints_the_resolved_command(stub):
+    state, env = stub
+    result = run("waitloop.sh", ["--dry-run", "--terminal", "T1", "--timeout-ms", "9"], env)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ("orca orchestration check --terminal T1 --wait "
+                                     "--types worker_done,escalation,question --timeout-ms 9 --json")
+    assert not (state / "calls").exists()
+
+
 # --- ciwatch.sh -------------------------------------------------------------------------------
 
 def seed_run(state, conclusion, annotations):
@@ -209,8 +253,32 @@ def test_ciwatch_success_exits_zero(stub):
 def test_ciwatch_rate_limit_is_reported_not_misread(stub):
     state, env = stub
     result = run("ciwatch.sh", ["--repo", "acme/widgets", "--interval", "0", "7"], env)
-    (state / "run.1").unlink(missing_ok=True)
     assert result.returncode == 2 and "GitHub API error" in result.stdout and "rate limit exceeded" in result.stdout
+
+
+def test_ciwatch_survives_a_dropped_connection_but_not_three(stub):
+    state, env = stub
+    seed_run(state, "success", [])
+    (state / "run.1").write_text("")
+    result = run("ciwatch.sh", ["--repo", "acme/widgets", "--interval", "0", "7"], env)
+    assert result.returncode == 0 and "run 7 abcdef1 success" in result.stdout
+    for name in ("run.2", "polls"):
+        (state / name).unlink()
+    result = run("ciwatch.sh", ["--repo", "acme/widgets", "--interval", "0", "7"], env)
+    assert result.returncode == 2 and "3 tries in a row" in result.stdout
+
+
+def test_ciwatch_job_level_api_errors_are_reported_not_tracebacks(stub):
+    state, env = stub
+    seed_run(state, "failure", [])
+    (state / "job-11").unlink()          # the stub answers with a rate-limit body
+    (state / "ann-11").write_text('{"message": "API rate limit exceeded"}')
+    result = run("ciwatch.sh", ["--repo", "acme/widgets", "--interval", "0", "7"], env)
+    assert result.returncode == 1 and "Traceback" not in result.stderr
+    assert "job 11 unavailable" in result.stdout and "annotations unavailable: API rate limit" in result.stdout
+    (state / "jobs").unlink()
+    result = run("ciwatch.sh", ["--repo", "acme/widgets", "--interval", "0", "7"], env)
+    assert result.returncode == 1 and "jobs unavailable" in result.stderr and "Traceback" not in result.stderr
 
 
 def test_ciwatch_gives_up_after_max_polls(stub):

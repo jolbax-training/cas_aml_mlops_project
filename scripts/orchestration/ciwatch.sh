@@ -25,7 +25,7 @@ if [ -z "$REPO" ]; then
 fi
 case "$REPO" in */*) ;; *) echo "ciwatch.sh: cannot determine repository; pass --repo <owner/repo>" >&2; exit 2 ;; esac
 A="$API/repos/$REPO"
-if [ "$DRY" = 1 ]; then echo "curl -s $A/actions/runs/$RUN (every ${INTERVAL}s, up to $MAXPOLLS polls)"; exit 0; fi
+if [ "$DRY" = 1 ]; then echo "curl -s --max-time 30 $A/actions/runs/$RUN (every ${INTERVAL}s, up to $MAXPOLLS polls)"; exit 0; fi
 
 # prints "<status>|<conclusion>" for a run body, or "error|<message>" when the body is an API error
 field() { python3 -c '
@@ -37,13 +37,18 @@ except ValueError:
 if "status" in d: print("%s|%s" % (d.get("status"), d.get("conclusion")))
 else: print("error|%s" % str(d.get("message", d))[:300])'; }
 
-n=0
+n=0; blips=0
 while :; do
-  body=$(curl -s "$A/actions/runs/$RUN")
+  body=$(curl -s --max-time 30 "$A/actions/runs/$RUN")
   st=$(printf '%s' "$body" | field)
   case "$st" in
+    error\|response\ is\ not\ JSON)
+      # a dropped connection gives an empty body: tolerate three in a row before giving up
+      blips=$((blips + 1))
+      [ "$blips" -ge 3 ] && { echo "ciwatch.sh: no usable response from $A/actions/runs/$RUN ($blips tries in a row)"; exit 2; } ;;
     error\|*) echo "ciwatch.sh: GitHub API error for $A/actions/runs/$RUN: ${st#error|}"; exit 2 ;;
     completed\|*) break ;;
+    *) blips=0 ;;
   esac
   n=$((n + 1))
   [ "$n" -ge "$MAXPOLLS" ] && { echo "ciwatch.sh: run $RUN still ${st%%|*} after $n polls"; exit 3; }
@@ -54,18 +59,28 @@ printf '%s' "$body" | python3 -c '
 import json, sys
 r = json.load(sys.stdin)
 print("run", r["id"], r["head_sha"][:7], r["conclusion"], r["html_url"])'
-jobs=$(curl -s "$A/actions/runs/$RUN/jobs")
-for J in $(printf '%s' "$jobs" | python3 -c '
+jobs=$(curl -s --max-time 30 "$A/actions/runs/$RUN/jobs")
+ids=$(printf '%s' "$jobs" | python3 -c '
 import json, sys
-d = json.load(sys.stdin)
-[print(j["id"]) for j in d.get("jobs", [])]'); do
-  curl -s "$A/actions/jobs/$J" | python3 -c '
+try:
+    d = json.load(sys.stdin)
+    print(*[j["id"] for j in d["jobs"]], sep="\n")
+except (ValueError, KeyError, TypeError):
+    print("jobs unavailable (empty, rate-limited, or unexpected response)", file=sys.stderr)')
+for J in $ids; do
+  curl -s --max-time 30 "$A/actions/jobs/$J" | python3 -c '
 import json, sys
-j = json.load(sys.stdin)
-print("job", j["name"], j["conclusion"], [s["name"] for s in j["steps"] if s["conclusion"] not in ("success", "skipped")])'
-  curl -s "$A/check-runs/$J/annotations" | python3 -c '
+try:
+    j = json.load(sys.stdin)
+    print("job", j["name"], j["conclusion"], [s["name"] for s in j["steps"] if s["conclusion"] not in ("success", "skipped")])
+except (ValueError, KeyError, TypeError):
+    print("job", sys.argv[1], "unavailable (empty, rate-limited, or unexpected response)")' "$J"
+  curl -s --max-time 30 "$A/check-runs/$J/annotations" | python3 -c '
 import json, sys
-d = json.load(sys.stdin)
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    d = {"message": "response is not JSON"}
 if isinstance(d, dict):
     print("  annotations unavailable:", d.get("message", d)); sys.exit()
 for a in d:
