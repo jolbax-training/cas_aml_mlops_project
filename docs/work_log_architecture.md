@@ -25,3 +25,5 @@ Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemente
 9. Implemented: this report builder (`scripts/build_work_log.py`) turns the selected Markdown into `report/index.html`.
 
 Sections of this report whose evidence does not exist yet are labelled pending. No result, URL, or reflection is invented to fill them.
+
+The detailed, editable [logical](architecture_logical.md) and [physical](architecture_physical.md) views follow this figure in the report.

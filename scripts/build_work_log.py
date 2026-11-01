@@ -59,6 +59,8 @@ FORBIDDEN_PATTERNS = (
     ".vscode", ".ds_store", "__pycache__", ".pytest_cache", "node_modules",
 )
 SVG_TAGS = {"svg", "title", "desc", "defs", "marker", "path", "g", "rect", "text", "tspan", "style"}
+SVG_NS = "http://www.w3.org/2000/svg"
+ET.register_namespace("", SVG_NS)
 
 
 class WorkLogError(Exception):
@@ -78,10 +80,21 @@ class Section:
 
 
 @dataclass(frozen=True)
+class Diagram:
+    id: str
+    title: str
+    svg: PurePosixPath
+    text: PurePosixPath
+    description: str
+    label: str
+
+
+@dataclass(frozen=True)
 class Config:
     diagram: PurePosixPath
     explanation: PurePosixPath
     sections: tuple[Section, ...]
+    diagrams: tuple[Diagram, ...] = ()
 
 
 @dataclass
@@ -149,7 +162,7 @@ def load_config(root: Path, config_path: Path) -> Config:
             data = tomllib.load(handle)
     except (OSError, tomllib.TOMLDecodeError) as error:
         raise WorkLogError(f"cannot read source list {config_path}: {error}") from None
-    _check_keys(data, {"architecture", "section"}, "source list")
+    _check_keys(data, {"architecture", "section", "diagram"}, "source list")
     arch = data.get("architecture")
     if not isinstance(arch, dict):
         raise WorkLogError("source list: [architecture] table is required")
@@ -198,11 +211,44 @@ def load_config(root: Path, config_path: Path) -> Config:
     for key, suffix in (("diagram", ".svg"), ("explanation", ".md")):
         if PurePosixPath(_require_str(arch, key, "[architecture]")).suffix.lower() != suffix:
             raise WorkLogError(f"[architecture]: {key!r} must be a {suffix} file")
+    diagrams = _load_diagrams(data.get("diagram", []), seen)
     return Config(
         PurePosixPath(_require_str(arch, "diagram", "[architecture]")),
         PurePosixPath(_require_str(arch, "explanation", "[architecture]")),
         tuple(sections),
+        diagrams,
     )
+
+
+def _load_diagrams(raw: object, section_ids: set[str]) -> tuple[Diagram, ...]:
+    """Registered draw.io diagrams: [[diagram]] tables, each with an editable SVG and a text twin."""
+    if not isinstance(raw, list):
+        raise WorkLogError("source list: [[diagram]] must be an array of tables")
+    diagrams: list[Diagram] = []
+    seen = set(section_ids)
+    for index, table in enumerate(raw, start=1):
+        where = f"[[diagram]] #{index}"
+        if not isinstance(table, dict):
+            raise WorkLogError(f"{where}: must be a table")
+        _check_keys(table, {"id", "title", "svg", "text", "description", "label"}, where)
+        diagram_id = _require_str(table, "id", where)
+        where = f"diagram {diagram_id!r}"
+        if not SECTION_ID.match(diagram_id) or diagram_id in {"architecture", "sections", "provenance"}:
+            raise WorkLogError(f"{where}: id must be a lowercase hyphenated anchor and not reserved")
+        if diagram_id in seen:
+            raise WorkLogError(f"{where}: duplicate id")
+        seen.add(diagram_id)
+        label = _require_str(table, "label", where)
+        if label not in LABELS:
+            raise WorkLogError(f"{where}: label must be one of {', '.join(LABELS)}")
+        svg, text = _require_str(table, "svg", where), _require_str(table, "text", where)
+        if not svg.endswith(".drawio.svg"):
+            raise WorkLogError(f"{where}: 'svg' must be a .drawio.svg file")
+        if not text.endswith(".md"):
+            raise WorkLogError(f"{where}: 'text' must be a Markdown (.md) file")
+        diagrams.append(Diagram(diagram_id, _require_str(table, "title", where), PurePosixPath(svg),
+                                PurePosixPath(text), _require_str(table, "description", where), label))
+    return tuple(diagrams)
 
 
 # --- Markdown -----------------------------------------------------------------
@@ -393,6 +439,136 @@ def validate_svg(text: str) -> str:
     return re.sub(r"^<\?xml[^>]*\?>\s*", "", text)
 
 
+# --- draw.io diagrams ----------------------------------------------------------
+# `validate_svg` above stays the gate for the reviewed work-log figure. Registered draw.io
+# exports go through `sanitize_drawio_svg` instead: it accepts a closed set of elements,
+# attributes, and value shapes, fails on anything else, and re-serializes the validated tree.
+
+DRAWIO_DOCTYPE = ('<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" '
+                  '"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">')
+DRAWIO_TAGS = {"svg", "g", "rect", "ellipse", "line", "polyline", "polygon", "path", "text", "tspan", "defs"}
+# Removed on purpose and never inlined: the editable payload, draw.io's page styling, and
+# bookkeeping. `xmlns:xlink` is a namespace declaration, not an attribute, and is not kept.
+DRAWIO_STRIP = {"svg": {"content", "style", "version"}, "g": {"data-cell-id"}}
+_NUM = r"-?\d+(?:\.\d+)?"
+_PX = rf"{_NUM}(?:px)?"
+_SIMPLE_COLOUR = (r"(?:none|transparent|#[0-9a-fA-F]{3,8}"
+                  rf"|rgba?\(\s*{_NUM}\s*,\s*{_NUM}\s*,\s*{_NUM}\s*(?:,\s*{_NUM}\s*)?\))")
+_COLOUR = (rf"(?:{_SIMPLE_COLOUR}|light-dark\(\s*{_SIMPLE_COLOUR}\s*,\s*{_SIMPLE_COLOUR}\s*\)"
+           rf"|var\(--ge-dark-color,\s*{_SIMPLE_COLOUR}\))")
+_PRESENTATION = {
+    "fill": _COLOUR, "stroke": _COLOUR, "stroke-width": _NUM, "stroke-miterlimit": _NUM,
+    "stroke-dasharray": rf"(?:none|{_NUM}(?:[ ,]+{_NUM})*)",
+    "stroke-linecap": r"butt|round|square", "stroke-linejoin": r"miter|round|bevel",
+    "fill-opacity": _NUM, "stroke-opacity": _NUM, "opacity": _NUM,
+    "font-family": r"[A-Za-z0-9 ,\-]+", "font-size": _PX, "font-weight": r"normal|bold|\d{3}",
+    "font-style": r"normal|italic", "text-anchor": r"start|middle|end",
+    "dominant-baseline": r"[a-z-]+", "pointer-events": r"all|stroke|fill|none|visible[a-z]*",
+    "visibility": r"visible|hidden",
+}
+_NUMLIST = rf"{_NUM}(?:[ ,]+{_NUM})*"
+DRAWIO_VALUES = {
+    **{name: re.compile(pattern) for name, pattern in _PRESENTATION.items()},
+    "transform": re.compile(rf"(?:translate|scale|rotate|matrix)\({_NUMLIST}\)"),
+    "x": re.compile(_PX), "y": re.compile(_PX), "dx": re.compile(_PX), "dy": re.compile(_PX),
+    "width": re.compile(_PX), "height": re.compile(_PX), "rx": re.compile(_PX), "ry": re.compile(_PX),
+    "cx": re.compile(_PX), "cy": re.compile(_PX), "r": re.compile(_PX),
+    "x1": re.compile(_PX), "y1": re.compile(_PX), "x2": re.compile(_PX), "y2": re.compile(_PX),
+    "viewBox": re.compile(rf"{_NUM}(?: {_NUM}){{3}}"),
+    "points": re.compile(_NUMLIST),
+    "d": re.compile(r"[MmLlHhVvCcSsQqTtAaZz0-9eE+\-., ]*"),
+    "style": None,  # validated declaration by declaration against _PRESENTATION
+}
+_GEOMETRY = {
+    "svg": {"width", "height", "viewBox"}, "g": set(), "defs": set(),
+    "rect": {"x", "y", "width", "height", "rx", "ry"}, "ellipse": {"cx", "cy", "rx", "ry"},
+    "line": {"x1", "y1", "x2", "y2"}, "polyline": {"points"}, "polygon": {"points"}, "path": {"d"},
+    "text": {"x", "y", "dx", "dy"}, "tspan": {"x", "y", "dx", "dy"},
+}
+_PAINT = set(_PRESENTATION) | {"transform", "style"}
+
+
+def _drawio_style(value: str) -> None:
+    for declaration in filter(None, (part.strip() for part in value.split(";"))):
+        name, _, setting = declaration.partition(":")
+        name, setting = name.strip(), setting.strip()
+        pattern = _PRESENTATION.get(name)
+        if pattern is None or not re.fullmatch(pattern, setting):
+            raise WorkLogError(f"style declaration {declaration!r} is not allowed")
+
+
+def sanitize_drawio_svg(text: str, diagram_id: str, title: str, description: str) -> str:
+    """Rebuild a draw.io SVG export from a closed allowlist; return inline-ready SVG markup.
+
+    Fails (never silently drops) on any element, attribute, or value outside the allowlist.
+    The editable `content` payload, root `style`, `data-cell-id`, and `version` are removed.
+    One public SVG 1.1 DOCTYPE with no internal subset is accepted; entities are not."""
+    if re.search(r"<!ENTITY", text, re.I):
+        raise WorkLogError("diagram: ENTITY declarations are not allowed")
+    doctypes = re.findall(r"<!DOCTYPE[^>]*>?", text, re.I)
+    if len(doctypes) > 1 or (doctypes and doctypes[0] != DRAWIO_DOCTYPE):
+        raise WorkLogError("diagram: only the standard public SVG 1.1 DOCTYPE is allowed")
+    if doctypes:
+        text = text.replace(DRAWIO_DOCTYPE, "", 1)
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise WorkLogError(f"diagram: invalid SVG ({error})") from None
+    if root.tag != f"{{{SVG_NS}}}svg":
+        raise WorkLogError("diagram: root must be an <svg> in the SVG namespace")
+
+    def rebuild(element: ET.Element, is_root: bool) -> ET.Element:
+        if not isinstance(element.tag, str) or not element.tag.startswith(f"{{{SVG_NS}}}"):
+            raise WorkLogError("diagram: element outside the SVG namespace is not allowed")
+        tag = element.tag[len(SVG_NS) + 2:]
+        if tag not in DRAWIO_TAGS:
+            raise WorkLogError(f"diagram: element <{tag}> is not allowed")
+        if tag == "svg" and not is_root:
+            raise WorkLogError("diagram: nested <svg> is not allowed")
+        if (element.text or "").strip() and tag not in {"text", "tspan"}:
+            raise WorkLogError(f"diagram: text inside <{tag}> is not allowed")
+        if tag == "defs" and len(element):
+            raise WorkLogError("diagram: <defs> must be empty")
+        clean = ET.Element(element.tag)
+        allowed = _GEOMETRY[tag] | _PAINT
+        for raw, value in element.attrib.items():
+            if raw.startswith("{"):
+                raise WorkLogError(f"diagram: namespaced attribute {raw!r} is not allowed")
+            if raw in DRAWIO_STRIP.get(tag, ()) and (is_root or tag != "svg"):
+                continue
+            if raw not in allowed:
+                raise WorkLogError(f"diagram: attribute {raw!r} on <{tag}> is not allowed")
+            if raw == "style":
+                _drawio_style(value)
+            elif not DRAWIO_VALUES[raw].fullmatch(value):
+                raise WorkLogError(f"diagram: value {value!r} of {raw!r} on <{tag}> is not allowed")
+            clean.set(raw, value)
+        if tag in {"text", "tspan"}:
+            clean.text = element.text
+        for child in element:
+            rebuilt = rebuild(child, False)
+            rebuilt.tail = child.tail if (child.tail or "").strip() == "" else None
+            if (child.tail or "").strip():
+                raise WorkLogError(f"diagram: text between elements inside <{tag}> is not allowed")
+            if tag in {"text", "tspan"} and child.tag != f"{{{SVG_NS}}}tspan":
+                raise WorkLogError(f"diagram: <{tag}> may only contain <tspan>")
+            clean.append(rebuilt)
+        return clean
+
+    clean_root = rebuild(root, True)
+    title_id, desc_id = f"{diagram_id}-svg-title", f"{diagram_id}-svg-desc"
+    clean_root.set("role", "img")
+    clean_root.set("aria-labelledby", f"{title_id} {desc_id}")
+    for index, (tag, ident, content) in enumerate((("title", title_id, title), ("desc", desc_id, description))):
+        node = ET.Element(f"{{{SVG_NS}}}{tag}", {"id": ident})
+        node.text = content
+        clean_root.insert(index, node)
+    markup = ET.tostring(clean_root, encoding="unicode")
+    if re.search(r"</?ns\d+:", markup):
+        raise WorkLogError("diagram: unexpected namespace prefix in rebuilt SVG")
+    return markup
+
+
 # --- HTML assembly ------------------------------------------------------------
 
 CSS = """
@@ -459,6 +635,16 @@ def build_html(root: Path, config: Config, build_time: datetime, output_dir: Pat
         raise WorkLogError(f"{config.diagram}: {error}") from None
 
     docs: list[Doc] = [read_doc(root, parser, "architecture", config.explanation)]
+    diagram_views: list[tuple[Diagram, bytes, str, Doc]] = []
+    for item in config.diagrams:
+        try:
+            svg_bytes = resolve_repo_path(root, root, item.svg.as_posix()).read_bytes()
+            markup = sanitize_drawio_svg(svg_bytes.decode("utf-8"), item.id, item.title, item.description)
+        except (WorkLogError, OSError, UnicodeDecodeError) as error:
+            raise WorkLogError(f"{item.svg}: {error}") from None
+        twin = read_doc(root, parser, item.id, item.text)
+        docs.append(twin)
+        diagram_views.append((item, svg_bytes, markup, twin))
     section_docs: dict[str, Doc] = {}
     for section in config.sections:
         if section.kind == "document":
@@ -479,6 +665,18 @@ def build_html(root: Path, config: Config, build_time: datetime, output_dir: Pat
     pending = [s for s in config.sections if s.kind == "pending"]
     nav = []
     body = []
+    for item, svg_bytes, markup, twin in diagram_views:
+        tag = badges(item.label, None)
+        body.append(
+            f'<section id="{item.id}" aria-labelledby="{item.id}-title">'
+            f'<h2 id="{item.id}-title">{esc(item.title)}</h2>'
+            f'<p class="meta">{tag} Editable diagram: <code>{esc(item.svg.as_posix())}</code> '
+            f'(sha256 <code>{hashlib.sha256(svg_bytes).hexdigest()[:12]}</code>). '
+            f'Text equivalent: <code>{esc(twin.rel)}</code> (sha256 <code>{twin.sha}</code>).</p>'
+            f'<div class="scroll" tabindex="0" role="region" aria-label="{esc(item.title)}, scrollable">'
+            f'{markup}</div>'
+            f'<div class="content">{render_doc(parser, twin)}</div></section>')
+        nav.append(f'<li><a href="#{item.id}">{esc(item.title)}</a> {tag}</li>')
     for section in config.sections:
         tag = ""
         if section.kind == "pending":
@@ -506,6 +704,12 @@ def build_html(root: Path, config: Config, build_time: datetime, output_dir: Pat
         f"<td>{esc(LABELS['current'])}</td><td><code>{hashlib.sha256(diagram_bytes).hexdigest()[:12]}</code></td></tr>"
         f"<tr><td><code>{esc(docs[0].rel)}</code></td><td>Architecture text equivalent</td>"
         f"<td>{esc(LABELS['current'])}</td><td><code>{docs[0].sha}</code></td></tr>"
+    ) + "".join(
+        f"<tr><td><code>{esc(item.svg.as_posix())}</code></td><td>{esc(item.title)} (editable diagram)</td>"
+        f"<td>{esc(LABELS[item.label])}</td><td><code>{hashlib.sha256(svg_bytes).hexdigest()[:12]}</code></td></tr>"
+        f"<tr><td><code>{esc(twin.rel)}</code></td><td>{esc(item.title)} (text equivalent)</td>"
+        f"<td>{esc(LABELS[item.label])}</td><td><code>{twin.sha}</code></td></tr>"
+        for item, svg_bytes, _markup, twin in diagram_views
     ) + "".join(
         f"<tr><td><code>{esc(doc.rel)}</code></td><td>{esc(section.title)}</td>"
         f"<td>{esc(LABELS[section.label])}</td><td><code>{doc.sha}</code></td></tr>"

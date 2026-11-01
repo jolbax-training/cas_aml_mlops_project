@@ -24,6 +24,24 @@
 diagram = "docs/work_log_architecture.svg"
 explanation = "docs/work_log_architecture.md"
 
+# Editable draw.io diagrams (docs/*.drawio.svg) with Markdown text twins. They are rebuilt
+# through an allowlist sanitizer, separate from the check on the figure above.
+[[diagram]]
+id = "architecture-logical"
+title = "Logical architecture: components and data flow"
+svg = "docs/architecture_logical.drawio.svg"
+text = "docs/architecture_logical.md"
+description = "Components named by their modules under src/codegen_eval and scripts, with data flow, trust boundary, and status; the text equivalent below lists every box and arrow."
+label = "current"
+
+[[diagram]]
+id = "architecture-physical"
+title = "Physical architecture: deployment, trust boundaries, and phase 2"
+svg = "docs/architecture_physical.drawio.svg"
+text = "docs/architecture_physical.md"
+description = "The local phase-1 system and the phase-2 external subsystems (OpenRouter, GitHub Actions, image registries) with trust boundaries; the text equivalent below lists every element."
+label = "current"
+
 [[section]]
 id = "scope"
 title = "Scope, plan, and acceptance criteria"

@@ -188,6 +188,19 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 - **Pending evidence:** sections whose reviewed record does not exist yet are `kind = "pending"` and render as visibly pending. After a milestone, write or update the reviewed Markdown summary (results, run and MLflow identifiers, limitations), replace the pending entry with a `kind = "document"` entry, `label = "reviewed"` and that path, then rebuild. A partly finished document (the demo path, whose comparison part awaits real runs) is registered as `label = "current"`, `status = "incomplete"` until its last placeholder is filled. Link local evidence from that summary rather than embedding raw bundles; external CI/MLflow URLs are references that are never fetched.
 - **Diagram:** edit `docs/work_log_architecture.svg` (plain SVG, reviewed: no scripts or external references) and its text equivalent `docs/work_log_architecture.md` together; solid blue means implemented, solid yellow means built offline with no live or real run yet, dashed means pending evidence (each box also carries a text label and its module names, so status never depends on colour alone). Update both when a component or its evidence changes. There is no graph engine: the figure is hand-placed SVG, so move boxes and edges by editing coordinates, and keep `role="img"`, the title/desc, and the text equivalent in sync.
 
+## Architecture diagrams (draw.io)
+
+[docs/architecture_physical.md](docs/architecture_physical.md) (where things run, trust boundaries, phase 1 local versus phase 2 live) and [docs/architecture_logical.md](docs/architecture_logical.md) (components and data flow by module) each describe an editable draw.io SVG next to them (`docs/architecture_*.drawio.svg`; open it in draw.io, edit, save as `.drawio.svg`, with *Compressed* off). Both appear in the work log after the opening figure. No live run has happened, so they show no results.
+
+```sh
+# regenerate from a .drawio source (draw.io desktop; the flags keep the export inside the work-log allowlist)
+/Applications/draw.io.app/Contents/MacOS/draw.io -x -f svg --embed-diagram --svg-theme light --embed-svg-fonts false -o docs/architecture_physical.drawio.svg physical.drawio
+.venv/bin/pytest -q tests/test_architecture_diagrams.py tests/test_work_log_diagrams.py   # labels, names, claims, sanitizer
+.venv/bin/python scripts/build_work_log.py --check                                         # the work log accepts them
+```
+
+Use plain labels (no HTML), Helvetica only, no images or links; the work log rebuilds each SVG from an allowlist and fails on anything else. `docs/work_log_architecture.svg` stays the compact opening figure.
+
 ## Verified demo path
 
 [docs/demo.md](docs/demo.md) lists the setup, image restore, inspection (no API, no Podman), grading replay (Podman, no credentials), MLflow, report build/open, and local CI commands with the date, versions, and observed results of their re-execution, and the demo walk-through. Its comparison and keep/reject section is explicitly PENDING until real runs exist.
