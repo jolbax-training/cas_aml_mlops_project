@@ -42,6 +42,22 @@ text = "docs/architecture_physical.md"
 description = "The local phase-1 system and the phase-2 external subsystems (OpenRouter, GitHub Actions, image registries) with trust boundaries; the text equivalent below lists every element."
 label = "current"
 
+[[diagram]]
+id = "run-flow-activity"
+title = "Experiment lifecycle: activity diagram with the run as a sub-activity"
+svg = "docs/run_flow_activity.drawio.svg"
+text = "docs/run_flow_activity.md"
+description = "The whole experiment from start to finish with swimlanes, the expanded run command, and every way a run or command ends; the text equivalent below lists every node, flow, and ending."
+label = "current"
+
+[[diagram]]
+id = "run-flow-sequence"
+title = "One trial: sequence diagram"
+svg = "docs/run_flow_sequence.drawio.svg"
+text = "docs/run_flow_sequence.md"
+description = "The exact call order of one trial between the real modules, with loop and alt fragments and the trust boundary; the text equivalent below lists every participant and message."
+label = "current"
+
 [[section]]
 id = "scope"
 title = "Scope, plan, and acceptance criteria"

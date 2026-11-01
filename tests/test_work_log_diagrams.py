@@ -214,11 +214,11 @@ def test_build_is_deterministic_with_diagrams(tmp_path):
 def test_actual_repository_shows_both_diagrams_after_the_opening_figure():
     root = builder.REPO_ROOT
     config = builder.load_config(root, root / "docs" / "work_log.toml")
-    assert [d.id for d in config.diagrams] == ["architecture-logical", "architecture-physical"]
+    assert [d.id for d in config.diagrams] == ["architecture-logical", "architecture-physical", "run-flow-activity", "run-flow-sequence"]
     html = builder.build_html(root, config, builder.parse_build_time(BUILD_TIME), root / "report")
     builder.validate_output(html)
     assert html.index('<section id="architecture"') < html.index('<nav id="sections"') < html.index('<section id="architecture-logical"')
     for ident in ("architecture-logical", "architecture-physical"):
         section = re.search(rf'<section id="{ident}".*?</section>', html, re.S).group(0)
         assert "<svg" in section and "<text" in section and "TRUST BOUNDARY" in section
-    assert html.count("<svg") == 3
+    assert html.count("<svg") == 5

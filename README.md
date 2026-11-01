@@ -200,6 +200,8 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 .venv/bin/python scripts/build_work_log.py --check                                         # the work log accepts them
 ```
 
+Two more diagrams show the **sequence** instead of the structure: [docs/run_flow_activity.md](docs/run_flow_activity.md) is a UML activity diagram with swimlanes of the whole experiment (start, setup commands, the baseline `run` drawn once as an expanded sub-activity, inspection, the revised prompt, the revised `run`, `compare`, human review, work-log rebuild) with an explicit final node for every way a run or command ends, and [docs/run_flow_sequence.md](docs/run_flow_sequence.md) is a UML sequence diagram of the exact call order inside one trial (`docs/run_flow_*.drawio.svg`; same editing rules and CLI export flags as above, and every vertex needs an explicit `fillColor` and every edge `labelBackgroundColor=none` so the export passes the sanitizer). They are checked by `.venv/bin/pytest -q tests/test_run_flow_diagrams.py` and appear in the work log after the other two. No live run has happened, so they show no results.
+
 Use plain labels (no HTML), Helvetica only, no images or links; the work log rebuilds each SVG from an allowlist and fails on anything else. `docs/work_log_architecture.svg` stays the compact opening figure.
 
 ## Verified demo path
