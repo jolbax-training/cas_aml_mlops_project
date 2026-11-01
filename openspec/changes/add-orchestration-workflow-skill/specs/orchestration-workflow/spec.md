@@ -144,3 +144,73 @@ The skill SHALL provide a `STATE.md` template that records merged and archived c
 #### Scenario: New session resumes
 - **WHEN** a new coordinator session reads the filled-in state file
 - **THEN** it can identify what is merged, what is in flight, what the user must do, and the last verified CI result
+
+### Requirement: Command facts and sources
+The skill SHALL state that the code is not installed as a package, so module CLIs run from the repository root with `PYTHONPATH=src` (pytest works without it through its `pythonpath` setting), and SHALL direct the coordinator and its briefs to take commands from `README.md` and `docs/demo.md` instead of guessing module names.
+
+#### Scenario: Running a module CLI
+- **WHEN** a session runs a module CLI such as `python -m codegen_eval.experiment_cli`
+- **THEN** the skill directs it to run from the repository root with `PYTHONPATH=src`
+
+#### Scenario: Unsure which command to run
+- **WHEN** a session needs a command for the evaluator or experiment
+- **THEN** the skill directs it to copy the verified command from `README.md` or `docs/demo.md`, and not to infer a module such as the library module `codegen_eval.experiment`, which has no `__main__` block and exits 0 without output
+
+### Requirement: Coordinator-own steps and paid commands
+The skill SHALL allow the coordinator to do these small mechanical steps itself: ticking tasks with evidence, archiving, resolving documentation merge conflicts, a no-code research step such as a price recheck, and a one-line script fix with a regression test. It SHALL direct all other code and spec changes to workers. It SHALL direct the coordinator to run paid commands itself, only after the user approves, and to keep `OPENROUTER_API_KEY` and any other key out of every worker brief.
+
+#### Scenario: Small mechanical step
+- **WHEN** the remaining work is ticking an evidenced task, archiving, or a documentation merge conflict
+- **THEN** the skill permits the coordinator to do it without dispatching a worker
+
+#### Scenario: Code change needed
+- **WHEN** a change needs code or spec edits beyond a one-line script fix with a regression test
+- **THEN** the skill directs the coordinator to dispatch a worker
+
+#### Scenario: Paid command approved
+- **WHEN** the user has approved a paid command
+- **THEN** the skill directs the coordinator to run it itself and not to put an API key or the command's secret environment into a worker brief
+
+### Requirement: Failed paid step or gate
+The skill SHALL direct the coordinator, when a paid step or gate fails, to stop spending, report the evidence and the options with a cost cap for each option, and let the user decide, and SHALL require explicit user approval with a cap (for example at most 5 tries or CHF 0.02) for any retry.
+
+#### Scenario: Paid smoke trial fails
+- **WHEN** a paid smoke trial or gate fails
+- **THEN** the skill directs the coordinator to stop, report the evidence and the capped options, and wait for the user's decision
+
+#### Scenario: Retry proposed
+- **WHEN** the coordinator wants to retry a failed paid step
+- **THEN** the skill directs it to obtain explicit approval that names a cap before spending
+
+### Requirement: One Orca run per coordinator
+The skill SHALL direct each coordinator session to create one Orca orchestration run at its first dispatch and reuse it for every later dispatch, and SHALL forbid waiting, acking, or dispatching in another coordinator's run, because the other coordinator would lose its messages.
+
+#### Scenario: First dispatch of a session
+- **WHEN** a coordinator session dispatches its first worker
+- **THEN** the skill directs it to create the run then and to reuse it afterwards
+
+#### Scenario: Another coordinator's run is visible
+- **WHEN** a coordinator sees a run that another coordinator created
+- **THEN** the skill forbids waiting, acking, or dispatching in it
+
+### Requirement: Coordinator handover
+The skill SHALL provide a handover procedure in a reference file (`handover.md`) with a pointer from `SKILL.md`: update `STATE.md` from the template, launch the new session with `orca agent launch --agent claude --surface terminal --model claude-opus-5-5 --worktree path:<primary checkout> --prompt "<load the skill, read STATE.md, continue>"`, let the new session create its own run, and leave the old coordinator only its in-flight changes.
+
+#### Scenario: Handing the role to a new session
+- **WHEN** the user or coordinator hands the coordinator role to a new session
+- **THEN** the skill directs updating `STATE.md`, launching with the stated command and prompt, and giving the new session its own run
+
+#### Scenario: Old coordinator after handover
+- **WHEN** the handover is complete
+- **THEN** the skill directs the old coordinator to keep only the changes it had in flight and to leave its other work to the new session
+
+### Requirement: Concurrent coordinators
+The skill SHALL direct concurrent coordinators to split ownership by change in `STATE.md` (owner and run id per change), to use separate runs, and to rebase around each other's edits to shared documents (`docs/progress.md`, `README.md`, `docs/work_log.toml`), keeping their own edits there small and self-contained. The `STATE.md` template SHALL carry an owner and run-id field per change using placeholders only.
+
+#### Scenario: Two coordinators share the repository
+- **WHEN** two coordinators work on different changes at once
+- **THEN** each change has one owner and run id in `STATE.md`, and each coordinator works only in its own run
+
+#### Scenario: Both edit shared documents
+- **WHEN** both coordinators' changes edit `docs/progress.md`, `README.md`, or `docs/work_log.toml`
+- **THEN** the skill directs each to keep its edits small and to rebase onto the other's merged edits

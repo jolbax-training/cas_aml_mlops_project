@@ -11,6 +11,8 @@ The project is delivered by a coordinator session that dispatches implementer an
 - Move the coordinator's helper scripts into the repository under `scripts/orchestration/` as generalized, parameterized versions (no scratchpad paths, run IDs, or dispatch IDs): a single-batch wait, a wait loop, and a GitHub CI watcher, each with a dry-run or stub-based check.
 - Add a short pointer to the skill in `README.md` (and in `CLAUDE.md` only if that file exists; it does not today).
 
+- Amendment (2026-11-01, from the single-handover test of task 4.1): add command facts and sources, coordinator-own steps, the failed-paid-step rule, one Orca run per coordinator, a handover procedure, and concurrent-coordinator rules (design decisions 15 to 22).
+
 The Codex skill mirror under `.agents/skills/` is intentionally not touched: the approved description names only `.claude/skills/`, so no copy is added there.
 
 No runtime behavior of the evaluator, benchmark, agent loop, CI, or MLflow changes.
