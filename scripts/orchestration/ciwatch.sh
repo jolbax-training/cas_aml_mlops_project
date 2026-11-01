@@ -8,7 +8,7 @@ REPO="${CIWATCH_REPO:-}"; INTERVAL=150; MAXPOLLS=200; DRY=0; RUN=""
 API="${CIWATCH_API:-https://api.github.com}"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --help|-h) sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --help|-h) awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; exit 0 ;;
     --dry-run) DRY=1 ;;
     --repo) REPO="$2"; shift ;;
     --interval) INTERVAL="$2"; shift ;;

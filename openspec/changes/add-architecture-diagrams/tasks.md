@@ -25,7 +25,7 @@
 
 - [x] 4.1 Update `docs/progress.md` and the README (pointer, regeneration, what each diagram shows, status honesty) and the `README` plan list; verify links resolve with the work-log check.
 - [x] 4.2 Run `.venv/bin/pytest -q` and the Podman group `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox`, plus `openspec validate add-architecture-diagrams --strict`; verify all pass and record counts.
-- [ ] 4.3 Request an independent Fable review of the finished diagrams, twins, sanitizer, and tests; verify findings are addressed or explicitly declined in `docs/progress.md`.
+- [x] 4.3 Request an independent Fable review of the finished diagrams, twins, sanitizer, and tests; verify findings are addressed or explicitly declined in `docs/progress.md`. Done 2026-11-01: Fable implementation review (0 blocker, 2 major, 11 minor) plus seven coordinator layout findings from the rendered PNGs; all fixed except finding 9, declined with reason; the coordinator re-viewed the v2 renders.
 - [ ] 4.4 Ask the user to open each `.drawio.svg` in draw.io desktop and a browser, save it once (compression off), re-run `tests/test_architecture_diagrams.py` and `build_work_log.py --check`, and confirm the diagrams are acceptable (user judgment; not checkable by an agent).
 
 ## Workflow follow-up

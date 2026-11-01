@@ -73,6 +73,10 @@ def test_help_prints_usage_without_side_effects(script, stub):
     result = run(script, ["--help"], env)
     assert result.returncode == 0 and "Usage" in result.stdout
     assert not (state / "calls").exists() and not (state / "urls").exists()
+    header = [re.sub(r"^# ?", "", line) for line in
+              (SCRIPTS / script).read_text().splitlines()[1:] if line.startswith("#")]
+    assert result.stdout.splitlines() == header[:len(result.stdout.splitlines())]
+    assert not re.search(r"^\w+=", result.stdout, re.M)  # no code lines leak into the help
 
 
 def test_wait_dry_run_prints_resolved_command(stub):
