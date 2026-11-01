@@ -124,6 +124,7 @@ def test_public_doctype_and_comment_are_accepted_but_not_kept():
     (DRAWIO.replace("<svg ", '<svg onload="x()" ', 1), "onload"),
     (DRAWIO.replace('<svg xmlns="http://www.w3.org/2000/svg"', "<svg", 1), "namespace"),
     ("<svg", "invalid SVG"),
+    (with_inserted("<g>" * 2000 + "</g>" * 2000), "nested deeper"),
 ])
 def test_unsafe_or_unknown_content_is_rejected(bad, message):
     with pytest.raises(builder.WorkLogError, match=message):

@@ -193,7 +193,8 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 [docs/architecture_physical.md](docs/architecture_physical.md) (where things run, trust boundaries, phase 1 local versus phase 2 live) and [docs/architecture_logical.md](docs/architecture_logical.md) (components and data flow by module) each describe an editable draw.io SVG next to them (`docs/architecture_*.drawio.svg`; open it in draw.io, edit, save as `.drawio.svg`, with *Compressed* off). Both appear in the work log after the opening figure. No live run has happened, so they show no results.
 
 ```sh
-# regenerate from a .drawio source (draw.io desktop; the flags keep the export inside the work-log allowlist)
+# usual path: open the .drawio.svg in draw.io, edit, save. CLI path: extract the source, edit it, re-export with the flags that keep the export inside the work-log allowlist
+/Applications/draw.io.app/Contents/MacOS/draw.io -x -f xml -o physical.drawio docs/architecture_physical.drawio.svg
 /Applications/draw.io.app/Contents/MacOS/draw.io -x -f svg --embed-diagram --svg-theme light --embed-svg-fonts false -o docs/architecture_physical.drawio.svg physical.drawio
 .venv/bin/pytest -q tests/test_architecture_diagrams.py tests/test_work_log_diagrams.py   # labels, names, claims, sanitizer
 .venv/bin/python scripts/build_work_log.py --check                                         # the work log accepts them

@@ -15,9 +15,9 @@ Text equivalent of the logical architecture figure ([`architecture_logical.drawi
 
 **Development checks, final grading, and the trust boundary**
 
-- **`run_checks.py`** (IMPLEMENTED): runs the agent's own example checks using only the function name and signature, and returns bounded feedback, so feedback never contains hidden expected answers. Arrow "check run" to `sandbox.py`.
+- **`run_checks.py`** (IMPLEMENTED): runs the agent's own example checks using only the function name and signature, and returns bounded feedback, so feedback never contains hidden expected answers. Arrow "run in container" to `sandbox.py`.
 - **`evaluate.py + contract.py`** (IMPLEMENTED): the final submission is validated as source (`contract.py`, never executed) and graded against the hidden cases (`evaluate.py`, `grade_trial`). Expected answers and scoring stay on the trusted host. Arrow "per case" to `sandbox.py`.
-- **`sandbox.py + limits.py`** (IMPLEMENTED): the host-side launcher that starts one fresh container per check with resource limits. Arrow "stdin / stdout" to `worker.py`.
+- **`sandbox.py + limits.py`** (IMPLEMENTED): the host-side launcher that starts one fresh container per check with resource limits. Arrow "stdio" to `worker.py`.
 - **TRUST BOUNDARY: candidate container** contains **`worker.py`** (IMPLEMENTED): the only code that runs inside a container is candidate source plus one case's arguments. No network, no credentials, no repository files, no MLflow, and no Podman control are available there. The [threat model](threat_model.md) records residual limitations.
 
 **Evidence flow**
@@ -26,8 +26,8 @@ Text equivalent of the logical architecture figure ([`architecture_logical.drawi
 - **`replay.py`** (IMPLEMENTED): re-grades saved final candidates from a bundle without any model generation; it still uses Podman (arrow "re-grade" to `evaluate.py`).
 - **`trace_inspect.py`** (IMPLEMENTED): read-only inspection of bundles, with no service, model, or sandbox.
 - **`mlflow_tracking.py`** (PARTIAL: NO LIVE RUN YET): records a bundle after it is written ("bundle then record"); it never reads MLflow back. Arrow "uploads" to **MLflow tracking store** (PARTIAL: NO LIVE RUN YET): a secondary record that has so far received only a fixture bundle.
-- **`experiment.py + experiment_cli.py`** (PARTIAL: NO LIVE RUN YET): run the prompt variants through `run_recording.py` and inject the MLflow recorder. Arrow "runs two variants" to `comparison.py`.
-- **`summary.py`** (PARTIAL: NO LIVE RUN YET): fixed-denominator run summaries read from bundles. Arrow "summaries" to `comparison.py`.
+- **`experiment.py + experiment_cli.py`** (PARTIAL: NO LIVE RUN YET): hold the prompt variants and schedule and inject the MLflow recorder. Arrow "runs variants" to `run_recording.py` (each variant is run through it); arrow "compare" to `comparison.py` (the `compare` subcommand compares two finished bundles).
+- **`summary.py`** (PARTIAL: NO LIVE RUN YET): fixed-denominator run summaries read from bundles ("reads bundle" from `run_recording.py + bundle.py`). Single arrow "summaries" from `summary.py` to `comparison.py`, which uses them.
 - **`comparison.py`** (PARTIAL: NO LIVE RUN YET): compares baseline and revised runs from bundles, not from MLflow; the comparison has not run. Dashed arrow "reviewed by a human" to the result summaries.
 - **`reviewed result summaries`** (PENDING): reviewed Markdown summaries of results, run identifiers, and limitations. They need the comparison runs and are not invented here. Arrow "selected .md" to the work-log builder.
 

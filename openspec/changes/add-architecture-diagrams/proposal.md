@@ -26,7 +26,7 @@ None. `local-work-log` is still an in-flight change (`add-local-html-work-log`),
 
 ## Impact
 
-- New files under `docs/` (two `.drawio.svg`, two `.md` twins); `docs/work_log.toml` gains diagram entries; `scripts/build_work_log.py` gains a draw.io sanitizing path and keeps `validate_svg` unchanged; `tests/test_work_log.py` and a new diagram-consistency test; README and `docs/progress.md` updates.
-- The edits to `scripts/build_work_log.py` and `tests/test_work_log.py` (owned by the in-flight `add-local-html-work-log`) are additive: that change's own tasks and tests must still pass unmodified, and its owner is told before the builder edit starts.
+- New files under `docs/` (two `.drawio.svg`, two `.md` twins); `docs/work_log.toml` gains diagram entries; `scripts/build_work_log.py` gains a draw.io sanitizing path and keeps `validate_svg` unchanged; two new test files (`tests/test_work_log_diagrams.py` for the sanitizer and registration, `tests/test_architecture_diagrams.py` for diagram/twin/source consistency; `tests/test_work_log.py` is untouched); README and `docs/progress.md` updates.
+- The edits to `scripts/build_work_log.py` (owned by the in-flight `add-local-html-work-log`) are additive: that change's own tasks and tests must still pass unmodified, and its owner is told before the builder edit starts.
 - No change to `src/codegen_eval` behavior, CI workflow, benchmark, or any other OpenSpec change. `docs/work_log_architecture.svg` and `.md` stay as they are (see design).
 - Fits the project scope as documentation and verification work that supports the "reproducible MLOps workflow" goal; it does not block any live-run task and needs no paid call, GitHub push, or API key.

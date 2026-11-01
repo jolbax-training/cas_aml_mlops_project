@@ -122,6 +122,32 @@ def test_every_box_title_appears_in_the_text_twin(kind):
 
 
 @pytest.mark.parametrize("kind", NAMES)
+def test_every_arrow_label_appears_in_the_text_twin(kind):
+    text = twin(kind)
+    edges = [c for c in cells(kind) if c.get("edge")]
+    assert len(edges) >= 8
+    for edge in edges:
+        label = (edge.get("value") or "").strip()
+        assert not label or f'"{label}"' in text, f"{kind}: arrow label {label!r} is not quoted in the text twin"
+
+
+@pytest.mark.parametrize("kind", NAMES)
+def test_every_arrow_connects_two_drawn_boxes(kind):
+    ids = {c.get("id") for c in cells(kind) if c.get("vertex")}
+    for edge in (c for c in cells(kind) if c.get("edge")):
+        assert edge.get("source") in ids and edge.get("target") in ids
+
+
+def test_job_boxes_are_not_joined_by_an_arrow():
+    """ci.yml declares no `needs:`, so the diagram must not draw a dependency between the jobs."""
+    assert "needs:" not in (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    by_title = {lines(c.get("value"))[0]: c.get("id") for c in vertices("physical")}
+    offline, podman = by_title["job offline: no Podman needed"], by_title["job podman: rootful Podman on the runner"]
+    for edge in (c for c in cells("physical") if c.get("edge")):
+        assert {edge.get("source"), edge.get("target")} != {offline, podman}
+
+
+@pytest.mark.parametrize("kind", NAMES)
 def test_trust_boundary_is_stated_in_diagram_and_twin(kind):
     both = (" ".join(rendered_texts(kind)) + " " + twin(kind)).lower()
     for phrase in ("no network", "no credentials", "no mlflow", "no podman"):

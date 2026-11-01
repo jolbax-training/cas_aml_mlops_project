@@ -72,7 +72,7 @@ New `tests/test_work_log_diagrams.py` (a separate file, so `tests/test_work_log.
 ## Risks / Trade-offs
 
 - [Real draw.io output uses a construct outside the allowlist] → Resolve first by authoring settings (decision 3); widen the allowlist only through a reviewed, tested addition; fall back to link-plus-twin (decision 5c). Decided early: task 1.1 exports a spike diagram and inspects the elements before the full drawing.
-- [Two in-flight changes edit `scripts/build_work_log.py` and `tests/test_work_log.py`] → Edits are additive (decision 5); the old tests must pass unmodified; tell the owner of `add-local-html-work-log` before task 3.1 starts.
+- [Two in-flight changes edit `scripts/build_work_log.py`] → Edits are additive (decision 5); the old tests must pass unmodified; tell the owner of `add-local-html-work-log` before task 3.1 starts.
 - [Image and embedded XML diverge after a hand edit] → Label-equality test (decision 3c) and a README rule to save from draw.io.
 - [The diagrams drift from the code] → Name/coverage/flag tests, plus the verify-against-source task and a Fable review; the diagrams carry a "verified against commit" line in the twin, updated with each edit.
 - [Two overview figures disagree] → Cross-test of module names and statuses (decision 4); old figure kept deliberately small.

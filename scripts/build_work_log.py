@@ -60,6 +60,9 @@ FORBIDDEN_PATTERNS = (
 )
 SVG_TAGS = {"svg", "title", "desc", "defs", "marker", "path", "g", "rect", "text", "tspan", "style"}
 SVG_NS = "http://www.w3.org/2000/svg"
+# ElementTree has no per-call way to serialize namespaced tags with unqualified attributes and no
+# prefix (default_namespace rejects them), so the empty prefix is registered once; the builder is
+# the only serializer of SVG-namespace XML in this process.
 ET.register_namespace("", SVG_NS)
 
 
@@ -486,6 +489,7 @@ _GEOMETRY = {
     "text": {"x", "y", "dx", "dy"}, "tspan": {"x", "y", "dx", "dy"},
 }
 _PAINT = set(_PRESENTATION) | {"transform", "style"}
+DRAWIO_MAX_DEPTH = 64
 
 
 def _drawio_style(value: str) -> None:
@@ -517,7 +521,9 @@ def sanitize_drawio_svg(text: str, diagram_id: str, title: str, description: str
     if root.tag != f"{{{SVG_NS}}}svg":
         raise WorkLogError("diagram: root must be an <svg> in the SVG namespace")
 
-    def rebuild(element: ET.Element, is_root: bool) -> ET.Element:
+    def rebuild(element: ET.Element, is_root: bool, depth: int = 0) -> ET.Element:
+        if depth > DRAWIO_MAX_DEPTH:
+            raise WorkLogError(f"diagram: elements nested deeper than {DRAWIO_MAX_DEPTH} levels are not allowed")
         if not isinstance(element.tag, str) or not element.tag.startswith(f"{{{SVG_NS}}}"):
             raise WorkLogError("diagram: element outside the SVG namespace is not allowed")
         tag = element.tag[len(SVG_NS) + 2:]
@@ -546,7 +552,7 @@ def sanitize_drawio_svg(text: str, diagram_id: str, title: str, description: str
         if tag in {"text", "tspan"}:
             clean.text = element.text
         for child in element:
-            rebuilt = rebuild(child, False)
+            rebuilt = rebuild(child, False, depth + 1)
             rebuilt.tail = child.tail if (child.tail or "").strip() == "" else None
             if (child.tail or "").strip():
                 raise WorkLogError(f"diagram: text between elements inside <{tag}> is not allowed")

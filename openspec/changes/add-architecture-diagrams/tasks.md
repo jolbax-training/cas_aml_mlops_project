@@ -15,7 +15,7 @@
 
 ## 3. Work-log integration
 
-- [ ] 3.0 Tell the owner of `add-local-html-work-log` (via the coordinator) that this change adds code to `scripts/build_work_log.py` and `tests/test_work_log.py`; verify the notice is sent before 3.1 starts.
+- [x] 3.0 Tell the owner of `add-local-html-work-log` (via the coordinator) that this change adds code to `scripts/build_work_log.py`; verify the notice is sent. Done 2026-11-01: the coordinator owns that change and acknowledged the additive edits to `scripts/build_work_log.py` and the tests (new tests are in `tests/test_work_log_diagrams.py`; `tests/test_work_log.py` is untouched).
 - [x] 3.1 Add `sanitize_drawio_svg`, the `[[diagram]]` source-list tables, validation, rendering after the navigation, and provenance rows to `scripts/build_work_log.py`, leaving `validate_svg` and `SVG_TAGS` unchanged; verify with the existing `tests/test_work_log.py` still passing unmodified for the old figure.
 - [x] 3.2 Add the work-log tests from design decision 6 (accepted build, no `content` attribute in output, output validation, parametrized unsafe-construct rejections, old-figure regression, config key errors); verify they pass and each rejection test fails when its check is removed.
 - [x] 3.3 Register both diagrams in `docs/work_log.toml`, rebuild, and run `build_work_log.py --check`; verify the report shows both figures with twins, the old opening figure still comes first, and the page has no script, image, or external reference.
