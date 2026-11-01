@@ -1,6 +1,6 @@
 # STATE.md template
 
-Copy to `STATE.md` at the primary checkout root. The file is Git-ignored and never committed. Put no secrets, API keys, or email addresses in it; run, dispatch, branch, commit, and CI run ids are fine. Update it after every merge, review, or restart.
+Copy to `STATE.md` at the primary checkout root. The file is Git-ignored and never committed. Put no secrets, API keys, or email addresses in it; run, dispatch, branch, commit, and CI run ids are fine. Update it after every merge, review, or restart. With two coordinators, each change has one owner and run id, and each coordinator edits only its own rows ([handover.md](handover.md)).
 
 ```markdown
 # Orchestration state (<date>) — Orca run <run_id>
@@ -12,7 +12,7 @@ Copy to `STATE.md` at the primary checkout root. The file is Git-ignored and nev
 - <change>: <what is open and why>
 
 ## In flight
-- <change>: branch <branch> <commit>; worker <terminal handle or task id>; review <report path or "pending">; next step <step>
+- <change>: owner <coordinator name or session>; run <run_id>; branch <branch> <commit>; worker <terminal handle or task id>; review <report path or "pending">; next step <step>
 
 ## Remaining
 - <change or user step> (<reason it waits: paid phase, user action, queue>)
