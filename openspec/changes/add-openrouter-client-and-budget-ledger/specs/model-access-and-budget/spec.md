@@ -114,15 +114,15 @@ Source: coordinator evidence 2026-11-01; user decision to add a smoke-only optio
 - **THEN** the trace is retained, `calibrate` still reports the missing final-only call, and no automatic paid retry occurs
 
 ### Requirement: Smoke option isolation and identity
-The smoke option MUST NOT change the model configuration or its `config_hash`, the versioned experiment prompts, the agent limits, or controller semantics, and MUST NOT exist on the experiment `run` command path. Without it, smoke requests, prompts, and bundle identity MUST be byte-identical to the behavior before it existed. With it, the bundle identity MUST record the smoke mode and the instruction hash.
+The smoke option MUST NOT change the model configuration or `config_hash`, the versioned experiment prompts, the agent limits, or controller semantics, and MUST NOT exist on the experiment `run` path. Without it, the initial messages, request payload, and the non-smoke identity sections MUST be unchanged and no `smoke` section is added; with it, the identity MUST record the smoke mode and instruction hash.
 
 #### Scenario: Option not given
 - **WHEN** the smoke runs without the option
-- **THEN** the initial messages, request settings, and bundle identity are byte-identical to the previous behavior and no `smoke` identity section is added
+- **THEN** the initial messages, the serialized request payload, and the identity sections `model`, `prompt`, `agent_limits`, `execution_limits` and `benchmark` are unchanged from the previous behavior and no `smoke` identity section is added
 
 #### Scenario: Model configuration hash unchanged
 - **WHEN** the smoke runs with and without the option
-- **THEN** the recorded `config_hash` is identical in both bundles and equals the frozen one
+- **THEN** the recorded `config_hash` is identical in both bundles and equals the `model_config_hash` recorded in the experiment configuration
 
 #### Scenario: Bundle identifies the smoke mode
 - **WHEN** a bundle is made with the option
@@ -131,3 +131,7 @@ The smoke option MUST NOT change the model configuration or its `config_hash`, t
 #### Scenario: Flagged bundle is accepted by freeze and run preconditions
 - **WHEN** `calibrate`, settings freeze, and the `run` precondition "retained smoke bundle still passes calibration" evaluate a bundle made with the option
 - **THEN** none rejects it for its prompt or identity, and the freeze record discloses the smoke mode
+
+#### Scenario: Experiment path cannot produce a flagged bundle
+- **WHEN** the experiment command line is given `--exercise-final-only`, or a bundle is produced by `run_variant`
+- **THEN** the command line rejects the option and the bundle never carries an `identity.smoke` section
