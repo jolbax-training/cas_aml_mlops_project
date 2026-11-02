@@ -1,3 +1,4 @@
+import hashlib
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -188,3 +189,83 @@ def test_the_api_key_is_registered_for_redaction_even_outside_the_environment(tm
 
     text = "".join(f.read_text() for f in path.rglob("*.json"))
     assert KEY not in text and bundle.REDACTED in text
+
+
+# --- smoke --exercise-final-only (section 5) ----------------------------------------
+
+def tool_reply(n, prompt_tokens=700):
+    usage = {"prompt_tokens": prompt_tokens, "completion_tokens": 50, "total_tokens": prompt_tokens + 50,
+             "cost": 0.0001}
+    return reply(None, tool_calls=[{**CALL, "id": f"call_{n}"}], usage=usage, finish="tool_calls")
+
+
+def forced_run(tmp_path, runner, replies, *extra):
+    transport = FakeTransport(*replies)
+    code = main(smoke_args(tmp_path, "--i-accept-cost", *extra), env={"OPENROUTER_API_KEY": KEY},
+                transport=transport, runner=runner)
+    (run,) = (tmp_path / "bundles").iterdir()
+    return code, transport, run
+
+
+def final_reply(prompt_tokens=700):
+    return reply(SOURCE, usage={"prompt_tokens": prompt_tokens, "completion_tokens": 50,
+                                "total_tokens": prompt_tokens + 50, "cost": 0.0001})
+
+
+def test_exercise_final_only_reaches_a_real_fourth_call_that_calibrates(tmp_path, inprocess_runner):
+    from codegen_eval.experiment import calibrate
+    from codegen_eval.openrouter_cli import SMOKE_FINAL_ONLY_INSTRUCTION
+
+    code, transport, run = forced_run(
+        tmp_path, inprocess_runner, [tool_reply(0), tool_reply(1), tool_reply(2), final_reply()],
+        "--exercise-final-only")
+
+    assert code == 0
+    bodies = [c["body"] for c in transport.calls]
+    assert [b["tool_choice"] for b in bodies] == ["auto", "auto", "auto", "none"]
+    assert bodies[3]["tools"] == bodies[0]["tools"] and bodies[3]["tools"]   # tools resent
+    assert len(bodies[3]["messages"]) == 2 + 3 * 2                             # full history
+    assert bodies[0]["messages"][1]["content"].endswith(SMOKE_FINAL_ONLY_INSTRUCTION)
+    identity = bundle.load_manifest(run)["identity"]
+    assert identity["smoke"]["mode"] == "exercise_final_only"
+    assert identity["smoke"]["instruction_sha256"] == hashlib.sha256(
+        SMOKE_FINAL_ONLY_INSTRUCTION.encode()).hexdigest()
+    result = calibrate(run, ModelConfig())
+    assert result.ok and result.fourth_call_observed, result.problems
+
+
+def test_exercise_final_only_leaves_agent_limits_prompt_and_config_hash_unchanged(
+        tmp_path, inprocess_runner):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    _, _, plain = forced_run(tmp_path / "a", inprocess_runner, [final_reply()])
+    _, _, forced = forced_run(tmp_path / "b", inprocess_runner,
+                              [tool_reply(0), tool_reply(1), tool_reply(2), final_reply()],
+                              "--exercise-final-only")
+    a, b = (bundle.load_manifest(p)["identity"] for p in (plain, forced))
+    for section in ("model", "prompt", "agent_limits", "execution_limits", "benchmark"):
+        assert a[section] == b[section], section
+    assert b["model"]["config_hash"] == ModelConfig().config_hash()
+    assert "smoke" not in a
+
+
+def test_without_the_flag_requests_and_identity_match_the_golden_fixture(tmp_path, inprocess_runner):
+    golden = json.loads((ROOT / "tests" / "fixtures" / "smoke_golden.json").read_text())
+    _, transport, run = forced_run(tmp_path, inprocess_runner, [reply(SOURCE)])
+    identity = bundle.load_manifest(run)["identity"]
+
+    assert transport.calls[0]["body"] == golden["first_request_body"]
+    assert {k: identity[k] for k in golden["identity"]} == golden["identity"]
+    assert "smoke" not in identity
+
+
+def test_exercise_final_only_still_fails_calibration_when_the_model_submits_early(
+        tmp_path, inprocess_runner):
+    from codegen_eval.experiment import calibrate
+
+    code, transport, run = forced_run(tmp_path, inprocess_runner,
+                                      [tool_reply(0), final_reply()], "--exercise-final-only")
+
+    assert code == 0 and len(transport.calls) == 2           # no automatic paid retry
+    result = calibrate(run, ModelConfig())
+    assert not result.ok and any("no final-only call" in p for p in result.problems)

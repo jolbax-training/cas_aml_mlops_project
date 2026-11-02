@@ -1,0 +1,130 @@
+{
+  "first_request_body": {
+    "max_tokens": 2000,
+    "messages": [
+      {
+        "content": "You write one Python function for the task you are given.\n\nYou may test your work with the `run_checks` tool: pass your candidate source and up to four\nchecks, each with `arguments` (the positional arguments as a JSON list) and the `expected`\nreturn value you believe is correct. The tool reports for each check whether it passed, the\nactual value, and bounded error diagnostics. You have at most three tool calls, and you do not\nhave to use any.\n\nYour final message is your submission. It is graded as returned, with no repair and no retry.\nIt must be raw Python source and nothing else: no Markdown fences, no explanation, exactly one\nsynchronous function with the requested name, arguments, and annotations, and optionally\nstandard-library imports above it. Do not add helper functions, nested functions, lambdas,\nclasses, decorators, async code, third-party or relative imports, or top-level statements.\nYour fourth model call cannot use tools, so submit by then at the latest.\n",
+        "role": "system"
+      },
+      {
+        "content": "Write count_vowels(text: str) -> int. Count occurrences of the Latin vowels a, e, i, o, and u, including accented forms such as \u00e9 and \u00fc, without regard to case. A vowel written as a base letter followed by a combining accent counts once. Do not count y. Do not count letters that are not a vowel letter with combining marks, such as the ligature \u00e6 or the letter \u00f8. The input is always a string; return 0 for an empty string. Python standard-library imports are allowed, but third-party dependencies are not.\n\nFunction signature: def count_vowels(text: str) -> int",
+        "role": "user"
+      }
+    ],
+    "model": "z-ai/glm-5.3-flash",
+    "provider": {
+      "allow_fallbacks": false,
+      "only": [
+        "open-inference/fp4"
+      ],
+      "order": [
+        "open-inference/fp4"
+      ],
+      "require_parameters": true
+    },
+    "reasoning": {
+      "effort": "low"
+    },
+    "stream": false,
+    "temperature": 0.2,
+    "tool_choice": "auto",
+    "tools": [
+      {
+        "function": {
+          "description": "Run your candidate function on example checks you write yourself and see whether it returns the values you expect.",
+          "name": "run_checks",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "checks": {
+                "description": "Example checks, run independently.",
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "description": "Positional arguments.",
+                      "type": "array"
+                    },
+                    "expected": {
+                      "description": "Expected return value (JSON)."
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "expected"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "source": {
+                "description": "Candidate Python source.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "checks"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "top_p": 1.0,
+    "usage": {
+      "include": true
+    }
+  },
+  "identity": {
+    "agent_limits": {
+      "hash": "e1359505d82677857d06b3b8220eb85e1a825593d7833bc1faaeaaa84366ca7e",
+      "max_checks_per_request": 4,
+      "max_model_calls": 4,
+      "max_tool_attempts": 3
+    },
+    "benchmark": {
+      "file": "benchmark_v1.json",
+      "freeze_content_hash": "a001191f288d1140bd62c7f38932a1bd9900e230a9ad2f5a7d75a23ab33aafee",
+      "sha256": "d75c06ae3a8d8d98fbe2bdeb8ec36e4d80f6279c0040a394aee2247a20f556b6",
+      "version": "1"
+    },
+    "execution_limits": {
+      "cpus": 1,
+      "deadline_seconds": 10.0,
+      "hash": "dfa3cca881cfe5386d441633dd5aba11e9c67f47864118e3663a0fcbc94f4b30",
+      "max_processes": 32,
+      "memory_mib": 128,
+      "payload_bytes": 65536,
+      "print_bytes": 32768,
+      "protocol_bytes": 65536,
+      "tmp_mib": 16
+    },
+    "model": {
+      "allow_fallbacks": false,
+      "attempt_timeout_seconds": 60.0,
+      "backoff_max_seconds": 8.0,
+      "backoff_seconds": 1.0,
+      "client": "openrouter",
+      "config_hash": "4fe5bf3e6d9840e2ae7fdac2add3867698ac64022f962d56c30e49206e9e9908",
+      "config_version": "openrouter_glm_v1",
+      "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+      "input_bound_ascii_chars_per_token": 2.0,
+      "max_input_tokens": 12000,
+      "max_output_tokens": 2000,
+      "max_retries_per_request": 1,
+      "max_retries_per_trial": 2,
+      "model": "z-ai/glm-5.3-flash",
+      "provider": "open-inference/fp4",
+      "reasoning_effort": "low",
+      "require_parameters": true,
+      "temperature": 0.2,
+      "top_p": 1.0
+    },
+    "prompt": {
+      "sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+      "version": "baseline_agent_v1"
+    }
+  }
+}

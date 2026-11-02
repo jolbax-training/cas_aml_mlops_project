@@ -426,7 +426,9 @@ def write_settings_freeze(config: ExperimentConfig, smoke_bundle: str | Path,
               "settings_hash": config.data["settings"]["settings_hash"],
               "model_config_hash": model.config_hash(),
               "smoke": {"bundle": str(bundle), "run_id": load_manifest(bundle)["run_id"],
-                        "manifest_sha256": sha256_file(bundle / "manifest.json")},
+                        "manifest_sha256": sha256_file(bundle / "manifest.json"),
+                        "mode": (load_manifest(bundle).get("identity", {}).get("smoke") or {})
+                        .get("mode", "standard")},
               "calibration": calibration.to_dict(), "decision": "pass", "note": note}
     path = Path(evidence_dir) / FREEZE_RECORD_FILE
     path.parent.mkdir(parents=True, exist_ok=True)

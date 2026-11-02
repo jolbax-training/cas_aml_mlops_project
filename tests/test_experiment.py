@@ -554,3 +554,58 @@ def test_freeze_checks_drift_against_the_benchmark_it_is_given(tmp_path, inproce
     with pytest.raises(ExperimentError, match="out of date"):
         write_settings_freeze(config, smoke, tmp_path / "evidence", benchmark_path=copy)
     assert write_settings_freeze(config, smoke, tmp_path / "evidence", benchmark_path=BENCHMARK)
+
+
+# --- smoke mode (section 5) ----------------------------------------------------------
+
+def forced_smoke(tmp_path, inprocess_runner):
+    """A retained smoke bundle made through the real smoke path with the final-only exercise."""
+    from codegen_eval.openrouter_cli import run_smoke
+    from openrouter_support import PRICES as prices
+    from test_openrouter_cli import final_reply, tool_reply
+
+    transport = FakeTransport(tool_reply(0), tool_reply(1), tool_reply(2), final_reply())
+    run_smoke(ModelConfig(), prices, Ledger(tmp_path / "forced_ledger.jsonl"), KEY, transport,
+              benchmark=BENCHMARK, task_id=None, bundle_root=tmp_path / "forced",
+              runner=inprocess_runner, sleep=lambda s: None, exercise_final_only=True)
+    (path,) = (tmp_path / "forced").iterdir()
+    return path
+
+
+def test_freeze_record_discloses_the_smoke_mode(tmp_path, inprocess_runner):
+    env = make_env(tmp_path, inprocess_runner)
+    standard = json.loads((env.evidence / "settings_freeze.json").read_text())
+    assert standard["smoke"]["mode"] == "standard"
+
+    forced = forced_smoke(tmp_path, inprocess_runner)
+    path = write_settings_freeze(env.config, forced, tmp_path / "evidence2")
+    assert json.loads(path.read_text())["smoke"]["mode"] == "exercise_final_only"
+
+
+def test_a_forced_smoke_bundle_passes_the_run_preconditions_but_is_no_experiment_run(
+        tmp_path, inprocess_runner):
+    env = make_env(tmp_path, inprocess_runner)
+    forced = forced_smoke(tmp_path, inprocess_runner)
+    write_settings_freeze(env.config, forced, env.evidence)
+    options = {**env.options, "smoke_bundle": forced}
+
+    found = check_preconditions(env.config, BASELINE, **options)
+    assert not [f for f in found if f.check in ("smoke_trace", "calibration")], found
+    schedule = verify_schedule(forced, env.config, BASELINE)
+    assert not schedule.ok and any("not a" in p for p in schedule.problems)
+
+
+def test_run_variant_bundles_never_carry_a_smoke_section(tmp_path, inprocess_runner, grader):
+    env = make_env(tmp_path, inprocess_runner)
+    run = run_variant(env.config, BASELINE, solving(reference), grader=grader,
+                      runner=inprocess_runner, run_id="base-1", **env.options)
+    assert "smoke" not in load_manifest(run.bundle)["identity"]
+
+
+def test_the_experiment_cli_has_no_exercise_final_only_option():
+    from codegen_eval.experiment_cli import main as experiment_main
+
+    for command in ("run", "check", "calibrate", "freeze-settings"):
+        with pytest.raises(SystemExit) as stop:
+            experiment_main([command, "--exercise-final-only"])
+        assert stop.value.code == 2

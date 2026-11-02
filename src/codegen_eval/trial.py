@@ -66,9 +66,12 @@ class _State:
     tool_attempts: int = 0
 
 
-def _initial_messages(task: Task, prompt: AgentPrompt) -> list[dict[str, Any]]:
-    # Instruction and typed signature only; hidden cases are never read here.
+def _initial_messages(task: Task, prompt: AgentPrompt, user_suffix: str = "") -> list[dict[str, Any]]:
+    # Instruction and typed signature only; hidden cases are never read here. The optional
+    # suffix is for the smoke command only; experiment runs never pass one.
     user = f"{task.instruction}\n\nFunction signature: def {task.signature}"
+    if user_suffix:
+        user += f"\n\n{user_suffix}"
     return [{"role": "system", "content": prompt.text}, {"role": "user", "content": user}]
 
 
@@ -92,10 +95,12 @@ def run_trial(
     limits: AgentLimits = DEFAULT_AGENT_LIMITS,
     execution_limits: ExecutionLimits = DEFAULT_LIMITS,
     runner: Callable[..., ExecutionResult] = execute_check,
+    user_suffix: str = "",
 ) -> TrialResult:
-    """Run one trial. `runner` executes one development check (see `execute_check`)."""
+    """Run one trial. `runner` executes one development check (see `execute_check`);
+    `user_suffix` (smoke only) is appended to the first user message."""
     prompt = prompt or load_prompt()
-    state = _State(_initial_messages(task, prompt))
+    state = _State(_initial_messages(task, prompt, user_suffix))
 
     def finish(status: str, *, label: str | None = None, submission: str | None = None,
                issue: ContractIssue | None = None, infrastructure: str | None = None) -> TrialResult:

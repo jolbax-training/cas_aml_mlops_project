@@ -6,6 +6,7 @@ and therefore refuses to run without `--i-accept-cost` and the key; it needs Pod
 
     export OPENROUTER_API_KEY=...            # never written to bundles or the ledger
     python -m codegen_eval.openrouter_cli smoke --pricing ~/prices.json --i-accept-cost
+    # add --exercise-final-only to drive the trial to the final-only call (smoke evidence only)
 
     python -m codegen_eval.openrouter_cli ledger status
     python -m codegen_eval.openrouter_cli ledger adjust --amount-chf 0.40 --note "..."
@@ -14,6 +15,7 @@ and therefore refuses to run without `--i-accept-cost` and the key; it needs Pod
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import sys
 from decimal import Decimal, InvalidOperation
@@ -32,6 +34,12 @@ from codegen_eval.sandbox import execute_check
 from codegen_eval.tasks import load_benchmark
 
 API_KEY_ENV = "OPENROUTER_API_KEY"
+# Smoke-only (`smoke --exercise-final-only`): appended to the first user message so the model
+# spends its three tool attempts and the controller reaches the real final-only call. It is not
+# a versioned experiment prompt and experiment trials never receive it.
+SMOKE_FINAL_ONLY_INSTRUCTION = (
+    "Smoke test: call run_checks on each of your three tool attempts, developing and testing "
+    "your checks, and only then give the final answer.")
 REFUSED = 2
 
 
@@ -47,7 +55,8 @@ def _print_ledger(ledger: Ledger) -> None:
 def run_smoke(config: ModelConfig, prices: PriceInputs, ledger: Ledger, api_key: str,
               transport: Transport, *, benchmark: str | Path, task_id: str | None,
               bundle_root: str | Path, runner: Callable[..., Any] = execute_check,
-              sleep: Callable[[float], None] | None = None) -> int:
+              sleep: Callable[[float], None] | None = None,
+              exercise_final_only: bool = False) -> int:
     tasks = load_benchmark(benchmark)
     if task_id:
         tasks = tuple(t for t in tasks if t.id == task_id)
@@ -63,9 +72,17 @@ def run_smoke(config: ModelConfig, prices: PriceInputs, ledger: Ledger, api_key:
                                 context={"purpose": "smoke", "task_id": task.id,
                                          "trial_id": trial_id}, **kwargs)
 
+    extra: dict[str, Any] = {}
+    if exercise_final_only:
+        extra = {"user_suffix": SMOKE_FINAL_ONLY_INSTRUCTION,
+                 "identity_extra": {"smoke": {
+                     "mode": "exercise_final_only",
+                     "instruction": SMOKE_FINAL_ONLY_INSTRUCTION,
+                     "instruction_sha256": hashlib.sha256(
+                         SMOKE_FINAL_ONLY_INSTRUCTION.encode("utf-8")).hexdigest()}}}
     path, verification = run_recorded(tasks, client_for, benchmark, bundle_root=bundle_root,
                                       runner=runner, model_settings=config.identity(),
-                                      extra_secrets=(api_key,))
+                                      extra_secrets=(api_key,), **extra)
     print(f"bundle: {path}")
     print(f"recorded {len(verification.recorded)} of {len(verification.planned)} planned trials; "
           f"complete={verification.complete}")
@@ -105,6 +122,9 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
     smoke.add_argument("--benchmark", default=str(ROOT / "data" / "benchmark_v1.json"))
     smoke.add_argument("--task", help="task id (default: the first task)")
     smoke.add_argument("--bundles", default=DEFAULT_BUNDLE_ROOT)
+    smoke.add_argument("--exercise-final-only", action="store_true",
+                       help="smoke only: ask the model to use all three tool attempts so the "
+                            "trial reaches the final-only call")
     led = sub.add_parser("ledger", help="inspect or adjust the spending ledger (no API call)")
     led.add_argument("action", choices=("status", "adjust"))
     led.add_argument("--ledger")
@@ -141,7 +161,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
           f"ledger {ledger.path}")
     return run_smoke(config, prices, ledger, api_key, transport or HttpTransport(),
                      benchmark=args.benchmark, task_id=args.task, bundle_root=args.bundles,
-                     runner=runner, sleep=sleep)
+                     runner=runner, sleep=sleep,
+                     exercise_final_only=args.exercise_final_only)
 
 
 if __name__ == "__main__":

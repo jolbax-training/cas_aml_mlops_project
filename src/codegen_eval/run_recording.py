@@ -200,11 +200,13 @@ def run_recorded(
     model_settings: Mapping[str, Any] | None = None,
     extra_secrets: Sequence[str] = (),
     identity_extra: Mapping[str, Any] | None = None,
+    user_suffix: str = "",
 ) -> tuple[Path, Verification]:
     """Run every planned trial, persisting each record as it finishes; returns the bundle.
 
     `identity_extra` adds named sections (for example an experiment's variant) to the
-    bundle identity; it cannot replace a section this module records itself."""
+    bundle identity; it cannot replace a section this module records itself. `user_suffix`
+    is the smoke command's extra user-message text; the caller records it in `identity_extra`."""
     prompt = prompt or load_prompt()
     planned = [{"task_id": t.id, "trial_id": f"{t.id}-t{n}"}
                for t in tasks for n in range(1, trials_per_task + 1)]
@@ -226,7 +228,8 @@ def run_recorded(
                                      lambda entry, t=trial_id: writer.append_call(t, entry))
             started_at = utc_now()
             result = run_trial(task, client, prompt=prompt, limits=limits,
-                               execution_limits=execution_limits, runner=runner)
+                               execution_limits=execution_limits, runner=runner,
+                               user_suffix=user_suffix)
             grades = grades_record(grader(task, result)) if grader else dict(PENDING_GRADES)
             writer.write_trial(trial_record(item["trial_id"], task, result, client, grades, started_at))
             if result.infrastructure_status == BUDGET_CEILING:
