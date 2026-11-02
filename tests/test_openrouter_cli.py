@@ -245,6 +245,8 @@ def test_exercise_final_only_leaves_agent_limits_prompt_and_config_hash_unchange
     a, b = (bundle.load_manifest(p)["identity"] for p in (plain, forced))
     for section in ("model", "prompt", "agent_limits", "execution_limits", "benchmark"):
         assert a[section] == b[section], section
+    recorded = json.loads((ROOT / "experiments" / "prompt_comparison_v1.json").read_text())
+    assert b["model"]["config_hash"] == recorded["settings"]["model_config_hash"]
     assert b["model"]["config_hash"] == ModelConfig().config_hash()
     assert "smoke" not in a
 

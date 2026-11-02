@@ -602,10 +602,12 @@ def test_run_variant_bundles_never_carry_a_smoke_section(tmp_path, inprocess_run
     assert "smoke" not in load_manifest(run.bundle)["identity"]
 
 
-def test_the_experiment_cli_has_no_exercise_final_only_option():
+def test_the_experiment_cli_has_no_exercise_final_only_option(capsys):
     from codegen_eval.experiment_cli import main as experiment_main
 
-    for command in ("run", "check", "calibrate", "freeze-settings"):
+    for argv in (["run", "--variant", "baseline"], ["check", "--variant", "baseline"],
+                 ["calibrate", "--smoke-bundle", "x"], ["freeze-settings", "--smoke-bundle", "x"]):
         with pytest.raises(SystemExit) as stop:
-            experiment_main([command, "--exercise-final-only"])
+            experiment_main([*argv, "--exercise-final-only"])
         assert stop.value.code == 2
+        assert "unrecognized arguments: --exercise-final-only" in capsys.readouterr().err
