@@ -1,6 +1,6 @@
 # Tasks
 
-All tasks are done: preconditions, offline tooling, the baseline run (`20261103T053309Z-280182`), the revised run (`20261103T095324Z-d25905`), the comparison write-up (`docs/prompt_comparison. md`) and the user's keep-v2 decision. The student's own interpretation is left to the student. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
+All tasks are done: preconditions, offline tooling, the baseline run (`20261103T053309Z-280182`), the revised run (`20261103T095324Z-d25905`), the comparison write-up (`docs/prompt_comparison.md`) and the user's keep-v2 decision. The student's own interpretation is left to the student. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
 
 ## 1. Preconditions
 

@@ -413,6 +413,7 @@ def test_actual_repository_builds_and_checks_offline():
     # the demo path stays marked incomplete (the credential-free rehearsal is not done)
     demo = re.search(r'<section id="demo".*?</section>', page, re.S).group(0)
     assert "Pending evidence" not in demo
+    assert "Incomplete, work in progress" in demo
     # the benchmark review, comparison, and evaluation-design guide documents are registered sources, not pending
     for source in ("benchmark-review", "results", "evidence", "guide", "coordinator-example"):
         section = re.search(rf'<section id="{source}".*?</section>', page, re.S).group(0)

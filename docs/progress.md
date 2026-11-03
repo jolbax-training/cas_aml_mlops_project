@@ -1,6 +1,6 @@
 # Project progress and decisions
 
-Updated 2026-10-30. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
+Updated 2026-11-03. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
 
 ## Current status
 
