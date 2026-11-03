@@ -114,6 +114,13 @@ label = "reviewed"
 status = "incomplete"
 
 [[section]]
+id = "smoke-evidence"
+title = "Paid smoke evidence (OpenRouter client and ledger)"
+path = "docs/smoke_evidence.md"
+label = "reviewed"
+status = "implemented"
+
+[[section]]
 id = "setup"
 title = "Setup, verification, and reproduction"
 path = "README.md"
