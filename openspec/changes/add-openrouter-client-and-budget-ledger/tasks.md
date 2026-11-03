@@ -1,6 +1,6 @@
 # Tasks
 
-Tasks 1.1-3.3 are implemented and tested offline with a fake transport (no paid call); 4.1-4.5 remain deferred to the end (paid smoke, freeze). Timebox: day 2, API/budget/smoke (3h). Requires `add-bounded-agent-loop` and `add-run-bundles-and-grading-replay`; the smoke test also requires `harden-candidate-execution` probes to pass.
+Tasks 1.1-3.3 are implemented and tested offline with a fake transport (no paid call); 4.1-4.5 completed 2026-11-03 (paid smoke, calibration, freeze; see docs/smoke_evidence.md). Timebox: day 2, API/budget/smoke (3h). Requires `add-bounded-agent-loop` and `add-run-bundles-and-grading-replay`; the smoke test also requires `harden-candidate-execution` probes to pass.
 
 ## 1. Configuration and client
 

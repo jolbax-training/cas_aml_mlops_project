@@ -4,7 +4,7 @@ Reviewed 2026-11-03 from the coordinator's own commands (Mac arm64, primary chec
 
 ## Price and endpoint rechecks (task 4.1, no spend)
 
-| Date | Input USD/M | Output USD/M | FX (ECB) | EUR/USD x EUR/CHF | USD to CHF recorded |
+| Date | Input USD/M | Output USD/M | FX (ECB) | USD to CHF = EUR/CHF ÷ EUR/USD | USD to CHF recorded |
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-01 | 0.03 | 0.16 | 2026-10-30: 1.1172, 0.9194 | 0.82295 | 0.8230 |
 | 2026-11-03 (before the passing smoke) | 0.03 | 0.22 (raised) | 2026-11-02: 1.1216, 0.9193 | 0.81964 | 0.8197 |

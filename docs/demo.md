@@ -83,7 +83,7 @@ Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (s
 
 ### 6. The comparison and keep-or-reject decision (PENDING)
 
-> **PENDING: no real comparison exists.** The baseline and revised-prompt runs (`run-prompt-comparison`: sixty task trials, 240 hidden-check outcomes, shared CHF 10 checkpoint / CHF 15 ceiling) have not been run, and the paid OpenRouter smoke is also deferred. No run IDs, scores, MLflow links, or decision are recorded here, and none may be filled in until the retained bundles exist.
+> **PENDING: no real comparison exists.** The baseline and revised-prompt runs (`run-prompt-comparison`: sixty task trials, 240 hidden-check outcomes, shared CHF 10 checkpoint / CHF 15 ceiling) have not been run, and the paid OpenRouter smoke passed on 2026-11-03 (docs/smoke_evidence.md). No run IDs, scores, MLflow links, or decision are recorded here, and none may be filled in until the retained bundles exist.
 >
 > When the runs exist, replace this block with: the two run IDs and bundle digests (from `trace_inspect verify`), the MLflow run links, the fixed-denominator summary and per-task improvements/regressions/unchanged outcomes, two or three selected traces that explain them, the limits (three trials per task do not establish precise reliability; no generalization claim), and the keep/reject decision with its reason. Then update the report's `results` and `evidence` sections and rerun the commands in section 5.
 
