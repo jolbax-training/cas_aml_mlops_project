@@ -7,7 +7,7 @@ This is the walk-through for the final demo, ordered so that everything before t
 | Part | State |
 | --- | --- |
 | Setup, inspection, replay, MLflow navigation, offline report, local CI commands | Commands re-executed 2026-10-30/31 on the laptop; see [Verified commands](#verified-commands) |
-| Comparison and keep/reject decision | **PENDING**: no comparison run exists yet ([section 6](#6-the-comparison-and-keep-or-reject-decision-pending)) |
+| Comparison and keep/reject decision | Two complete runs recorded 2026-11-03: baseline 27/30, revised 29/30 successful task trials; decision keep v2 ([section 6](#6-the-comparison-and-keep-or-reject-decision)); the student's interpretation is not filled in |
 | Full rehearsal with no model credentials | Not done (task 2.2 of `prepare-reproducible-demo`, after the comparison) |
 
 The demo path below uses a **fixture-client bundle** (scripted model responses). It demonstrates the tooling, not model quality, and any numbers it shows are not results of the project's experiment.
@@ -81,11 +81,11 @@ open report/index.html
 
 Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (solid blue = implemented, solid yellow = built offline with no live run yet, dashed = pending), then the status, benchmark review, CI evidence, setup, and this demo section. Sections without a reviewed record are shown as pending or incomplete; say so rather than skipping them.
 
-### 6. The comparison and keep-or-reject decision (PENDING)
+### 6. The comparison and keep-or-reject decision
 
-> **PENDING: no real comparison exists.** The baseline and revised-prompt runs (`run-prompt-comparison`: sixty task trials, 240 hidden-check outcomes, shared CHF 10 checkpoint / CHF 15 ceiling) have not been run, and the paid OpenRouter smoke passed on 2026-11-03 (docs/smoke_evidence.md). No run IDs, scores, MLflow links, or decision are recorded here, and none may be filled in until the retained bundles exist.
->
-> When the runs exist, replace this block with: the two run IDs and bundle digests (from `trace_inspect verify`), the MLflow run links, the fixed-denominator summary and per-task improvements/regressions/unchanged outcomes, two or three selected traces that explain them, the limits (three trials per task do not establish precise reliability; no generalization claim), and the keep/reject decision with its reason. Then update the report's `results` and `evidence` sections and rerun the commands in section 5.
+Open [the prompt comparison](prompt_comparison.md) (report section "Results, comparison, and limitations") and [the evidence references](comparison_evidence.md) (report section "Local evidence and MLflow identifiers"). Recorded 2026-11-03 (no new paid call): baseline run `20261103T053309Z-280182` (`baseline_agent_v1`) 27 of 30 successful task trials, revised run `20261103T095324Z-d25905` (`baseline_agent_v2`) 29 of 30, both COMPLETE (30 of 30 planned trials), MLflow runs `930a188254d34d279a88a7613ea55518` and `bcddf5c9561c43129504555b020a7557`, decision: keep v2.
+
+Walk the gain (`lists_02`, 0/3 to 3/3: the baseline traces submit explanation text after a wrong self-written check; the revised traces submit the bare function with no tool attempt), the regression (`strings_01-t2`, a case-folding wrong answer), and the limits (30 trials per variant, one model and provider, fixed sampling, no repeated runs, precision not returned by the provider). Replaying the bundles needs Podman and no credentials; `compare` and `trace_inspect` need neither. Inspection commands are in sections 2 and 3. The student's interpretation slot in the write-up is empty on purpose.
 
 ### 7. Transfer guide
 

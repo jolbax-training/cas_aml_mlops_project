@@ -1,6 +1,6 @@
 # Tasks
 
-The preconditions, the offline experiment tooling, and the baseline run (`20261103T053309Z-280182`, inspected, recorded in MLflow) are done; the revised run, the comparison, and every task that needs a paid run or the user's judgment stay open. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
+All tasks are done: preconditions, offline tooling, the baseline run (`20261103T053309Z-280182`), the revised run (`20261103T095324Z-d25905`), the comparison write-up (`docs/prompt_comparison. md`) and the user's keep-v2 decision. The student's own interpretation is left to the student. Timeboxes: day 3 baseline/inspection/revision/revised run (4h); day 4 comparison write-up within the comparison/report slot (2h). Requires changes 1, 3, 4, 5, and 7 verified (and 2 transitively).
 
 ## 1. Preconditions
 
@@ -15,11 +15,11 @@ The preconditions, the offline experiment tooling, and the baseline run (`202611
 
 ## 3. Revised run
 
-- [ ] 3.1 Version the revised prompt, confirm all other settings unchanged, and run the identical schedule through the ledger.
-- [ ] 3.2 Verify completeness, record in MLflow, and label any incomplete run without reducing denominators.
+- [x] 3.1 Version the revised prompt, confirm all other settings unchanged, and run the identical schedule through the ledger. (`baseline_agent_v2`; run `20261103T095324Z-d25905`, ledger CHF 0.003876933730 -> 0.0068475273497; `build-config --check` matched, `compare` reports evaluator code and prompt files otherwise identical.)
+- [x] 3.2 Verify completeness, record in MLflow, and label any incomplete run without reducing denominators. (COMPLETE, 30 of 30 planned trials, digest `210fb4bb...91ea39`; MLflow run `bcddf5c9561c43129504555b020a7557`; no incomplete run.)
 
 ## 4. Comparison and decision
 
-- [ ] 4.1 Compute the primary metric and diagnostics for both variants with counts and rates. (Tooling ready and tested offline: `experiment_cli compare`; stays open until it is run on two real, complete runs.)
-- [ ] 4.2 Write the reviewed comparison Markdown: evidence references, metrics, trace-based explanations of gains/regressions/unchanged outcomes, efficiency, required limitations, and the keep/reject decision. Leave any student interpretation to the student.
-- [ ] 4.3 Update `docs/progress.md` with run IDs, versions, observed results, ledger totals, and limitations; register the comparison summary as a work-log source and rebuild the report.
+- [x] 4.1 Compute the primary metric and diagnostics for both variants with counts and rates. (`experiment_cli compare` on the two complete runs: 27/30 versus 29/30; output reproduced in `docs/prompt_comparison.md`.)
+- [x] 4.2 Write the reviewed comparison Markdown: evidence references, metrics, trace-based explanations of gains/regressions/unchanged outcomes, efficiency, required limitations, and the keep/reject decision. Leave any student interpretation to the student. (`docs/prompt_comparison.md`; decision keep v2; the student-interpretation slot is left empty.)
+- [x] 4.3 Update `docs/progress.md` with run IDs, versions, observed results, ledger totals, and limitations; register the comparison summary as a work-log source and rebuild the report.

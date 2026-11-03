@@ -206,7 +206,7 @@ Use plain labels (no HTML), Helvetica only, no images or links; the work log reb
 
 ## Verified demo path
 
-[docs/demo.md](docs/demo.md) lists the setup, image restore, inspection (no API, no Podman), grading replay (Podman, no credentials), MLflow, report build/open, and local CI commands with the date, versions, and observed results of their re-execution, and the demo walk-through. Its comparison and keep/reject section is explicitly PENDING until real runs exist.
+[docs/demo.md](docs/demo.md) lists the setup, image restore, inspection (no API, no Podman), grading replay (Podman, no credentials), MLflow, report build/open, and local CI commands with the date, versions, and observed results of their re-execution, and the demo walk-through. Its comparison section summarises the recorded baseline and revised-prompt runs and points to [docs/prompt_comparison.md](docs/prompt_comparison.md) and [docs/comparison_evidence.md](docs/comparison_evidence.md).
 
 ## Plan and report sources
 
@@ -225,7 +225,7 @@ Use plain labels (no HTML), Helvetica only, no images or links; the work log reb
 - Project-wide spending ledger: **CHF 10 checkpoint**, automatic continuation; **CHF 15 ceiling**, with conservative reservations including retries and uncertain charges.
 - Trace inspection needs no execution service; grading replay re-executes saved final code in Podman without a model API. Deterministic response fixtures verify the agent loop separately.
 
-The report entry point is `report/index.html`, generated locally and Git-ignored from selected Markdown and reviewed summaries (commands in the work-log section above). It collects architecture, status, decisions, benchmark review, evidence references, and reproduction instructions without hosting; comparison results stay pending until a real comparison run exists.
+The report entry point is `report/index.html`, generated locally and Git-ignored from selected Markdown and reviewed summaries (commands in the work-log section above). It collects architecture, status, decisions, benchmark review, evidence references, and reproduction instructions without hosting; the comparison results and run/MLflow identifiers come from the reviewed [prompt comparison](docs/prompt_comparison.md) and [evidence references](docs/comparison_evidence.md).
 
 OpenSpec is initialized under `openspec/`, with Codex workflow skills in `.agents/skills/`. The existing [local HTML work-log change](openspec/changes/add-local-html-work-log/proposal.md) is implemented except task 4.2 (real-browser inspection); main capability specs remain empty. The [Wayfinder map](.scratch/revise-project-spec/map.md) retains the user-confirmed decisions, and [glossary](GLOSSARY.md) defines evaluation terminology. A GitHub origin is configured; the CI workflow passed on GitHub (run 41128433037; see [Deterministic CI](#deterministic-ci-github-actions)).
 
