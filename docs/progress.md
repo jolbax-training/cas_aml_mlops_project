@@ -234,6 +234,12 @@ Runtime observations above are from the earlier read-only exploration in this co
 - **Limitation:** a forced trace is of a prompted fourth call, a smoke-only exception to the project-spec rule that only instruction, signature and versioned prompt enter the request; the model may still submit early. No paid call was made and no live result is claimed; 4.1-4.5 stay open, and the re-smoke is the coordinator's step after user approval.
 - **Observed (2026-11-02, local macOS, Podman VM):** `.venv/bin/pytest -q` 757 passed, 67 skipped; `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` 67 passed, 757 deselected; `scripts/build_work_log.py --check` passed; `openspec validate add-openrouter-client-and-budget-ledger --strict` valid. Fake transport only.
 
+## 2026-11-03 — Smoke instruction made explicit (`add-openrouter-client-and-budget-ledger`, task 5.5)
+
+- **Live evidence (coordinator):** the first forced smoke, bundle `run_bundles/20261103T013902Z-46c5c0` on `strings_01`, made 3 model calls with 2 `run_checks` attempts and submitted at call 3; `calibrate` failed only on "no final-only call (tool_choice none)". The first wording did not make the model use all three tool attempts, and `trial.py` disables tools only after the third attempt or at the last call.
+- **Change (offline):** the smoke-only instruction now states that the model has three `run_checks` attempts and must use all three, once per message, until it has three results, and that tools are then disabled and the next message must be the final answer (design A8). Model config and `config_hash`, prompts, limits, controller and the experiment path are unchanged; `identity.smoke` records mode, the new instruction and its sha256.
+- **Left open:** the re-smoke with the new wording is a paid call owned by the coordinator (task 4.2); 4.1-4.5 stay open. No new live result is claimed, and the trace remains a prompted fourth call.
+
 ## Historical decisions
 
 The following October 16 entries preserve their original context. Their four-week schedule, one-candidate-per-task experiment, reflection/understanding gate, and no-remote statements are superseded above; no dates or personal reflections have been rewritten.

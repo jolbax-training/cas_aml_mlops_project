@@ -271,3 +271,12 @@ def test_exercise_final_only_still_fails_calibration_when_the_model_submits_earl
     assert code == 0 and len(transport.calls) == 2           # no automatic paid retry
     result = calibrate(run, ModelConfig())
     assert not result.ok and any("no final-only call" in p for p in result.problems)
+
+
+def test_smoke_instruction_states_the_real_attempt_limits():
+    from codegen_eval.agent_config import AgentLimits
+    from codegen_eval.openrouter_cli import SMOKE_FINAL_ONLY_INSTRUCTION as text
+    assert AgentLimits().max_tool_attempts == 3 and AgentLimits().max_model_calls == 4
+    for phrase in ("three run_checks attempts", "must use all three", "once per message",
+                   "tools are disabled", "next message must be the final answer"):
+        assert phrase in text

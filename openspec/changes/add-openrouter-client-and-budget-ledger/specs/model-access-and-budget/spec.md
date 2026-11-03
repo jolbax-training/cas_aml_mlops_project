@@ -101,7 +101,7 @@ Source: issue 04 / answer; issue 08.
 - **THEN** settings are not frozen and the main runs do not start
 
 ### Requirement: Smoke-only final-only exercise option
-The smoke command SHALL offer an opt-in `--exercise-final-only` option that appends a fixed, hashed smoke instruction to the task message asking the model to call `run_checks` on each of its three tool attempts before giving the final answer. The final-only request MUST be built by the normal controller (full history, `tool_choice: none`, tools resent), never scripted or injected.
+The smoke command SHALL offer an opt-in `--exercise-final-only` option that appends a fixed, hashed instruction telling the model it has three `run_checks` attempts and must use all three before answering. The final-only request MUST be built by the normal controller (full history, `tool_choice: none`, tools resent), never scripted or injected.
 
 Source: coordinator evidence 2026-11-01; user decision to add a smoke-only option and re-smoke once.
 

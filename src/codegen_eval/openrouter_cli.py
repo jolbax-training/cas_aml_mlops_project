@@ -38,8 +38,10 @@ API_KEY_ENV = "OPENROUTER_API_KEY"
 # spends its three tool attempts and the controller reaches the real final-only call. It is not
 # a versioned experiment prompt and experiment trials never receive it.
 SMOKE_FINAL_ONLY_INSTRUCTION = (
-    "Smoke test: call run_checks on each of your three tool attempts, developing and testing "
-    "your checks, and only then give the final answer.")
+    "Smoke test: you have three run_checks attempts and must use all three. Call run_checks "
+    "once per message, read its feedback, and call it again until you have received three "
+    "run_checks results. Do not give a final answer before the third result; after it, tools "
+    "are disabled and your next message must be the final answer.")
 REFUSED = 2
 
 
