@@ -9,9 +9,9 @@ Task 1.2 and the offline experiment tooling are implemented and tested with fixt
 
 ## 2. Baseline
 
-- [ ] 2.1 Run the baseline schedule through the ledger, each trial a fresh conversation; verify completeness against every scheduled task/trial ID.
+- [x] 2.1 Run the baseline schedule through the ledger, each trial a fresh conversation; verify completeness against every scheduled task/trial ID.
 - [ ] 2.2 Record the baseline in MLflow (or retain for later upload if tracking is down) and note ledger totals and any checkpoint.
-- [ ] 2.3 Inspect baseline failures and selected traces; document one intended prompt change and its motivation, stating plainly if there were no failures.
+- [x] 2.3 Inspect baseline failures and selected traces; document one intended prompt change and its motivation, stating plainly if there were no failures.
 
 ## 3. Revised run
 

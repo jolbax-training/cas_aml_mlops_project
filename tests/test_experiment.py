@@ -49,7 +49,9 @@ def test_committed_configuration_lists_variant_benchmark_settings_and_schedule()
     assert config_drift(config) == []                       # still matches the repository
     assert [v["name"] for v in data["variants"]] == [BASELINE, REVISED]
     assert data["variants"][0]["prompt_version"] == "baseline_agent_v1"
-    assert data["variants"][1] == {"name": "revised", "prompt_version": None, "prompt_sha256": None}
+    assert data["variants"][1]["name"] == "revised"
+    assert data["variants"][1]["prompt_version"] == "baseline_agent_v2"
+    assert data["variants"][1]["prompt_sha256"]
     assert data["benchmark"]["version"] == "1" and data["benchmark"]["sha256"]
     assert data["benchmark"]["freeze_content_hash"]
     assert data["settings"]["settings_hash"] and data["settings"]["model_config_hash"]
@@ -75,7 +77,7 @@ def test_drift_names_the_section_that_no_longer_matches(section, mutate):
 @pytest.mark.parametrize("mutate", [
     lambda d: d.pop("schedule"),
     lambda d: d["variants"].reverse(),
-    lambda d: d["variants"][1].update(prompt_version="x"),     # a version without its hash
+    lambda d: d["variants"][1].update(prompt_version="x", prompt_sha256=None),   # a version without its hash
     lambda d: d["schedule"].append(d["schedule"][0]),
 ])
 def test_malformed_configuration_is_rejected(mutate):

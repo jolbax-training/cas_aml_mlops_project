@@ -148,8 +148,8 @@
     },
     {
       "name": "revised",
-      "prompt_sha256": null,
-      "prompt_version": null
+      "prompt_sha256": "f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b",
+      "prompt_version": "baseline_agent_v2"
     }
   ]
 }
