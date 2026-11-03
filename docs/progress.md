@@ -21,13 +21,27 @@ Updated 2026-10-30. [The specification](project_spec.md) defines the current acc
 
 Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result. No CI success, live experiment, MLflow run, generated report, or completed personal reflection is claimed.
 
+## 2026-11-03 — Preconditions and baseline MLflow record (`run-prompt-comparison`, tasks 1.1 and 2.2)
+
+Evidence from the coordinator's own commands on 2026-11-03 (Mac arm64):
+
+- **Probes:** `experiment_cli record-probes` 67 passed, 0 failures, 0 errors, 0 skipped; recorded_at 2026-11-03T05:32:14Z; `evaluator_code_sha256` `ab66234b11df932b836c5bce983f50890324bbe486b61e5f00f8f155ba6ee38c`; image `docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5` (`experiments/evidence/probes.json`, Git-ignored).
+- **Benchmark:** `scripts/freeze_benchmark.py --check` reported "benchmark freeze matches" (version 1).
+- **Model settings:** frozen in `experiments/evidence/settings_freeze.json`, decision pass, 2026-11-03T05:08:32Z, with the retained smoke bundle `20261103T050806Z-30949f` (see `docs/smoke_evidence.md`).
+- **MLflow:** `MLFLOW_PORT=5001 scripts/mlflow_service.sh status` reported running and healthy at `http://127.0.0.1:5001`. The baseline ran with `--no-tracking` and was uploaded afterwards from the retained bundle, which confirms the later-upload path.
+- **Ledger projection:** `experiment_cli check --variant baseline --pricing ~/.codegen_eval/pricing_2026-11-03.json` reported only `cost_acceptance` unmet (the budget projection passed). Worst case per variant is 180 attempts x CHF 0.0008197 = CHF 0.148; both variants CHF 0.295 plus CHF 0.0011 earlier spend, within CHF 15.
+- **Baseline record (2.2):** `PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking record 20261103T053309Z-280182 --tracking-uri http://127.0.0.1:5001` created MLflow run `930a188254d34d279a88a7613ea55518` in experiment 1. Ledger CHF 0.001123954886 -> 0.003876933730; the CHF 10 checkpoint was not reached.
+- **Port note:** host port 5000 is held by macOS ControlCenter (AirPlay Receiver, answers HTTP 403), so the service was started with `MLFLOW_PORT=5001 scripts/mlflow_service.sh start` (data in the primary checkout's `./mlflow_data`). The README MLflow section now says so.
+
+Student interpretation is left to the student.
+
 ## 2026-11-03 — Baseline run inspected and one prompt revision recorded (`run-prompt-comparison`, task 2.3; 2.1 evidence)
 
-- **Baseline run (coordinator's own commands):** run `20261103T053309Z-280182`, bundle digest `1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1`. `trace_inspect verify` reported COMPLETE: 30 of 30 planned trials, all submitted, records intact. 27 of 30 successful task trials; hidden checks 108 of 120 passed; edge checks 54 of 60. Ledger CHF 0.001123954886 -> 0.003876933730; the CHF 10 checkpoint was not reached. **Not yet recorded in MLflow** (tracking container stopped; upload from the retained bundle pending, task 2.2 stays open).
+- **Baseline run (coordinator's own commands):** run `20261103T053309Z-280182`, bundle digest `1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1`. `trace_inspect verify` reported COMPLETE: 30 of 30 planned trials, all submitted, records intact. 27 of 30 successful task trials; hidden checks 108 of 120 passed; edge checks 54 of 60. Ledger CHF 0.001123954886 -> 0.003876933730; the CHF 10 checkpoint was not reached. Recorded in MLflow afterwards from the retained bundle (the baseline ran with `--no-tracking`): see the next entry.
 - **Failures:** all three are `lists_02`. t1 `syntax_error` ("invalid character '—' (U+2014)", a prose sentence before the code); t2 `contract_error` ("Markdown fences are disallowed", prose plus a ```python fence); t3 `syntax_error` (a prose sentence before the code). In each the submitted `rotate_left` was correct; each model had written a check with a wrong expected value (rotation by 7 of [1,2,3]) and explained that in the final message.
 - **Intended change and motivation:** one sentence added as a new line in `src/codegen_eval/prompts/baseline_agent_v2.md` (`baseline_agent_v1.md` is unchanged; the files differ only by this sentence, placed after "...or top-level statements." and before "Your fourth model call cannot use tools..."): "If a check fails because your expected value was wrong, fix the check or ignore it, but do not mention it: even then, your final message starts directly with the function's `def` line or its imports." It targets explanation in the submission after a self-inflicted check failure; the baseline prompt already forbade explanation and fences. The user approved the wording on 2026-11-03.
 - **Configuration:** `PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli build-config --revised-prompt baseline_agent_v2` recorded the revised variant in `experiments/prompt_comparison_v1.json` (`prompt_version` `baseline_agent_v2`, `prompt_sha256` `f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b`); `build-config --check` passes. The diff touches only those two revised-prompt fields; benchmark, settings hash, model config hash, schedule, and the baseline prompt hash are unchanged.
-- **Not done:** no revised run and no paid call (task 3.1 runs the identical schedule later, coordinator-run after user approval); MLflow record of the baseline (2.2); comparison (section 4). Student interpretation is left to the student.
+- **Not done:** no revised run and no paid call (task 3.1 runs the identical schedule later, coordinator-run after user approval); comparison (section 4). Student interpretation is left to the student.
 
 ## 2026-11-01 — Physical and logical architecture diagrams (`add-architecture-diagrams`)
 

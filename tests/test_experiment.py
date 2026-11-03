@@ -15,7 +15,7 @@ from codegen_eval.experiment import (
     write_probes_evidence, write_settings_freeze,
 )
 from codegen_eval.ledger import Ledger
-from codegen_eval.agent_config import DEFAULT_AGENT_LIMITS
+from codegen_eval.agent_config import DEFAULT_AGENT_LIMITS, load_prompt
 from codegen_eval.openrouter_client import OpenRouterClient
 from codegen_eval.openrouter_config import ModelConfig
 from codegen_eval.sandbox import HOST_PLATFORM, image_for_platform
@@ -51,7 +51,7 @@ def test_committed_configuration_lists_variant_benchmark_settings_and_schedule()
     assert data["variants"][0]["prompt_version"] == "baseline_agent_v1"
     assert data["variants"][1]["name"] == "revised"
     assert data["variants"][1]["prompt_version"] == "baseline_agent_v2"
-    assert data["variants"][1]["prompt_sha256"]
+    assert data["variants"][1]["prompt_sha256"] == load_prompt("baseline_agent_v2").sha256
     assert data["benchmark"]["version"] == "1" and data["benchmark"]["sha256"]
     assert data["benchmark"]["freeze_content_hash"]
     assert data["settings"]["settings_hash"] and data["settings"]["model_config_hash"]
