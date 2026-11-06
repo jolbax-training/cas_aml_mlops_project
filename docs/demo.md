@@ -62,7 +62,7 @@ Show: completeness against the planned trial IDs, the manifest identity (prompt/
 PYTHONPATH=src .venv/bin/python -m codegen_eval.replay <run_id>
 ```
 
-Say it plainly: this **regrades saved final candidates**; it is not a fresh agent trial and calls no model. The evidence is a separate file at `run_bundles/<run_id>/replays/<replay_id>.json`; the original grades are never overwritten, and any mismatch or environment difference is reported rather than reconciled. In particular an `environment differs (evaluator_revision): original … replay …` line is expected whenever the replaying checkout is a different commit from the one that recorded the bundle (for the fixture bundle above, recorded at `0c8b0ff`, any later commit); it is information, not a failure.
+Say it plainly: this **regrades saved final candidates**; it is not a fresh agent trial and calls no model. The evidence is a separate file at `run_bundles/<run_id>/replays/<replay_id>.json`; the original grades are never overwritten, and any mismatch or environment difference is reported rather than reconciled. In particular an `environment differs (evaluator_revision): original … replay …` line is expected whenever the replaying checkout is a different commit from the one that recorded the bundle (the fixture bundle you just created at the same commit shows none); it is information, not a failure.
 
 ### 4. MLflow navigation
 
@@ -97,8 +97,10 @@ Open the [evaluation design guide](evaluation_design_guide.md) (seven steps, eac
 
 ## Credential-free expectations
 
-Inspection, replay, the offline report, and navigation of already-recorded evidence need no model credentials; sections 2 and 3 were executed above with an empty environment (section 5's build was run from the normal shell; it reads no credentials), and section 7 is reading only. A live call, if one is ever shown, is charged to the shared ledger under the CHF 15 ceiling and is not part of this path. Personal reflections in the [learning journal](learning_journal.md) are not required and are not filled in by this document.
+Inspection, replay, the offline report, and navigation of already-recorded evidence need no model credentials; sections 1-5 were run under the credential-free prefix on 2026-11-06 (section 5's `open` and the section 4 browser view excepted); sections 6-7 are reading only. A live call, if one is ever shown, is charged to the shared ledger under the CHF 15 ceiling and is not part of this path. Personal reflections in the [learning journal](learning_journal.md) are not required and are not filled in by this document.
 
 ## Sandbox suite under load
 
 The production deadline (10 s) includes container creation and start, so a slow start on a loaded shared Podman VM is a candidate `timeout`. That stays. The Podman test session therefore (all in `tests/conftest.py` and `tests/sandbox_support.py`, active only with `RUN_SANDBOX_TESTS=1`): takes a cross-worktree file lock (`~/.cache/codegen-eval/sandbox.lock`, or under `$XDG_CACHE_HOME`; `CODEGEN_EVAL_SANDBOX_LOCK=0` disables it) so parallel sessions queue; removes `codegen-eval-<pid>-…` containers whose process is gone; measures the slowest of three trivial container checks (printed in the pytest header) and aborts if it exceeds 5 s (`CODEGEN_EVAL_STARTUP_CAP`); and runs tests that expect a non-timeout outcome with a deadline of 10x that measurement (never below 10 s). Tests that assert `timeout` keep their explicit short deadline. `MLFLOW_HEALTH_TIMEOUT` (default 60 s, 240 s in the MLflow service tests) sets the health wait of `scripts/mlflow_service.sh`.
+
+One probe is also sensitive to load: `tests/test_isolation_probes.py::test_candidate_induced_container_oom_is_never_infrastructure[oom-score-reset]` failed once in a full group run during review and passed alone and in two further full runs. If it fails under load, rerun it alone and then the group before treating it as a defect.

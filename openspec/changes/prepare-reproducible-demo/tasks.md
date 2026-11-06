@@ -11,7 +11,7 @@ Offline part (1.1, 1.2, 2.1) done 2026-10-31; 2.2, 2.3 and 3.x done 2026-11-06 (
 
 - [x] 2.1 Write the offline demo path covering inspection, grading replay, MLflow navigation, the offline report, and the transfer guide, with the comparison and keep/reject section as a marked PENDING placeholder (`docs/demo.md` section 6).
 - [x] 2.2 Rehearse the demo with no model credentials configured and record the rehearsal date and any issues in progress.
-- [x] 2.3 Fill the demo's comparison and keep/reject section from the retained comparison runs, replacing the PENDING placeholder, and register the document as reviewed once complete. (2026-11-03: the comparison and keep/reject section was filled from the retained runs by the run-prompt-comparison write-up, commit af250f3; the task stays open until the document is registered as reviewed after the rehearsal, 2.2.)
+- [x] 2.3 Fill the demo's comparison and keep/reject section from the retained comparison runs, replacing the PENDING placeholder, and register the document as reviewed once complete. (2026-11-03: the comparison and keep/reject section was filled from the retained runs by the run-prompt-comparison write-up, commit af250f3; the task stays open until the document is registered as reviewed after the rehearsal, 2.2. Registered reviewed 2026-11-06 after the rehearsal.)
 
 ## 3. Completion accounting
 
