@@ -410,10 +410,10 @@ def test_actual_repository_builds_and_checks_offline():
 
     assert page.index('<section id="architecture"') < page.index('<nav id="sections"')
     # the comparison write-up and its evidence references are registered reviewed sources, not pending
-    # the demo path stays marked incomplete (the credential-free rehearsal is not done)
+    # the demo path is a reviewed source once rehearsed (2026-11-06), no longer marked incomplete
     demo = re.search(r'<section id="demo".*?</section>', page, re.S).group(0)
     assert "Pending evidence" not in demo
-    assert "Incomplete, work in progress" in demo
+    assert "Incomplete, work in progress" not in demo
     # the benchmark review, comparison, and evaluation-design guide documents are registered sources, not pending
     for source in ("benchmark-review", "results", "evidence", "guide", "coordinator-example"):
         section = re.search(rf'<section id="{source}".*?</section>', page, re.S).group(0)

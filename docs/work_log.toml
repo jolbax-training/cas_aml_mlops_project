@@ -16,8 +16,7 @@
 #
 # To fill a pending section after a milestone, replace its entry with a
 # kind = "document" entry (same id, label "reviewed") that names the reviewed
-# Markdown summary. Rebuild afterwards. A document that is only partly done (the demo
-# path, whose comparison part awaits real runs) is registered with label "current" and
+# Markdown summary. Rebuild afterwards. A document that is only partly done is registered with label "current" and
 # status "incomplete" until its last placeholder is filled; then it becomes "reviewed".
 
 [architecture]
@@ -130,8 +129,8 @@ label = "current"
 id = "demo"
 title = "Replay and demo instructions"
 path = "docs/demo.md"
-label = "current"
-status = "incomplete"
+label = "reviewed"
+status = "implemented"
 
 [[section]]
 id = "guide"

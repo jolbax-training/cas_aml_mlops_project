@@ -1,6 +1,6 @@
 # Replay and demo path
 
-This is the walk-through for the final demo, ordered so that everything before the comparison needs no model credentials and no new paid generation. Run every command from the repository root. The shell prefix used for the credential-free checks is `env -i HOME=$HOME PATH=/opt/podman/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`, which starts the command with no inherited environment (no API keys, no `OPENROUTER_*`); the commands below omit it for readability.
+This is the walk-through for the final demo, ordered so that everything before the comparison needs no model credentials and no new paid generation. Run every command from the repository root. The shell prefix used for the credential-free checks is `env -i HOME=$HOME PATH=/opt/podman/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`, which starts the command with no inherited environment (no API keys, no `OPENROUTER_*`); the commands below omit it for readability. `uv` is not on that PATH on the rehearsal laptop (it is in `~/.local/bin`), so for `uv sync` append `:$HOME/.local/bin` to the prefix's PATH; the other commands do not need it. Check the prefix with `env -i HOME=$HOME PATH=... sh -c 'env | grep -c OPENROUTER'`, which prints 0.
 
 ## Status
 
@@ -8,7 +8,7 @@ This is the walk-through for the final demo, ordered so that everything before t
 | --- | --- |
 | Setup, inspection, replay, MLflow navigation, offline report, local CI commands | Commands re-executed 2026-10-30/31 on the laptop; see [Verified commands](#verified-commands) |
 | Comparison and keep/reject decision | Two complete runs recorded 2026-11-03: baseline 27/30, revised 29/30 successful task trials; decision keep v2 ([section 6](#6-the-comparison-and-keep-or-reject-decision)); the student's interpretation is not filled in |
-| Full rehearsal with no model credentials | Not done (task 2.2 of `prepare-reproducible-demo`, after the comparison) |
+| Full rehearsal with no model credentials | Sections 1-7 rehearsed 2026-11-06 with the credential-free prefix (section 5's `open` and the section 4 browser view were not exercised; the UI was checked with `curl`); deviations and timings in [progress](progress.md) (entry "Demo rehearsal") |
 
 The demo path below uses a **fixture-client bundle** (scripted model responses). It demonstrates the tooling, not model quality, and any numbers it shows are not results of the project's experiment.
 
@@ -52,6 +52,8 @@ PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect verify <run_id>
 PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect show <run_id> --trial <trial_id>
 ```
 
+Trial IDs look like `strings_01-t1`. To inspect bundles stored elsewhere (another checkout), put `--bundles <dir>` before the subcommand: `trace_inspect --bundles <dir> verify <run_id>`.
+
 Show: completeness against the planned trial IDs, the manifest identity (prompt/benchmark/limits hashes, image digest, evaluator revision), and one trial's requests, tool interactions, drafts and final source. Inspection never executes code.
 
 ### 3. Grading replay: Podman, no model API
@@ -69,6 +71,8 @@ scripts/mlflow_service.sh start
 PYTHONPATH=src .venv/bin/python -m codegen_eval.mlflow_tracking record <run_id>
 open http://127.0.0.1:5000
 ```
+
+On macOS, host port 5000 is held by ControlCenter (AirPlay Receiver) and answers HTTP 403, so the service never serves there. Use another port for all three commands: `export MLFLOW_PORT=5002`, then `record <run_id> --tracking-uri http://127.0.0.1:5002` and `open http://127.0.0.1:5002`. To run beside another MLflow container also set `MLFLOW_CONTAINER_NAME=<other name>` (and a separate checkout's `./mlflow_data` is used automatically). `mlflow_tracking status` takes no `--tracking-uri`; it reads each bundle's `tracking.json`. When finished, run `scripts/mlflow_service.sh stop` and `down`; while any MLflow container runs, the Podman VM lacks the memory for the sandbox test group.
 
 In the UI: experiment `codegen-eval-runs` → the run named after the run ID. Show tags (`codegen_eval.headline_candidate`, bundle digest), parameters (identity, limits, hashes), metrics (`success_rate` over the planned denominator, `trial/<id>/…`), the **Traces** tab (one trace per trial: `AGENT` root, `CHAT_MODEL` per model call, `TOOL` per `run_checks`, final `submission`), and artifacts under `bundle/`. The replay appears as a nested run tagged `grading_replay`, `headline_candidate=false`. MLflow is a secondary record; the bundle is the primary evidence and everything above works with the service stopped. If the service is down, `record` exits 3 and can be rerun later.
 
