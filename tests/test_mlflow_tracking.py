@@ -629,23 +629,24 @@ def real_shape_record():
             "responses": [{"tool_calls": [call]}, {"content": "done"}]}
 
 
-def out_of_range(value):
-    """Integers outside int64 anywhere in `value`, decoding JSON object/array texts recursively."""
+def out_of_range(value, top=True):
+    """Integers outside int64 anywhere in `value`; only a top-level JSON object/array text is
+    decoded, as MLflow does (a string nested in a dict or list is not parsed)."""
     found = []
     if isinstance(value, bool):
         return found
     if isinstance(value, int):
         return [value] if not -2**63 <= value <= 2**63 - 1 else found
     if isinstance(value, str):
-        if value.lstrip()[:1] not in ("{", "["):  # a digit string is the stringified form
+        if not top or value.lstrip()[:1] not in ("{", "["):
             return found
         try:
-            return out_of_range(json.loads(value, parse_int=int))
+            return out_of_range(json.loads(value, parse_int=int), top=False)
         except ValueError:
             return found
     for item in (value.values() if isinstance(value, dict) else
                  value if isinstance(value, (list, tuple)) else ()):
-        found += out_of_range(item)
+        found += out_of_range(item, top=False)
     return found
 
 
@@ -661,8 +662,13 @@ def test_json_text_holding_integers_outside_int64_is_rewritten_with_strings():
     assert mt.stringify_big_ints('{"a": [1, 2]}') == ('{"a": [1, 2]}', False)  # byte for byte
     assert mt.stringify_big_ints("not json 123456789123456789123456789") == (
         "not json 123456789123456789123456789", False)
-    assert mt.stringify_big_ints(str(BIG)) == (json.dumps(str(BIG)), True)
+    assert mt.stringify_big_ints(str(BIG)) == (str(BIG), False)
     assert mt.stringify_big_ints({"digits": str(BIG)}) == ({"digits": str(BIG)}, False)
+    # a JSON text nested in a dict is not parsed by MLflow, so it stays byte for byte
+    assert mt.stringify_big_ints({"arguments": REAL_ARGUMENTS}) == (
+        {"arguments": REAL_ARGUMENTS}, False)
+    deep = "[" * 100000 + "]" * 100000  # json.loads raises RecursionError
+    assert mt.stringify_big_ints(deep) == (deep, False)
 
 
 def test_real_shaped_trace_has_no_integer_outside_int64_in_any_span_and_is_marked(store):
@@ -679,7 +685,7 @@ def test_real_shaped_trace_has_no_integer_outside_int64_in_any_span_and_is_marke
             assert out_of_range(part) == [], span.name
     marker = mt.TAG + "int_out_of_range_stringified"
     marked = {s.name for s in spans if s.attributes.get(marker) is True}
-    assert {"run_checks attempt 1", "model_call 1", "model_call 2"} <= marked
+    assert marked == {"run_checks attempt 1"}
     assert len(client.search_traces(locations=[exp], run_id=run.info.run_id,
                                     include_spans=True)) == 1
 

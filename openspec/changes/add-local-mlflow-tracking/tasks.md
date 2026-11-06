@@ -27,5 +27,5 @@ Progress is tracked by the checkboxes below and the dated entry in [docs/progres
 
 - [x] 5.1 Convert integers outside the signed 64-bit range to decimal strings in span inputs/outputs/attributes, mark the span, and leave bundles, artifacts, parameters, and metrics unchanged (test first).
 - [x] 5.2 Add `record --retrace` to replace only the traces of an existing run for the same bundle identity, with offline tests and README documentation.
-- [x] 5.4 Also rewrite JSON-text strings (the model's raw tool-call `arguments`, tool feedback) that hold integers outside int64, in every span input/output/attribute, and mark the span; tested with a fixture in the real bundle shape (see design addendum).
-- [ ] 5.3 Re-record the five unreadable traces' runs against the live service and confirm all 60 traces are readable (coordinator; writes to the live service). Then close 4.1 and 4.2.
+- [x] 5.3 Also rewrite JSON-text strings (the model's raw tool-call `arguments`, tool feedback) that hold integers outside int64, where the string is the whole span input/output/attribute value (nested strings stay as sent), and mark the span; tested with a fixture in the real bundle shape (see design addendum).
+- [ ] 5.4 Re-record the five unreadable traces' runs against the live service and confirm all 60 traces are readable (coordinator; writes to the live service). Then close 4.1 and 4.2.

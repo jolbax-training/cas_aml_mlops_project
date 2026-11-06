@@ -64,6 +64,11 @@ Source: verification of the comparison runs (5 of 60 traces unreadable).
 - **THEN** the trace can be read back with its spans, the value appears as the string "123456789123456789123456789", and the span carries `codegen_eval.int_out_of_range_stringified = true`
 - **AND** the bundle and the uploaded trial artifacts still hold the exact integer
 
+#### Scenario: A tool call whose arguments JSON text holds such an integer stays readable
+- **WHEN** a trial's tool call carries its `arguments` as the model's JSON text, for example `{"checks": [{"arguments": [123456789123456789123456789]}]}`, and the bundle is recorded
+- **THEN** the trace can be read back, the span whose whole input or output is that text holds it re-serialised with the integer as the string "123456789123456789123456789", and the span carries `codegen_eval.int_out_of_range_stringified = true`
+- **AND** the same text nested inside a model-call request or response stays as the model sent it
+
 #### Scenario: Retrace an already recorded run
 - **WHEN** an already recorded bundle is recorded again with `--retrace`
 - **THEN** its traces are replaced under the same MLflow run ID and the run's parameters, metrics, and artifacts are unchanged

@@ -205,17 +205,16 @@ def _in_int64(value: int) -> bool:
     return -2**63 <= value <= 2**63 - 1
 
 
-def _big_int_text(text: str, top: bool) -> tuple[str, bool]:
+def _big_int_text(text: str) -> tuple[str, bool]:
     """`text` with out-of-range integers inside it rewritten as strings, when it is JSON text
-    (an object or array, or at the top level a bare integer) that holds any; else unchanged.
-    The server parses stored span strings as JSON, so such a string fails on read just like
-    a number would. A rewritten text is re-serialised; an unchanged one is left byte for byte."""
-    stripped = text.strip()
-    if not (stripped[:1] in ("{", "[") or (top and re.fullmatch(r"-?\d+", stripped))):
+    (an object or array) that holds any; else unchanged. The server parses a stored span value
+    that is such a text as JSON, so it fails on read just like a number would. A rewritten
+    text is re-serialised; an unchanged one is left byte for byte."""
+    if text.strip()[:1] not in ("{", "["):
         return text, False
     try:
-        parsed = json.loads(stripped)
-    except ValueError:
+        parsed = json.loads(text)
+    except (ValueError, RecursionError):
         return text, False
     parsed, changed = stringify_big_ints(parsed, top=False)
     return (json.dumps(parsed, ensure_ascii=False), True) if changed else (text, False)
@@ -223,13 +222,15 @@ def _big_int_text(text: str, top: bool) -> tuple[str, bool]:
 
 def stringify_big_ints(value: Any, top: bool = True) -> tuple[Any, bool]:
     """Copy of `value` with every int (not bool) outside the signed 64-bit range turned into
-    its decimal string, recursively in lists and dicts and inside strings that are JSON texts
-    (see `_big_int_text`); also says whether any was changed. MLflow 3.17 stores such
-    integers in span data but then cannot serialise the trace."""
+    its decimal string, recursively in lists and dicts; also says whether any was changed.
+    A string that is itself the span value (`top`) and is JSON text holding such an integer is
+    rewritten too (see `_big_int_text`); strings nested in a dict or list stay as they are,
+    because the server does not parse them. MLflow 3.17 stores such integers in span data but
+    then cannot serialise the trace."""
     if isinstance(value, int) and not isinstance(value, bool):
         return (value, False) if _in_int64(value) else (str(value), True)
     if isinstance(value, str):
-        return _big_int_text(value, top)
+        return _big_int_text(value) if top else (value, False)
     if isinstance(value, Mapping):
         items = {k: stringify_big_ints(v, False) for k, v in value.items()}
         return {k: v for k, (v, _) in items.items()}, any(c for _, c in items.values())
@@ -241,10 +242,15 @@ def stringify_big_ints(value: Any, top: bool = True) -> tuple[Any, bool]:
 
 def _wire(**values: Any) -> dict[str, Any]:
     """The `inputs`/`outputs`/`attributes` keyword arguments for a span call, with out-of-range
-    integers stringified and, if any were, the span marked in its attributes."""
+    integers stringified and, if any were, the span marked in its attributes. Each attribute
+    value is a span value of its own."""
     out, changed = {}, False
     for key, value in values.items():
-        out[key], c = stringify_big_ints(value)
+        if key == "attributes" and isinstance(value, Mapping):
+            pairs = {k: stringify_big_ints(v) for k, v in value.items()}
+            out[key], c = {k: v for k, (v, _) in pairs.items()}, any(c for _, c in pairs.values())
+        else:
+            out[key], c = stringify_big_ints(value)
         changed = changed or c
     if changed:
         out["attributes"] = {**(out.get("attributes") or {}), INT64_MARKER: True}
