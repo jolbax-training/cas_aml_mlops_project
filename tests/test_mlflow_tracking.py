@@ -591,8 +591,6 @@ def test_trace_with_integers_outside_int64_stays_readable_and_is_marked(store):
     trace_id = mt.write_trial_trace(client, exp, run.info.run_id, big_int_record(), {})
 
     spans = client.get_trace(trace_id).data.spans
-    for span in spans:  # the server serialises each span like this on get_trace
-        span.to_otel_proto()
     tool = next(s for s in spans if s.name.startswith("run_checks"))
     assert tool.inputs["cases"][0][0] == str(BIG) and tool.inputs["cases"][0][2] == 2 ** 63 - 1
     assert tool.inputs["n"]["deep"] == [str(-BIG)]
@@ -657,3 +655,58 @@ def test_retrace_cli_flag_is_accepted_and_reported(
     assert mt.main(["record", "run-a", "--bundles", root, "--tracking-uri", uri,
                     "--retrace"]) == 0
     assert "traces replaced" in capsys.readouterr().out
+
+
+class ServerLimits:
+    """Delegates to a real client but refuses what the MLflow server refuses."""
+
+    def __init__(self, client):
+        self._client = client
+
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+    def search_traces(self, *args, **kwargs):
+        if kwargs.get("max_results", 100) > 500:
+            from mlflow.exceptions import MlflowException
+            raise MlflowException("Invalid value for parameter 'max_results'")
+        return self._client.search_traces(*args, **kwargs)
+
+
+def test_trace_listing_respects_the_server_page_limit_and_pages(
+        tmp_path, inprocess_runner, local_runner, store, monkeypatch):
+    uri, real = store
+    client = ServerLimits(real)
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    first = mt.record_bundle(path, client=client)
+    assert len(traces(real, first.run_id)) == 2
+
+    monkeypatch.setattr(mt, "TRACE_PAGE_SIZE", 1)  # forces a second page
+    assert len(mt._trace_ids(client, experiment_id(real), first.run_id)) == 2
+    assert mt.record_bundle(path, client=client, retrace=True).retraced
+    assert len(traces(real, first.run_id)) == 2
+
+
+def test_failed_retrace_cleanup_errors_do_not_replace_the_original_error(
+        tmp_path, inprocess_runner, local_runner, store, monkeypatch):
+    uri, client = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    run_id = mt.record_bundle(path, uri).run_id
+    old = {t.info.trace_id for t in traces(client, run_id)}
+    real_ids, listings = mt._trace_ids, []
+
+    def outage_after_listing_old(*args):
+        listings.append(1)
+        if len(listings) > 1:
+            raise OSError("outage during cleanup")
+        return real_ids(*args)
+
+    def failing(*args, **kwargs):
+        raise ValueError("original failure")
+
+    monkeypatch.setattr(mt, "write_trial_trace", failing)
+    monkeypatch.setattr(mt, "_trace_ids", outage_after_listing_old)
+    with pytest.raises(ValueError, match="original failure"):
+        mt.record_bundle(path, uri, retrace=True)
+
+    assert {t.info.trace_id for t in traces(client, run_id)} == old

@@ -481,10 +481,11 @@ def _stage_partial_calls(stage: Path, bundle_dir: Path, secrets: Sequence[str]) 
     return count
 
 
+TRACE_PAGE_SIZE = 500  # the MLflow server rejects larger values
+
+
 def _delete_partial(client: Any, experiment_id: str, run_id: str) -> None:
-    traces = client.search_traces(locations=[experiment_id], run_id=run_id, include_spans=False,
-                                  max_results=1000)
-    ids = [t.info.trace_id for t in traces]
+    ids = _trace_ids(client, experiment_id, run_id)
     if ids:
         client.delete_traces(experiment_id, trace_ids=ids)
     client.delete_run(run_id)
@@ -545,8 +546,17 @@ def record_bundle(bundle_dir: str | Path, tracking_uri: str = DEFAULT_TRACKING_U
 
 
 def _trace_ids(client: Any, experiment_id: str, run_id: str) -> list[str]:
-    return [t.info.trace_id for t in client.search_traces(
-        locations=[experiment_id], run_id=run_id, include_spans=False, max_results=1000)]
+    """All trace IDs of a run, paged because the server refuses `max_results` above 500."""
+    ids: list[str] = []
+    token = None
+    while True:
+        page = client.search_traces(locations=[experiment_id], run_id=run_id,
+                                    include_spans=False, max_results=TRACE_PAGE_SIZE,
+                                    page_token=token)
+        ids.extend(t.info.trace_id for t in page)
+        token = getattr(page, "token", None)
+        if not token:
+            return ids
 
 
 def _write_traces(client: Any, experiment_id: str, run_id: str, manifest: Mapping[str, Any],
@@ -580,9 +590,12 @@ def _retrace(client: Any, experiment_id: str, run_id: str, path: Path,
     try:
         _write_traces(client, experiment_id, run_id, manifest, digest, records, secrets, old)
     except BaseException:
-        fresh = [t for t in _trace_ids(client, experiment_id, run_id) if t not in old]
-        if fresh:
-            client.delete_traces(experiment_id, trace_ids=fresh)
+        try:  # best effort: the original error is the one to report
+            fresh = [t for t in _trace_ids(client, experiment_id, run_id) if t not in old]
+            if fresh:
+                client.delete_traces(experiment_id, trace_ids=fresh)
+        except Exception:
+            pass
         raise
     if old:
         client.delete_traces(experiment_id, trace_ids=old)
