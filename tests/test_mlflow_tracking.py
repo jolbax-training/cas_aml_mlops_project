@@ -601,6 +601,89 @@ def test_trace_with_integers_outside_int64_stays_readable_and_is_marked(store):
                                     include_spans=True)) == 1
 
 
+# Shape of the real bundle record (baseline numeric_logic_01-t2): a tool call's `arguments`
+# is the model's raw JSON text, not a dict, and the same text recurs in the next request.
+REAL_ARGUMENTS = (
+    '{"source": "def digital_root(n: int) -> int:\\n    while n >= 10:\\n        n = sum(int(d) '
+    'for d in str(n))\\n    return n", "checks": [{"arguments": [0], "expected": 0}, '
+    '{"arguments": [9], "expected": 9}, {"arguments": [38], "expected": 2}, '
+    '{"arguments": [123456789123456789123456789], "expected": 9}, '
+    '{"arguments": [1234567891011121314151617181920], "expected": 9}]}')
+
+
+def real_shape_record():
+    call = {"arguments": REAL_ARGUMENTS, "id": "chatcmpl-tool-ab6b4c72f3b81333",
+            "name": "run_checks"}
+    return {"trial_id": "t2", "task_id": "numeric_logic_01", "prompt": "p", "status": "submitted",
+            "final_source": "def f(): pass",
+            "events": [{"event": "model_call", "call": 1},
+                       {"event": "tool_attempt", "attempt": 1, "executed": call["id"]},
+                       {"event": "model_call", "call": 2}],
+            "requests": [{"messages": [{"role": "user", "content": "go"}]},
+                         {"messages": [{"role": "assistant", "content": None,
+                                        "tool_calls": [call]},
+                                       {"role": "tool", "tool_call_id": call["id"],
+                                        "content": '{"results": [{"actual": %d}]}' % BIG}]}],
+            "messages": [{"role": "tool", "tool_call_id": call["id"],
+                          "content": '{"results": [{"actual": %d}]}' % BIG}],
+            "responses": [{"tool_calls": [call]}, {"content": "done"}]}
+
+
+def out_of_range(value):
+    """Integers outside int64 anywhere in `value`, decoding JSON object/array texts recursively."""
+    found = []
+    if isinstance(value, bool):
+        return found
+    if isinstance(value, int):
+        return [value] if not -2**63 <= value <= 2**63 - 1 else found
+    if isinstance(value, str):
+        if value.lstrip()[:1] not in ("{", "["):  # a digit string is the stringified form
+            return found
+        try:
+            return out_of_range(json.loads(value, parse_int=int))
+        except ValueError:
+            return found
+    for item in (value.values() if isinstance(value, dict) else
+                 value if isinstance(value, (list, tuple)) else ()):
+        found += out_of_range(item)
+    return found
+
+
+def test_json_text_holding_integers_outside_int64_is_rewritten_with_strings():
+    out, changed = mt.stringify_big_ints(REAL_ARGUMENTS)
+
+    assert changed and isinstance(out, str)
+    decoded = json.loads(out)
+    assert decoded["checks"][3]["arguments"] == [str(BIG)]
+    assert decoded["checks"][4]["arguments"] == ["1234567891011121314151617181920"]
+    assert decoded["checks"][2] == {"arguments": [38], "expected": 2}
+    assert decoded["source"].startswith("def digital_root")
+    assert mt.stringify_big_ints('{"a": [1, 2]}') == ('{"a": [1, 2]}', False)  # byte for byte
+    assert mt.stringify_big_ints("not json 123456789123456789123456789") == (
+        "not json 123456789123456789123456789", False)
+    assert mt.stringify_big_ints(str(BIG)) == (json.dumps(str(BIG)), True)
+    assert mt.stringify_big_ints({"digits": str(BIG)}) == ({"digits": str(BIG)}, False)
+
+
+def test_real_shaped_trace_has_no_integer_outside_int64_in_any_span_and_is_marked(store):
+    uri, client = store
+    exp = experiment_id(client)
+    run = client.create_run(exp)
+
+    trace_id = mt.write_trial_trace(client, exp, run.info.run_id, real_shape_record(), {})
+
+    spans = client.get_trace(trace_id).data.spans
+    assert len(spans) >= 4
+    for span in spans:
+        for part in (span.inputs, span.outputs, span.attributes):
+            assert out_of_range(part) == [], span.name
+    marker = mt.TAG + "int_out_of_range_stringified"
+    marked = {s.name for s in spans if s.attributes.get(marker) is True}
+    assert {"run_checks attempt 1", "model_call 1", "model_call 2"} <= marked
+    assert len(client.search_traces(locations=[exp], run_id=run.info.run_id,
+                                    include_spans=True)) == 1
+
+
 def test_retrace_replaces_only_the_traces_of_the_existing_run(
         tmp_path, inprocess_runner, local_runner, store):
     uri, client = store

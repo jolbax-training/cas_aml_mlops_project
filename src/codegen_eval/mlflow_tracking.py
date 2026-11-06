@@ -201,17 +201,40 @@ def is_headline(verification: Verification) -> bool:
 INT64_MARKER = TAG + "int_out_of_range_stringified"
 
 
-def stringify_big_ints(value: Any) -> tuple[Any, bool]:
+def _in_int64(value: int) -> bool:
+    return -2**63 <= value <= 2**63 - 1
+
+
+def _big_int_text(text: str, top: bool) -> tuple[str, bool]:
+    """`text` with out-of-range integers inside it rewritten as strings, when it is JSON text
+    (an object or array, or at the top level a bare integer) that holds any; else unchanged.
+    The server parses stored span strings as JSON, so such a string fails on read just like
+    a number would. A rewritten text is re-serialised; an unchanged one is left byte for byte."""
+    stripped = text.strip()
+    if not (stripped[:1] in ("{", "[") or (top and re.fullmatch(r"-?\d+", stripped))):
+        return text, False
+    try:
+        parsed = json.loads(stripped)
+    except ValueError:
+        return text, False
+    parsed, changed = stringify_big_ints(parsed, top=False)
+    return (json.dumps(parsed, ensure_ascii=False), True) if changed else (text, False)
+
+
+def stringify_big_ints(value: Any, top: bool = True) -> tuple[Any, bool]:
     """Copy of `value` with every int (not bool) outside the signed 64-bit range turned into
-    its decimal string, recursively in lists and dicts; also says whether any was changed.
-    MLflow 3.17 stores such integers in span data but then cannot serialise the trace."""
+    its decimal string, recursively in lists and dicts and inside strings that are JSON texts
+    (see `_big_int_text`); also says whether any was changed. MLflow 3.17 stores such
+    integers in span data but then cannot serialise the trace."""
     if isinstance(value, int) and not isinstance(value, bool):
-        return (str(value), True) if not -2**63 <= value <= 2**63 - 1 else (value, False)
+        return (value, False) if _in_int64(value) else (str(value), True)
+    if isinstance(value, str):
+        return _big_int_text(value, top)
     if isinstance(value, Mapping):
-        items = {k: stringify_big_ints(v) for k, v in value.items()}
+        items = {k: stringify_big_ints(v, False) for k, v in value.items()}
         return {k: v for k, (v, _) in items.items()}, any(c for _, c in items.values())
     if isinstance(value, (list, tuple)):
-        items = [stringify_big_ints(v) for v in value]
+        items = [stringify_big_ints(v, False) for v in value]
         return [v for v, _ in items], any(c for _, c in items)
     return value, False
 
