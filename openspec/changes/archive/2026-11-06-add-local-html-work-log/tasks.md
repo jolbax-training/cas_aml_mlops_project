@@ -19,7 +19,7 @@ Revised after Q37/Q42 on 2026-10-23. Day-two foundation tasks 1.1–2.2 and 4.1 
 ## 4. Repository integration and observed evidence
 
 - [x] 4.1 Build/check the actual repository, run focused tests and the offline suite, verify generated output is ignored, and update README/progress with exact working build/check/open commands and observed results; do not claim agent/CI/MLflow work this change does not implement.
-- [ ] 4.2 Open the entry point directly offline without required services; inspect desktop, 375-pixel width, 200-percent zoom, architecture labels/text, and keyboard links, and retain browser/version and verification evidence in progress.
+- [x] 4.2 Open the entry point directly offline without required services; inspect desktop, 375-pixel width, 200-percent zoom, architecture labels/text, and keyboard links, and retain browser/version and verification evidence in progress. Done 2026-11-06 by the user: report rebuilt from `main` `a22c594`, opened offline without required services in Arc 1.165.1 (87405); desktop, 375-pixel width, 200-percent zoom, architecture labels/text and keyboard links all checked, no issues reported (recorded in docs/progress.md).
 
 ## Workflow follow-up
 

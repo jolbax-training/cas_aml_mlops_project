@@ -182,7 +182,7 @@ Include scope/status/milestones, dated decisions, benchmark/review evidence, res
 
 Provide one documented build command, validated internal links, legible navigation/diagram, escaped code, and explicit source selection. No candidate code runs during building/viewing. Exclude credentials, private files, raw bundles, and tracking stores from automatic inclusion; reviewed summaries link to local evidence without harvesting it. External evidence is a clickable reference, not a resource fetched on opening. Rebuild after meaningful milestones/runs; the evaluator and CLI do not depend on reporting.
 
-The [HTML change](../openspec/changes/add-local-html-work-log/proposal.md) is revised to this smaller scope. Its earlier report-first sequence and extensive report-engine requirements are superseded by the four-day plan; the report remains required.
+The [HTML change](../openspec/changes/archive/2026-11-06-add-local-html-work-log/proposal.md) is revised to this smaller scope. Its earlier report-first sequence and extensive report-engine requirements are superseded by the four-day plan; the report remains required.
 
 ## Transferable evaluation-design guide and example
 

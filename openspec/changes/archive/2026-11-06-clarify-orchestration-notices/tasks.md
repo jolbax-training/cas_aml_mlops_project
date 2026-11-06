@@ -18,5 +18,5 @@ Tasks needing a push, a live GitHub run, a live Orca dispatch, or user judgment 
 
 ## 4. Left open (not implementable by the worker)
 
-- [ ] 4.1 Observe the rule on a live notice that carries an actionable message. Reason: needs a live Orca dispatch and the coordinator's session.
-- [ ] 4.2 Merge to `main`, push, and archive. Reason: coordinator-owned; archive after acceptance.
+- [x] 4.1 Observe the rule on a live notice that carries an actionable message. Reason: needs a live Orca dispatch and the coordinator's session. Outcome 2026-11-06: not observed. The coordinator session received 6 host notices (1 after the merge of `ca7b9a1`); every batch held only a worker heartbeat and was handled per the rule (check, ack, background wait left running; each later `worker_done` was caught by `waitloop.sh`). The actionable case never arose because the background loop wakes on `worker_done` first. Since Orca 1.4.246 (2026-11-02) `check --json` returns no `deliveryId`, so the bullet's ack steps cannot be executed as written; re-verifying the actionable branch moves to the queued helper-script change. Accepted by the user as the trial.
+- [x] 4.2 Merge to `main`, push, and archive. Reason: coordinator-owned; archive after acceptance. Done: merged as `ca7b9a1` (CI run 41312377700 success); archived 2026-11-06 after the user accepted 4.1.

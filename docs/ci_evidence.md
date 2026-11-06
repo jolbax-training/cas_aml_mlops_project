@@ -53,6 +53,6 @@ Each broken expectation failed only the group that owns it, with the offending t
 
 After the runs above, the branch was rebased onto `main` (which gained its own container-cleanup changes in `sandbox.py`: `rm -t 0`, bounded removal, pid-prefixed names). The rebased commit `15c9eb9` ran green on GitHub: run [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) (`offline` success; `podman` success, 64 tests, 0 skipped, 0 failures), recorded above.
 
-## Required checks (task 2.3): pending
+## Required checks (task 2.3)
 
-Marking `offline` and `podman` as required status checks is a repository setting not yet made.
+Configured 2026-11-06 by the user as repository ruleset `main` (id 26678579), checked through the public API (`GET /repos/jolbax-training/cas_aml_mlops_project/rulesets/26678579`): enforcement `active`, target `refs/heads/main`, rules `deletion`, `non_fast_forward` and `required_status_checks` with `offline` and `podman` (integration 15368, GitHub Actions; strict policy off), no pull-request rule. Repository admins may bypass (`always`), so the coordinator's direct pushes to `main` still go through; the next push after activation (`7212a36`, CI run 42192054359) ran both checks green.

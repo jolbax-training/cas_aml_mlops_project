@@ -12,7 +12,7 @@ All tasks except 2.3 are done (green run 41128433037; failure demonstrations in 
 
 - [x] 2.1 Run the workflow and verify both groups pass with limits enforced on the runner; document any residual differences from the laptop environment.
 - [x] 2.2 Demonstrate that deliberately breaking a fixture expectation fails the relevant group, then restore it.
-- [ ] 2.3 Mark both groups as required checks and document how they are configured.
+- [x] 2.3 Mark both groups as required checks and document how they are configured. Done 2026-11-06: repository ruleset `main` (id 26678579) is active on `refs/heads/main` with required status checks `offline` and `podman` (GitHub Actions); configuration documented in docs/ci_evidence.md.
 
 ## 3. Evidence and documentation
 
