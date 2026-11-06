@@ -68,6 +68,7 @@ class RecordResult:
     replays: tuple[str, ...]     # replay IDs recorded in this call
     redactions: int = 0
     notes: tuple[str, ...] = field(default=())
+    retraced: bool = False       # the traces of an existing run were replaced (--retrace)
 
 
 # --- flattening bundle content into MLflow parameters and metrics -----------------------
@@ -197,6 +198,36 @@ def is_headline(verification: Verification) -> bool:
 
 # --- trial traces -----------------------------------------------------------------------
 
+INT64_MARKER = TAG + "int_out_of_range_stringified"
+
+
+def stringify_big_ints(value: Any) -> tuple[Any, bool]:
+    """Copy of `value` with every int (not bool) outside the signed 64-bit range turned into
+    its decimal string, recursively in lists and dicts; also says whether any was changed.
+    MLflow 3.17 stores such integers in span data but then cannot serialise the trace."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return (str(value), True) if not -2**63 <= value <= 2**63 - 1 else (value, False)
+    if isinstance(value, Mapping):
+        items = {k: stringify_big_ints(v) for k, v in value.items()}
+        return {k: v for k, (v, _) in items.items()}, any(c for _, c in items.values())
+    if isinstance(value, (list, tuple)):
+        items = [stringify_big_ints(v) for v in value]
+        return [v for v, _ in items], any(c for _, c in items)
+    return value, False
+
+
+def _wire(**values: Any) -> dict[str, Any]:
+    """The `inputs`/`outputs`/`attributes` keyword arguments for a span call, with out-of-range
+    integers stringified and, if any were, the span marked in its attributes."""
+    out, changed = {}, False
+    for key, value in values.items():
+        out[key], c = stringify_big_ints(value)
+        changed = changed or c
+    if changed:
+        out["attributes"] = {**(out.get("attributes") or {}), INT64_MARKER: True}
+    return out
+
+
 def _tool_exchange(record: Mapping[str, Any], call: int, executed: str | None
                    ) -> tuple[Any, Any]:
     """The `run_checks` arguments the model sent and the feedback it got back."""
@@ -279,9 +310,9 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
     trial_id = record["trial_id"]
     root = client.start_trace(
         name=f"trial {trial_id}", span_type="AGENT", experiment_id=experiment_id, run_id=run_id,
-        inputs={"task_id": record["task_id"], "prompt": record.get("prompt")},
-        attributes={"trial_id": trial_id, "task_id": record["task_id"],
-                    "agent_limits_hash": record.get("agent_limits_hash")},
+        **_wire(inputs={"task_id": record["task_id"], "prompt": record.get("prompt")},
+                attributes={"trial_id": trial_id, "task_id": record["task_id"],
+                            "agent_limits_hash": record.get("agent_limits_hash")}),
         tags=dict(tags), start_time_ns=cursor)
     trace_id = root.trace_id
     requests, responses = record.get("requests", []), record.get("responses", [])
@@ -297,24 +328,25 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
             call_end = max((w[1] for w in call_windows if w[1] is not None), default=call_start)
             span = client.start_span(
                 name=f"model_call {call}", trace_id=trace_id, parent_id=root.span_id,
-                span_type="CHAT_MODEL", attributes={"step": step},
-                inputs=requests[call - 1] if call - 1 < len(requests) else None,
-                start_time_ns=call_start)
+                span_type="CHAT_MODEL", start_time_ns=call_start,
+                **_wire(attributes={"step": step},
+                        inputs=requests[call - 1] if call - 1 < len(requests) else None))
             for index, (attempt, (a_start, a_end)) in enumerate(
                     zip(attempts.get(call, []), call_windows), 1):
                 child = client.start_span(
                     name=f"attempt {index}", trace_id=trace_id, parent_id=span.span_id,
-                    span_type="LLM", inputs=None, attributes=_attempt_attributes(attempt),
-                    start_time_ns=a_start)
+                    span_type="LLM", start_time_ns=a_start,
+                    **_wire(inputs=None, attributes=_attempt_attributes(attempt)))
                 client.end_span(trace_id, child.span_id, end_time_ns=a_end,
                                 status="ERROR" if attempt.get("error_class") else "OK")
             cursor = call_end if call_end is not None else cursor
             client.end_span(
                 trace_id, span.span_id, end_time_ns=call_end,
-                outputs=responses[call - 1] if call - 1 < len(responses) else None,
-                attributes={"tools_enabled": event.get("tools_enabled"),
-                            "outcome": event.get("outcome"), "truncated": event.get("truncated"),
-                            "usage": event.get("usage"), "detail": event.get("detail")},
+                **_wire(outputs=responses[call - 1] if call - 1 < len(responses) else None,
+                        attributes={"tools_enabled": event.get("tools_enabled"),
+                                    "outcome": event.get("outcome"),
+                                    "truncated": event.get("truncated"),
+                                    "usage": event.get("usage"), "detail": event.get("detail")}),
                 status="ERROR" if event.get("detail") else "OK")
         elif kind == "tool_attempt":
             call = next((e["call"] for e in reversed(record["events"][:step])
@@ -322,33 +354,37 @@ def write_trial_trace(client: Any, experiment_id: str, run_id: str, record: Mapp
             arguments, feedback = _tool_exchange(record, call, event.get("executed"))
             span = client.start_span(
                 name=f"run_checks attempt {event['attempt']}", trace_id=trace_id,
-                parent_id=root.span_id, span_type="TOOL", inputs=arguments,
-                attributes={"step": step, "calls_in_response": event.get("calls_in_response"),
-                            "rejected_extras": event.get("rejected_extras")},
-                start_time_ns=cursor)
-            client.end_span(trace_id, span.span_id, outputs=feedback, end_time_ns=cursor)
+                parent_id=root.span_id, span_type="TOOL",
+                start_time_ns=cursor,
+                **_wire(inputs=arguments,
+                        attributes={"step": step,
+                                    "calls_in_response": event.get("calls_in_response"),
+                                    "rejected_extras": event.get("rejected_extras")}))
+            client.end_span(trace_id, span.span_id, end_time_ns=cursor, **_wire(outputs=feedback))
         elif kind == "contract_failure":
             span = client.start_span(name="contract_failure", trace_id=trace_id,
                                      parent_id=root.span_id, span_type="UNKNOWN",
-                                     attributes={"step": step, "code": event.get("code")},
-                                     start_time_ns=cursor)
+                                     start_time_ns=cursor,
+                                     **_wire(attributes={"step": step,
+                                                         "code": event.get("code")}))
             client.end_span(trace_id, span.span_id, status="ERROR", end_time_ns=cursor)
     submission = client.start_span(
         name="submission", trace_id=trace_id, parent_id=root.span_id, span_type="CHAIN",
-        attributes={"step": step + 1}, start_time_ns=cursor)
+        start_time_ns=cursor, **_wire(attributes={"step": step + 1}))
     final = record.get("final_source")
-    client.end_span(trace_id, submission.span_id, outputs={
+    client.end_span(trace_id, submission.span_id, end_time_ns=cursor, **_wire(outputs={
         "final_source": final, "submitted": final is not None and record.get("status") == "submitted",
         "status": record.get("status"), "label": record.get("label"),
         "infrastructure_status": record.get("infrastructure_status"),
-        "contract_issue": record.get("contract_issue")}, end_time_ns=cursor)
-    client.end_trace(trace_id, outputs={"status": record.get("status"), "label": record.get("label")},
-                     attributes={"model_calls": record.get("model_calls"),
-                                 "tool_attempts": record.get("tool_attempts"),
-                                 "usage": record.get("usage"),
-                                 "attempts": len(all_attempts),
-                                 "reservation": record.get("reservation"),
-                                 "latency_ms": record.get("latency_ms")},
+        "contract_issue": record.get("contract_issue")}))
+    client.end_trace(trace_id, **_wire(
+                         outputs={"status": record.get("status"), "label": record.get("label")},
+                         attributes={"model_calls": record.get("model_calls"),
+                                     "tool_attempts": record.get("tool_attempts"),
+                                     "usage": record.get("usage"),
+                                     "attempts": len(all_attempts),
+                                     "reservation": record.get("reservation"),
+                                     "latency_ms": record.get("latency_ms")}),
                      status="ERROR" if record.get("infrastructure_status") else "OK",
                      end_time_ns=max(ends) if ends else None)
     return trace_id
@@ -456,8 +492,11 @@ def _delete_partial(client: Any, experiment_id: str, run_id: str) -> None:
 
 def record_bundle(bundle_dir: str | Path, tracking_uri: str = DEFAULT_TRACKING_URI, *,
                   experiment: str = DEFAULT_EXPERIMENT, client: Any = None,
-                  extra_secrets: Sequence[str] = ()) -> RecordResult:
-    """Upload one retained bundle (and its grading replays) as an MLflow run with traces."""
+                  extra_secrets: Sequence[str] = (), retrace: bool = False) -> RecordResult:
+    """Upload one retained bundle (and its grading replays) as an MLflow run with traces.
+
+    `retrace` replaces only the traces of an already finished run for this bundle identity
+    (same run ID; parameters, metrics, and artifacts are untouched)."""
     path = Path(bundle_dir)
     verification = verify_bundle(path)
     blocking = [p for p in verification.problems if p.kind in _BLOCKING]
@@ -471,10 +510,15 @@ def record_bundle(bundle_dir: str | Path, tracking_uri: str = DEFAULT_TRACKING_U
         experiment_id = _experiment_id(client, experiment)
         existing = _find_run(client, experiment_id, {"record_kind": KIND_BUNDLE,
                                                      "bundle_digest": digest})
+        retraced = False
         done = [r for r in existing if r.data.tags.get(UPLOAD_COMPLETE) == "true"]
         if done:
             run_id = done[0].info.run_id
             created, redactions = False, 0
+            if retrace:
+                _retrace(client, experiment_id, run_id, path, manifest, verification, digest,
+                         extra_secrets)
+                retraced = True
         else:
             for partial in existing:  # an interrupted upload: rebuild it from the bundle
                 _delete_partial(client, experiment_id, partial.info.run_id)
@@ -492,12 +536,57 @@ def record_bundle(bundle_dir: str | Path, tracking_uri: str = DEFAULT_TRACKING_U
         raise
     except _tracking_errors() as error:
         raise TrackingUnavailable(f"tracking call failed: {type(error).__name__}: {error}") from error
-    result = RecordResult(run_id, created, tuple(replays), redactions)
+    result = RecordResult(run_id, created, tuple(replays), redactions, retraced=retraced)
     write_sidecar(path, {"status": "recorded", "tracking_uri": tracking_uri,
                          "experiment": experiment, "mlflow_run_id": run_id,
                          "bundle_digest": digest, "recorded_at": utc_now(),
                          "replays": all_replays})
     return result
+
+
+def _trace_ids(client: Any, experiment_id: str, run_id: str) -> list[str]:
+    return [t.info.trace_id for t in client.search_traces(
+        locations=[experiment_id], run_id=run_id, include_spans=False, max_results=1000)]
+
+
+def _write_traces(client: Any, experiment_id: str, run_id: str, manifest: Mapping[str, Any],
+                  digest: str, records: Mapping[str, Mapping[str, Any]], secrets: Sequence[str],
+                  existing: Sequence[str] = ()) -> int:
+    """One trace per recorded trial under `run_id` (besides the `existing` trace IDs); returns
+    the number of redactions."""
+    count = 0
+    trace_tags = {TAG + "bundle_run_id": manifest["run_id"], TAG + "bundle_digest": digest}
+    for trial_id, record in records.items():
+        clean, c = redact_value(record, secrets)
+        count += c
+        write_trial_trace(client, experiment_id, run_id, clean,
+                          {**trace_tags, TAG + "trial_id": trial_id,
+                           TAG + "task_id": record["task_id"]})
+    stored = [t for t in _trace_ids(client, experiment_id, run_id) if t not in existing]
+    if len(stored) != len(records):  # the exporter only logs a warning when it fails
+        raise TrackingUnavailable(f"only {len(stored)} of {len(records)} trial traces "
+                                  "were stored")
+    return count
+
+
+def _retrace(client: Any, experiment_id: str, run_id: str, path: Path,
+             manifest: Mapping[str, Any], verification: Verification, digest: str,
+             extra_secrets: Sequence[str]) -> None:
+    """Replace the traces of a finished run from its bundle. The new traces are written first
+    and the old ones deleted only once all are stored, so a failure keeps the old traces."""
+    secrets = secret_values(extra_secrets)
+    records = {t: load_trial(path, t) for t in verification.recorded}
+    old = _trace_ids(client, experiment_id, run_id)
+    try:
+        _write_traces(client, experiment_id, run_id, manifest, digest, records, secrets, old)
+    except BaseException:
+        fresh = [t for t in _trace_ids(client, experiment_id, run_id) if t not in old]
+        if fresh:
+            client.delete_traces(experiment_id, trace_ids=fresh)
+        raise
+    if old:
+        client.delete_traces(experiment_id, trace_ids=old)
+    client.set_tag(run_id, TAG + "traces_rewritten_at", utc_now())
 
 
 def _upload(client: Any, experiment_id: str, path: Path, manifest: Mapping[str, Any],
@@ -545,18 +634,7 @@ def _upload(client: Any, experiment_id: str, path: Path, manifest: Mapping[str, 
                 count += _stage(stage, f"grading/{trial_id}.json",
                                 {"trial_id": trial_id, "grades": record.get("grades")}, secrets)
             client.log_artifacts(run_id, str(stage), "bundle")
-        trace_tags = {TAG + "bundle_run_id": manifest["run_id"], TAG + "bundle_digest": digest}
-        for trial_id, record in records.items():
-            clean, c = redact_value(record, secrets)
-            count += c
-            write_trial_trace(client, experiment_id, run_id, clean,
-                              {**trace_tags, TAG + "trial_id": trial_id,
-                               TAG + "task_id": record["task_id"]})
-        stored = client.search_traces(locations=[experiment_id], run_id=run_id, include_spans=False,
-                                      max_results=len(records) + 1)
-        if len(stored) != len(records):  # the exporter only logs a warning when it fails
-            raise TrackingUnavailable(f"only {len(stored)} of {len(records)} trial traces "
-                                      "were stored")
+        count += _write_traces(client, experiment_id, run_id, manifest, digest, records, secrets)
         client.set_tag(run_id, TAG + "redactions_at_upload", str(count))
         client.set_tag(run_id, UPLOAD_COMPLETE, "true")
         client.set_terminated(run_id, "FINISHED")
@@ -666,6 +744,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                                                               DEFAULT_TRACKING_URI),
                      help="default: $MLFLOW_TRACKING_URI if set, else " + DEFAULT_TRACKING_URI)
     rec.add_argument("--experiment", default=DEFAULT_EXPERIMENT)
+    rec.add_argument("--retrace", action="store_true",
+                     help="replace only the traces of an already recorded run (same run ID)")
     args = parser.parse_args(argv)
 
     if args.command == "status":
@@ -676,7 +756,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     try:
         path = resolve_bundle(args.bundles, args.run)
-        result = record_bundle(path, args.tracking_uri, experiment=args.experiment)
+        result = record_bundle(path, args.tracking_uri, experiment=args.experiment,
+                               retrace=args.retrace)
     except BundleError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
@@ -687,7 +768,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"not yet recorded: {error}\nThe bundle is unchanged; rerun this command when "
               f"the service is up. No model call is made.", file=sys.stderr)
         return 3
-    print(("recorded" if result.created else "already recorded (unchanged)")
+    print(("recorded" if result.created else "already recorded, traces replaced"
+           if result.retraced else "already recorded (unchanged)")
           + f": MLflow run {result.run_id} at {args.tracking_uri}")
     for replay in result.replays:
         print(f"  grading replay recorded: {replay}")

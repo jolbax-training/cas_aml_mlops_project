@@ -556,3 +556,104 @@ def test_a_failed_attempt_chain_is_visible_when_retries_are_exhausted(
     trace = traces(client, result.run_id)[0]
     errors = [s for s in trace.data.spans if s.name.startswith("attempt ")]
     assert errors and all(s.status.status_code.name == "ERROR" for s in errors)
+
+
+BIG = 123456789123456789123456789
+
+
+def big_int_record():
+    return {"trial_id": "t1", "task_id": "x", "prompt": "p", "status": "submitted",
+            "final_source": "def f(): pass",
+            "events": [{"event": "model_call", "call": 1},
+                       {"event": "tool_attempt", "attempt": 1, "executed": "c1"}],
+            "requests": [{}], "messages": [],
+            "responses": [{"tool_calls": [{"id": "c1", "arguments": {
+                "cases": [[BIG, True, 2 ** 63 - 1, -2 ** 63]], "n": {"deep": [-BIG]}}}]}]}
+
+
+def test_integers_outside_int64_become_strings_and_everything_else_is_kept():
+    value = {"a": [BIG, True, 2 ** 63 - 1, -2 ** 63, 2 ** 63, 1.5, "s", None], "b": {"c": -BIG}}
+
+    out, changed = mt.stringify_big_ints(value)
+
+    assert changed
+    assert out == {"a": [str(BIG), True, 2 ** 63 - 1, -2 ** 63, str(2 ** 63), 1.5, "s", None],
+                   "b": {"c": str(-BIG)}}
+    assert value["b"]["c"] == -BIG  # the input is not modified
+    assert mt.stringify_big_ints({"n": [1, True]}) == ({"n": [1, True]}, False)
+
+
+def test_trace_with_integers_outside_int64_stays_readable_and_is_marked(store):
+    uri, client = store
+    exp = experiment_id(client)
+    run = client.create_run(exp)
+
+    trace_id = mt.write_trial_trace(client, exp, run.info.run_id, big_int_record(), {})
+
+    spans = client.get_trace(trace_id).data.spans
+    for span in spans:  # the server serialises each span like this on get_trace
+        span.to_otel_proto()
+    tool = next(s for s in spans if s.name.startswith("run_checks"))
+    assert tool.inputs["cases"][0][0] == str(BIG) and tool.inputs["cases"][0][2] == 2 ** 63 - 1
+    assert tool.inputs["n"]["deep"] == [str(-BIG)]
+    assert tool.attributes[mt.TAG + "int_out_of_range_stringified"] is True
+    assert mt.TAG + "int_out_of_range_stringified" not in next(
+        s for s in spans if s.name == "submission").attributes
+    assert len(client.search_traces(locations=[exp], run_id=run.info.run_id,
+                                    include_spans=True)) == 1
+
+
+def test_retrace_replaces_only_the_traces_of_the_existing_run(
+        tmp_path, inprocess_runner, local_runner, store):
+    uri, client = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    first = mt.record_bundle(path, uri)
+    before = client.get_run(first.run_id).data
+    old = {t.info.trace_id for t in traces(client, first.run_id)}
+    artifacts = artifact_text(client, first.run_id)
+
+    second = mt.record_bundle(path, uri, retrace=True)
+
+    assert second.run_id == first.run_id and not second.created and second.retraced
+    new = {t.info.trace_id for t in traces(client, first.run_id)}
+    assert len(new) == 2 and not (new & old)
+    after = client.get_run(first.run_id).data
+    assert after.metrics == before.metrics and after.params == before.params
+    assert {k: v for k, v in after.tags.items() if k != mt.TAG + "traces_rewritten_at"} == \
+        before.tags
+    assert mt.TAG + "traces_rewritten_at" in after.tags
+    assert artifact_text(client, first.run_id) == artifacts
+    assert len(bundle_runs(client)) == 1 and len(traces(client)) == 2
+
+
+def test_failed_retrace_keeps_the_old_traces(
+        tmp_path, inprocess_runner, local_runner, store, monkeypatch):
+    uri, client = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    run_id = mt.record_bundle(path, uri).run_id
+    old = {t.info.trace_id for t in traces(client, run_id)}
+    real, calls = mt.write_trial_trace, []
+
+    def flaky(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 2:
+            raise OSError("connection dropped")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(mt, "write_trial_trace", flaky)
+    with pytest.raises(mt.TrackingUnavailable):
+        mt.record_bundle(path, uri, retrace=True)
+
+    assert {t.info.trace_id for t in traces(client, run_id)} == old
+    assert client.get_run(run_id).info.status == "FINISHED"
+
+
+def test_retrace_cli_flag_is_accepted_and_reported(
+        tmp_path, inprocess_runner, local_runner, store, capsys):
+    uri, client = store
+    path = make_bundle(tmp_path, inprocess_runner, local_runner)
+    root = str(path.parent)
+    assert mt.main(["record", "run-a", "--bundles", root, "--tracking-uri", uri]) == 0
+    assert mt.main(["record", "run-a", "--bundles", root, "--tracking-uri", uri,
+                    "--retrace"]) == 0
+    assert "traces replaced" in capsys.readouterr().out

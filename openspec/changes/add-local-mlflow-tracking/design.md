@@ -30,6 +30,16 @@ The agent/evaluator never require MLflow to complete or save a run. If the servi
 
 Alternative: logging directly to MLflow during trials. Rejected because a tracking outage would then risk evidence loss and motivate paid reruns.
 
+### 5. Trace values stay readable: out-of-range integers become strings (amendment)
+
+Verification against MLflow 3.17.2 found that the server stores span attributes containing integers outside the signed 64-bit range (a model's `run_checks` arguments such as `123456789123456789123456789`), but `get_trace` and `search_traces(include_spans=True)` then fail with HTTP 500 (`ValueError: Value out of range` in `mlflow/tracing/utils/otlp.py`), so those traces are unreadable. `write_trial_trace` therefore converts every `int` (not `bool`) outside [-2**63, 2**63-1], recursively inside lists and dicts, to its decimal string before it reaches MLflow, and marks the affected span with the attribute `codegen_eval.int_out_of_range_stringified = true` so the conversion is visible. Only span inputs, outputs, and attributes are touched; bundles, artifacts (JSON keeps exact integers), parameters, metrics, and tags are unchanged, and the bundle remains the exact evidence.
+
+Alternative: dropping or truncating the value. Rejected because the decimal string keeps the evidence.
+
+### 6. Rewriting traces of an existing run (`record --retrace`, amendment)
+
+Idempotence (decision 2) means a finished run is never touched, so traces written before decision 5 cannot be repaired by a plain re-record. `record --retrace` finds the finished run for the same bundle identity and replaces only its traces: new traces are written under the same MLflow run ID first, then the old ones are deleted, so a failure leaves the old traces in place (the partial new ones are removed). Run params, metrics, tags, artifacts, and replay runs are untouched; the run gains the tag `codegen_eval.traces_rewritten_at`. Without `--retrace` behavior is unchanged. With no finished run, `--retrace` falls back to a normal upload.
+
 ## Risks / Trade-offs
 
 - MLflow trace API/version drift → pin and document the tested version; keep the bundle as authoritative.

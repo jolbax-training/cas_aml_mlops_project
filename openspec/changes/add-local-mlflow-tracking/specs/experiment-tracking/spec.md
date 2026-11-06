@@ -54,6 +54,20 @@ Source: issue 05 Answer bullets 3 and 4.
 - **THEN** it appears as distinct grading evidence linked to the original run
 - **AND** the original trace and grades remain unchanged
 
+### Requirement: Trace content stays readable
+Recorded traces MUST stay readable through the MLflow API even when trial content contains integers outside the signed 64-bit range. Such integers SHALL be recorded as decimal strings on the trace and the span marked, and bundle content, artifacts, parameters, and metrics MUST NOT change. The traces of an already recorded run SHALL be replaceable from its bundle without altering the run's other records.
+
+Source: verification of the comparison runs (5 of 60 traces unreadable).
+
+#### Scenario: Trace attributes with integers outside the signed 64-bit range stay readable
+- **WHEN** a trial's `run_checks` arguments contain an integer such as 123456789123456789123456789 and the bundle is recorded
+- **THEN** the trace can be read back with its spans, the value appears as the string "123456789123456789123456789", and the span carries `codegen_eval.int_out_of_range_stringified = true`
+- **AND** the bundle and the uploaded trial artifacts still hold the exact integer
+
+#### Scenario: Retrace an already recorded run
+- **WHEN** an already recorded bundle is recorded again with `--retrace`
+- **THEN** its traces are replaced under the same MLflow run ID and the run's parameters, metrics, and artifacts are unchanged
+
 ### Requirement: Tracking outage preserves evidence
 Execution SHALL complete and retain its bundle when MLflow is unavailable. The same bundle MUST be recordable later, and paid responses MUST NOT be regenerated to recover tracking.
 
