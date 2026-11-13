@@ -99,7 +99,7 @@ Source: planned changes `add-presentation-deck` and `add-presentation-report`.
 - **THEN** every listed path exists, or the entry is marked pending with its owner
 
 ### Requirement: Title information and date placeholder
-The manifest SHALL carry "Jose Luis Barahona" and "CAS Applied Machine Learning (ZHAW)" and a visible date placeholder for the user to fill in; tooling MUST NOT choose a date.
+The manifest SHALL carry "Jose Luis Barahona" and "CAS Applied Machine Learning (ZHAW)", a visible date placeholder, and the source of the date; the user writes the date in the user-text file and tooling MUST NOT choose or write it.
 
 Source: accepted user decisions.
 
@@ -284,3 +284,20 @@ Source: user decision round 4; docs/ci_evidence.md.
 #### Scenario: Engineering charts show the latest run
 - **WHEN** the engineering charts are generated
 - **THEN** they show the offline and podman counts of the marked run
+
+### Requirement: The presentation date is written by the user in the user-text file
+The user-text file SHALL have a `[title]` table with an empty `date` key that the user writes, and the manifest SHALL name that key as the date source while keeping its own `title.date` empty. The deck and the report MUST show the placeholder while the date is empty and MUST keep failing their strict and release builds while it is empty. A filled date MUST be validated (non-empty string, at most 40 characters, no control characters) and escaped, and no tool SHALL write it.
+
+Source: coordinator decision round 5.
+
+#### Scenario: The user writes the date
+- **WHEN** the user sets `date` under `[title]` in the user-text file
+- **THEN** the deck and the report show that date instead of the placeholder, without regenerating the manifest
+
+#### Scenario: Date left empty
+- **WHEN** the date is empty
+- **THEN** both builders show the placeholder and their strict builds fail
+
+#### Scenario: Invalid date
+- **WHEN** the date is longer than 40 characters or contains a line break
+- **THEN** the check and both builders fail with a clear message

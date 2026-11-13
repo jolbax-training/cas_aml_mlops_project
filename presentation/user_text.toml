@@ -16,3 +16,10 @@ report = ""
 [takeaways]
 deck = ""
 report = ""
+
+# The presentation date shown on the title slide and the title of the report.
+# THE USER WRITES IT (for example 2026-12-01, or free text such as "1 December 2026"); at most 40
+# characters, one line. Tools never fill it. Empty means "not written yet": the deck and the
+# report show the placeholder "[DATE: fill in]" and their strict/release builds fail.
+[title]
+date = ""

@@ -311,6 +311,20 @@ class Report:
         return out
 
 
+DATE_MAX = 40
+
+
+def user_date(user_text: dict) -> str:
+    """The date the user wrote under [title] in user_text.toml ('' while unwritten); validated."""
+    value = (user_text.get("title") or {}).get("date", "")
+    if not isinstance(value, str) or any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        raise DeckError("presentation/user_text.toml [title] date must be one line of text without control characters")
+    value = value.strip()
+    if len(value) > DATE_MAX:
+        raise DeckError(f"presentation/user_text.toml [title] date is {len(value)} characters; the limit is {DATE_MAX}")
+    return value
+
+
 def render_figure(ctx: "Context", item_id: str, layout: str, slide_id: str) -> str:
     where = f"slide {slide_id}"
     kind, entry = ctx.evidence.entry(item_id, where)
@@ -434,7 +448,9 @@ def render_slide(ctx: Context, slide: dict, number: int, total: int) -> str:
         meta = ctx.evidence.manifest["title"]
         _, logo = ctx.evidence.entry(slide["logo"], where)
         uri = ctx.evidence.data_uri(logo, "assets", where)
-        date = meta.get("date")
+        date = user_date(ctx.user_text)
+        if not date:
+            ctx.report.unfilled_slots.append("title date")
         date_html = (
             f'<span class="date">{esc(date)}</span>' if date
             else f'<span class="date unset">{esc(meta["date_placeholder"])}</span>'

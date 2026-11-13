@@ -57,3 +57,9 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [x] 8.3 Regenerate the summary (bundles read-only), charts and manifest at the new commit's tree through the scripts; rerun the deck and report checks (the report's static page estimates are unchanged).
 
 Left for others: 2.3 (coordinator: charts and diagrams opened in a browser and in print preview), 4.2 (coordinator: open `report/demo.html` in a browser with and without scripting) and 4.3 (the user: approve the recording transcript by adding `presentation/recording/review.txt`); 3.3 (screenshots) is the coordinator's and is ticked only when all nine files exist.
+
+## 9. Round 5 (the user can set the date)
+
+- [x] 9.1 Add the empty `[title] date` key to `presentation/user_text.toml`, record `title.date_source` in the manifest, validate a filled value in the checker, and extend the never-writes test (decision 17).
+- [x] 9.2 Make the deck and the report builders read the date from the user-text file (minimal edits to their date lines and tests): placeholder while empty, strict and release builds fail while empty, validated and escaped when filled.
+- [x] 9.3 State in `docs/presentation_evidence.md`, `docs/presentation_deck.md` and `docs/presentation_report.md` exactly where the user writes the date; rerun the checks and tests.

@@ -233,7 +233,7 @@ def test_empty_slots_show_visible_placeholders(root):
     page, _, report = build(root)
     assert page.count("YOUR TEXT HERE") == 2
     assert "presentation/user_text.toml" in page
-    assert report.unfilled_slots == ["motivation", "takeaways"]
+    assert report.unfilled_slots == ["title date", "motivation", "takeaways"]
 
 
 def test_filled_slot_renders_escaped_text_without_placeholder(root):
@@ -242,7 +242,7 @@ def test_filled_slot_renders_escaped_text_without_placeholder(root):
     page, _, report = build(root)
     assert "First &lt;b&gt;line&lt;/b&gt;" in page and "<b>line</b>" not in page
     assert page.count("YOUR TEXT HERE") == 1
-    assert report.unfilled_slots == ["takeaways"]
+    assert report.unfilled_slots == ["title date", "takeaways"]
 
 
 def test_missing_slot_key_fails(root):
@@ -265,12 +265,25 @@ def test_strict_fails_on_notices_and_check_does_not(root, capsys):
     assert "unfilled user slot" in capsys.readouterr().err
 
 
-def test_date_placeholder_while_null_and_date_when_set(root):
-    page, _, _ = build(root)
-    assert "[DATE: fill in]" in page
-    edit_manifest(root, lambda m: m["title"].update(date="2026-12-01"))
-    page, _, _ = build(root)
-    assert "[DATE: fill in]" not in page and "2026-12-01" in page
+def test_date_placeholder_while_empty_and_date_from_the_user_text_when_set(root):
+    page, _, notes = build(root)
+    assert "[DATE: fill in]" in page and "title date" in notes.unfilled_slots
+    edit(root / "presentation/user_text.toml", '[title]\ndate = ""', '[title]\ndate = "2026-12-01 <b>"')
+    page, _, notes = build(root)
+    assert "[DATE: fill in]" not in page and "2026-12-01 &lt;b&gt;" in page and "<b>" not in page.split("2026-12-01")[1][:12]
+    assert "title date" not in notes.unfilled_slots
+
+
+def test_the_date_is_validated_and_strict_fails_while_it_is_empty(root, capsys):
+    path = root / "presentation/user_text.toml"
+    assert deck.main(["--root", str(root), "--strict"]) == 1
+    assert "title date" in capsys.readouterr().err
+    edit(path, '[title]\ndate = ""', '[title]\ndate = "' + "x" * 41 + '"')
+    with pytest.raises(deck.DeckError, match="limit is 40"):
+        build(root)
+    edit(path, "x" * 41, "a\\nb")
+    with pytest.raises(deck.DeckError, match="control characters"):
+        build(root)
 
 
 def test_title_slide_has_the_approved_information(root):

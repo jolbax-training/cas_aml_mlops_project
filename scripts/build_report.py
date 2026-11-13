@@ -293,12 +293,29 @@ def render_logo(inputs: Inputs) -> str:
     return f'<img class="logo" src="{data_uri(path, "image/jpeg")}" alt="{esc(asset["alt"])}">'
 
 
+DATE_MAX = 40
+
+
+def user_date(user_text: dict) -> str:
+    """The date the user wrote under [title] in user_text.toml ('' while unwritten); validated."""
+    value = (user_text.get("title") or {}).get("date", "")
+    if not isinstance(value, str) or any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        raise ReportError("user text [title] date must be one line of text without control characters")
+    value = value.strip()
+    if len(value) > DATE_MAX:
+        raise ReportError(f"user text [title] date is {len(value)} characters; the limit is {DATE_MAX}")
+    return value
+
+
 def render_title(inputs: Inputs, field: str) -> str:
     title = inputs.manifest["title"]
     if field not in {"author", "course", "date", "headline"}:
         raise ReportError(f"unknown title field {field!r}")
-    if field == "date" and not title.get("date"):
-        return f'<span class="ph ph-inline" data-placeholder="date">{esc(title["date_placeholder"])}</span>'
+    if field == "date":
+        written = user_date(inputs.user_text)
+        if not written:
+            return f'<span class="ph ph-inline" data-placeholder="date">{esc(title["date_placeholder"])}</span>'
+        return esc(written)
     return esc(title[field])
 
 

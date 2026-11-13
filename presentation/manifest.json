@@ -684,6 +684,7 @@
     "course": "CAS Applied Machine Learning (ZHAW)",
     "date": null,
     "date_placeholder": "[DATE: fill in]",
+    "date_source": "presentation/user_text.toml#title.date",
     "headline": "A trustworthy, reproducible, budget-safe evaluation pipeline for a coding agent"
   },
   "user_text": {

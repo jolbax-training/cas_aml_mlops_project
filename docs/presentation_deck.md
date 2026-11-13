@@ -17,12 +17,12 @@ Build order, so the links on the last slide find their targets: the recording pl
 
 | File | Edit it to |
 | --- | --- |
-| `presentation/user_text.toml` | write the Motivation (slide 2) and Takeaways (slide 12) in your own words, `deck` key; also the date goes in the manifest source, not here |
+| `presentation/user_text.toml` | write the Motivation (slide 2) and Takeaways (slide 12) in your own words, `deck` key, and the title-slide date under `[title]` (`date = "2026-12-01"` or free text, one line, at most 40 characters) |
 | `presentation/deck/slides.toml` | change the factual text of a slide; numbers are `{{summary:path}}` or `{{fmt:int\|pct1\|ratio\|chf4:path}}` references into `presentation/evidence/summary.json` |
 | `presentation/deck/notes.toml` | change the factual speaker notes |
 | `presentation/deck/deck.css`, `deck.js` | layout, print rules and the navigation script |
 
-The deck never writes `user_text.toml` and drafts none of your words: an empty slot is a dashed yellow box saying what to edit, and the title slide shows `[DATE: fill in]` until the manifest date is set. Pending screenshots are boxes labelled `SCREENSHOT PENDING`.
+The deck never writes `user_text.toml` and drafts none of your words: an empty slot is a dashed yellow box saying what to edit, and the title slide shows `[DATE: fill in]` until you write the date: open `presentation/user_text.toml` and set `date` in the `[title]` table (one line, at most 40 characters). `build_deck.py --strict` fails while the date or a slot is empty. Pending screenshots are boxes labelled `SCREENSHOT PENDING`.
 
 ## Using it
 

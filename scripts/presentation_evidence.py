@@ -768,6 +768,8 @@ REVIEW_REL = "presentation/recording/review.txt"
 USER_TEXT_REL = "presentation/user_text.toml"
 USER_TEXT_SLOTS = ("motivation", "takeaways")
 USER_TEXT_KEYS = ("deck", "report")
+DATE_SOURCE = f"{USER_TEXT_REL}#title.date"
+DATE_MAX = 40
 
 
 def read_user_text(root: Path) -> dict[str, Any]:
@@ -776,6 +778,18 @@ def read_user_text(root: Path) -> dict[str, Any]:
         return tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         raise EvidenceError(f"cannot read {USER_TEXT_REL}: {error}") from error
+
+
+def date_problem(value: Any) -> str | None:
+    """Why a user-written date is unusable, or None. The same rule is applied by the deck and report."""
+    if not isinstance(value, str):
+        return "the date must be a string"
+    text = value.strip()
+    if text and len(text) > DATE_MAX:
+        return f"the date is {len(text)} characters; the limit is {DATE_MAX}"
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        return "the date must be one line without control characters"
+    return None
 
 
 def user_text_entry(root: Path) -> dict[str, Any]:
@@ -833,7 +847,8 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "title": {"author": "Jose Luis Barahona", "course": "CAS Applied Machine Learning (ZHAW)",
-                  "date": None, "date_placeholder": DATE_PLACEHOLDER, "headline": HEADLINE},
+                  "date": None, "date_source": DATE_SOURCE, "date_placeholder": DATE_PLACEHOLDER,
+                  "headline": HEADLINE},
         "summary": SUMMARY_REL, "figures": figures, "diagrams": diagrams,
         "screenshots": screenshots, "assets": [asset], "user_text": user_text_entry(root),
         "recording": {"cast": CAST_REL, "player_template": PLAYER_REL,
@@ -844,7 +859,18 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
 def check_manifest(manifest: Mapping[str, Any], root: Path) -> list[str]:
     problems: list[str] = []
     if manifest.get("title", {}).get("date") is not None:
-        problems.append("manifest title.date must stay null (the user fills it in)")
+        problems.append("manifest title.date must stay null: the user writes the date in " + DATE_SOURCE)
+    if manifest.get("title", {}).get("date_source") != DATE_SOURCE:
+        problems.append(f"manifest title.date_source must be {DATE_SOURCE!r}")
+    try:
+        written = read_user_text(root).get("title", {}).get("date")
+    except EvidenceError as error:
+        problems.append(str(error))
+    else:
+        if written is None:
+            problems.append(f"{USER_TEXT_REL} has no [title] date key for the user to write")
+        elif date_problem(written):
+            problems.append(f"{USER_TEXT_REL} [title] date: {date_problem(written)}")
     ids = {e["id"] for e in manifest["figures"]}
     for entry in manifest["figures"]:
         if entry.get("variant") == "compact" and entry.get("full_size") not in ids:

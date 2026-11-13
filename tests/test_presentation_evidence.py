@@ -331,9 +331,10 @@ def test_user_text_file_has_empty_marked_slots():
     text = (REPO / pe.USER_TEXT_REL).read_text(encoding="utf-8")
     assert "THE USER WRITES" in text and "No tool" in text
     data = tomllib.loads(text)
-    assert set(data) == {"motivation", "takeaways"}
-    for slot in data.values():
-        assert set(slot) == {"deck", "report"} and slot == {"deck": "", "report": ""}
+    assert set(data) == {"motivation", "takeaways", "title"}
+    assert data["title"] == {"date": ""}
+    for name in ("motivation", "takeaways"):
+        assert data[name] == {"deck": "", "report": ""}
 
 
 def test_manifest_lists_the_user_text_and_reports_empty_slots():
@@ -365,9 +366,9 @@ def test_a_missing_user_text_file_fails_the_manifest_check(tmp_path):
 
 
 def test_no_script_writes_the_user_text_file():
-    for name in ("presentation_evidence", "render_charts", "record_demo"):
+    for name in ("presentation_evidence", "render_charts", "record_demo", "build_deck", "build_report"):
         source = (SCRIPTS / f"{name}.py").read_text(encoding="utf-8")
-        for match in re.finditer(r"USER_TEXT_REL|user_text\.toml", source):
+        for match in re.finditer(r"USER_TEXT_REL|user_text\.toml|user_date", source):
             line = source[source.rfind("\n", 0, match.start()) + 1:source.find("\n", match.end())]
             assert not re.search(r"write_text|write_bytes|open\(.*[\"']w|\.touch\(|unlink", line), line
 
@@ -501,3 +502,47 @@ def test_the_latest_run_does_not_depend_on_list_order_or_id_size():
     runs = sections["ci_runs"]
     assert [int(r["run"]) for r in runs] == sorted(int(r["run"]) for r in runs)  # display order only
     assert sections["ci_latest"] == next(r["run"] for r in runs if r.get("commit") == "e00236d")
+
+
+# --- round 5: the date is written by the user in user_text.toml --------------------------------------
+
+def set_user_date(root, value):
+    path = root / pe.USER_TEXT_REL
+    path.write_text(path.read_text(encoding="utf-8").replace('date = ""', f"date = {json.dumps(value)}"), encoding="utf-8")
+
+
+def test_manifest_names_the_date_source_and_keeps_its_own_date_empty():
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert manifest["title"]["date"] is None
+    assert manifest["title"]["date_source"] == "presentation/user_text.toml#title.date"
+    assert manifest["schema_version"] == 1
+
+
+def test_a_date_written_by_the_user_passes_without_regenerating_the_manifest(tmp_path):
+    root = copy_repo(tmp_path)
+    set_user_date(root, "2026-12-01")
+    assert pe.check_all(root) == []
+    assert pe.build_manifest(root) == json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+
+
+def test_an_unusable_date_fails_the_check(tmp_path):
+    root = copy_repo(tmp_path)
+    set_user_date(root, "x" * 41)
+    assert any("title] date" in p and "limit" in p for p in pe.check_all(root))
+    set_user_date(root, "x" * 41)
+    assert pe.date_problem("one\nline") and pe.date_problem(5) and pe.date_problem("") is None
+    assert pe.date_problem("  " + "x" * 40 + "  ") is None
+
+
+def test_a_missing_date_key_fails_the_check(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / pe.USER_TEXT_REL
+    path.write_text(path.read_text(encoding="utf-8").replace("[title]\ndate = \"\"", ""), encoding="utf-8")
+    assert any("no [title] date key" in p for p in pe.check_all(root))
+
+
+def test_a_date_in_the_manifest_itself_still_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    manifest = json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    manifest["title"]["date"] = "2026-12-01"
+    assert any("title.date must stay null" in p for p in pe.check_manifest(manifest, root))

@@ -293,11 +293,25 @@ def test_logo_uses_manifest_alt_and_verifies_its_digest(tmp_path):
         report.build_html(inputs)
 
 
-def test_date_set_in_the_manifest_replaces_the_placeholder(tmp_path):
-    inputs = make_inputs(tmp_path, template=page_template("{{title:date}}"))
-    inputs.manifest["title"]["date"] = "2026-12-01"
+def test_an_empty_date_shows_the_placeholder_and_a_user_written_date_replaces_it(tmp_path):
+    empty = report.build_html(make_inputs(tmp_path, template=page_template("{{title:date}}")))
+    assert "DATE: fill in" in empty and 'data-placeholder="date"' in empty
+    real = (REPO / "presentation/user_text.toml").read_text(encoding="utf-8")
+    written = real.replace('[title]\ndate = ""', '[title]\ndate = "2026-12-01 <i>"')
+    inputs = make_inputs(tmp_path, template=page_template("{{title:date}}"), user=written)
     text = report.build_html(inputs)
-    assert "2026-12-01" in text and "DATE: fill in" not in text
+    assert "2026-12-01 &lt;i&gt;" in text and "<i>" not in text and "DATE: fill in" not in text
+    inputs.manifest["title"]["date"] = "not used"  # the manifest's own date is never the source
+    assert "not used" not in report.build_html(inputs)
+
+
+def test_an_invalid_date_is_rejected(tmp_path):
+    real = (REPO / "presentation/user_text.toml").read_text(encoding="utf-8")
+    for bad, message in (("x" * 41, "limit is 40"), ("a\\nb", "control characters")):
+        inputs = make_inputs(tmp_path, template=page_template("{{title:date}}"),
+                             user=real.replace('[title]\ndate = ""', f'[title]\ndate = "{bad}"'))
+        with pytest.raises(report.ReportError, match=message):
+            report.build_html(inputs)
 
 
 def test_a_diagram_with_a_script_is_rejected(tmp_path):
