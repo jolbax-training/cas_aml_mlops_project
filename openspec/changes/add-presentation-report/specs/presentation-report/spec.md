@@ -27,7 +27,7 @@ Source: accepted user decisions; approved talk outline.
 - **THEN** page one has the title information, motivation slot and problem statement, page two the approach, page three the results and page four the limits, lessons, conclusions slot and references
 
 ### Requirement: Page overflow is detected
-The project SHALL detect content that does not fit its page. Offline checks MUST fail on a structural or budget violation without a browser; a browser measurement SHALL fail when any page's content is taller than its page box or when the printed PDF does not have four pages, and MUST report a missing browser as skipped, never as a pass.
+The project SHALL detect content that does not fit its page: offline checks MUST fail on a structural or budget violation (including uncalibrated budgets) without a browser, and a browser measurement SHALL fail when a page's content is taller than its box or the printed PDF does not have four pages.
 
 Source: accepted user decisions (exactly four printed pages).
 
@@ -35,9 +35,25 @@ Source: accepted user decisions (exactly four printed pages).
 - **WHEN** a page's content is taller than its box in the measurement
 - **THEN** the measurement exits non-zero and names the page and the excess height
 
+#### Scenario: Missing browser is not a pass
+(A missing browser MUST be reported as skipped, never as a pass, and an unreadable page count MUST fail distinctly.)
+
 #### Scenario: No browser available
 - **WHEN** the measurement runs without a browser
 - **THEN** it reports that it was skipped with a distinct exit status and does not report success
+
+#### Scenario: Uncalibrated budgets
+- **WHEN** the per-page budgets carry no calibration note
+- **THEN** the offline check fails with "budgets not calibrated" instead of passing
+
+#### Scenario: Page count undeterminable
+- **WHEN** the printed PDF's page count cannot be read or its two counts disagree
+- **THEN** the measurement fails with a message distinct from a wrong count
+
+#### Scenario: Print rules that change layout
+(The print stylesheet MUST NOT change box geometry or type size relative to screen, so the screen measurement stands for the printed layout.)
+- **WHEN** the print stylesheet contains a rule other than the page size, break rules, colour adjustment and the navigation hide rule
+- **THEN** the check fails
 
 #### Scenario: CI without a browser
 - **WHEN** the offline check runs in CI
@@ -56,6 +72,23 @@ Source: accepted user decisions.
 - **WHEN** a directive names an id, key or slot that does not exist
 - **THEN** the build fails and names it, and no empty value is rendered
 
+### Requirement: Print legibility
+The report SHALL use the compact chart variants from the evidence manifest on page three, and no text in the printed report MUST be smaller than 7.5 pt (2.646 mm), counting chart text by viewBox arithmetic and stylesheet sizes directly; text colours MUST have a contrast ratio of at least 4.5:1.
+
+Source: accepted user decision D1 (compact charts and tables, nothing below 7.5 pt printed).
+
+#### Scenario: Chart too small
+- **WHEN** a chart's minimum font size in viewBox units times its rendered width over its viewBox width is below 2.646 mm
+- **THEN** the check fails naming the chart and the computed size
+
+#### Scenario: Small type in the stylesheet
+- **WHEN** the stylesheet sets a font size below 7.5 pt or a low-contrast text colour
+- **THEN** the check fails naming the rule
+
+#### Scenario: Compact variant by identifier
+- **WHEN** the template names a chart id absent from the manifest
+- **THEN** the build fails and names the id
+
 ### Requirement: Figure numbering and cross-references
 The report SHALL number figures, diagrams and screenshots once, in order of appearance, and every in-text figure reference MUST resolve to that numbering.
 
@@ -66,7 +99,7 @@ Source: accepted user decisions.
 - **THEN** it shows the same "Figure N" label as the figure's caption
 
 ### Requirement: Honest framing and limits
-The report SHALL describe the prompt comparison as a worked example with limits, SHALL include all seven documented limits and the non-claim from the evidence summary, and MUST NOT use the words "improvement" or "breakthrough" except inside the quoted non-claim.
+The report SHALL describe the prompt comparison as a worked example with limits, SHALL include all seven documented limits and the non-claim from the evidence summary, and MUST NOT use the words "improvement" or "breakthrough" anywhere except inside elements the builder marks as verbatim quotations of the evidence summary (limits, non-claim, quoted document lines); the user's slot text is checked too.
 
 Source: accepted user decisions; docs/prompt_comparison.md.
 
@@ -75,24 +108,36 @@ Source: accepted user decisions; docs/prompt_comparison.md.
 - **THEN** all seven limits and the non-claim appear, each from its recorded quote
 
 #### Scenario: Forbidden framing
-- **WHEN** a text outside the quoted non-claim presents the result as an improvement or breakthrough
-- **THEN** the check fails
+- **WHEN** a text outside a marked verbatim quotation, including a user slot, uses the word improvement or breakthrough
+- **THEN** the check fails and names the text or slot
+
+#### Scenario: Quotation marker
+- **WHEN** the template tries to mark its own text as a verbatim quotation
+- **THEN** the check fails, because only the limits and quote directives emit the marker
 
 ### Requirement: User-authored slots are visible placeholders
-The motivation and the interpretation/takeaways SHALL come from a committed source file edited by the user, and no tool or agent MUST draft them. While a slot is empty it SHALL render as a conspicuous placeholder that survives print; a filled slot SHALL render the user's text escaped; a slot text longer than its box MUST fail the check, and a release build MUST fail while any slot, the date or a used screenshot is unfilled.
+The motivation and takeaways SHALL come from the `report` keys of the shared `presentation/user_text.toml` created by the evidence change, and no tool or agent MUST draft them. An empty slot SHALL render as a placeholder that survives print and a filled slot as escaped text; an over-long text MUST fail the check.
 
 Source: accepted user decisions (authorship).
 
 #### Scenario: Empty slot
 - **WHEN** the user text file has an empty motivation
-- **THEN** the report shows a visible placeholder naming the slot and the file to edit
+- **THEN** the report shows a visible placeholder, with a border so it survives printing without background graphics, naming the slot and `presentation/user_text.toml`
 
 #### Scenario: Release build with placeholders
 - **WHEN** a release build runs while a slot, the date or a used screenshot is unfilled
 - **THEN** it exits non-zero listing each unfilled item
 
+#### Scenario: Release gate
+- **WHEN** a release build runs
+- **THEN** it fails while any slot, the date or a used screenshot is unfilled
+
+#### Scenario: No second user-text file
+- **WHEN** the change's files are listed
+- **THEN** none is a user-text file
+
 #### Scenario: Slot too long
-- **WHEN** the user's text exceeds the slot's allowed length
+- **WHEN** the user's `report` text exceeds the slot's allowed length
 - **THEN** the check fails naming the slot and the limit
 
 ### Requirement: Pending screenshots and the date are shown, not hidden
@@ -114,7 +159,7 @@ Source: accepted user decisions.
 - **THEN** no navigation element is visible and the page counter remains
 
 ### Requirement: References and evidence section
-Page four SHALL list, as visible text, the comparison and smoke run IDs with bundle digests, MLflow run IDs where recorded, and the repository paths of the documents the report relies on, and SHALL link the work log and recorded demo player as relative references whose absence is a non-fatal note.
+Page four SHALL list, as visible text, the comparison and smoke run IDs with their full bundle digests (not only in an attribute or tooltip), MLflow run IDs where recorded, and the repository paths of the documents the report relies on, and SHALL link the work log and recorded demo player as relative references whose absence is a non-fatal note.
 
 Source: accepted user decisions; docs/project_spec.md (evidence).
 
@@ -129,7 +174,7 @@ Source: accepted user decisions; docs/project_spec.md line 175.
 
 #### Scenario: Static inspection
 - **WHEN** the built file is scanned
-- **THEN** it has no script element, event-handler attribute or external URL
+- **THEN** it has no script element, event-handler attribute or external URL, declares its language and a title, and keeps the role and title references of inlined charts
 
 #### Scenario: Identical rebuild
 - **WHEN** the report is built twice from the same sources
