@@ -62,8 +62,15 @@ DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256"})
 
 # Static height model. `calibrated_against` is empty until `measure` has been run and the
 # constants below have been fitted to it; `check` refuses to pass while it is empty.
+# The `measure` result the estimator was checked against (commit 3b520fa): content height used and
+# body box height per page, in mm. `check` requires each static estimate to stay within
+# CALIBRATION_TOLERANCE of the measured content height, so a template or stylesheet change that
+# moves a page by more than that fails offline until `measure` is run again and these are updated.
+MEASURED_MM = {1: (220.3, 272.8), 2: (229.3, 258.8), 3: (253.5, 258.8), 4: (232.1, 258.8)}
+CALIBRATION_TOLERANCE = 0.10
+
 BUDGETS = {
-    "calibrated_against": "UNMEASURED: first-principles estimate; replace with browser, version and date after `measure` (tasks 4.2, 4.3)",
+    "calibrated_against": "Chrome 157.0.8103.52, macOS arm64, 2026-11-13, commit 3b520fa (coordinator's `measure` run)",
     "body_mm": 258.8,  # usable height of a page body (page box minus padding, header, footer)
     "char_mm": 1.8,  # average character advance at body size
     "line_mm": 5.0,  # body line height
@@ -949,8 +956,12 @@ def run_checks(inputs: Inputs, html_text: str | None = None) -> tuple[list[str],
         if BUDGETS["calibrated_against"].startswith("UNMEASURED"):
             warnings.append("budgets are an unmeasured estimate; only `build_report.py measure` shows the printed fit")
         for index, used in enumerate(estimates(inputs, root), start=1):
-            if used > BUDGETS["body_mm"] * HEADROOM:
-                problems.append(f"page-{index}: static estimate {used:.0f} mm exceeds {HEADROOM:.0%} of the {BUDGETS['body_mm']:.0f} mm body")
+            measured, body = MEASURED_MM[index]
+            if used > body * HEADROOM:
+                problems.append(f"page-{index}: static estimate {used:.0f} mm exceeds {HEADROOM:.0%} of the {body:.0f} mm body")
+            if abs(used - measured) > measured * CALIBRATION_TOLERANCE:
+                problems.append(f"page-{index}: static estimate {used:.0f} mm differs from the measured {measured:.0f} mm by more than "
+                                f"{CALIBRATION_TOLERANCE:.0%}; run `build_report.py measure` and update MEASURED_MM and BUDGETS")
     return problems, warnings, placeholders(root)
 
 

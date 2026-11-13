@@ -553,3 +553,25 @@ def test_count_format_and_summary_driven_sentences(real):
     assert f"gained {', '.join(delta['gained_tasks'])}" in text and f"regressed {', '.join(delta['regressed_tasks'])}" in text
     template = (REPO / report.TEMPLATE).read_text(encoding="utf-8")
     assert not re.search(r"\b(two|three|four|five|six|seven|eight|nine|ten) (tasks|categories|trials|things)\b", re.sub(r"<!--.*?-->", "", template, flags=re.S))
+
+
+def test_calibration_is_recorded_and_estimates_match_the_measurement(real):
+    assert report.BUDGETS["calibrated_against"] and not report.BUDGETS["calibrated_against"].startswith("UNMEASURED")
+    assert "3b520fa" in report.BUDGETS["calibrated_against"]
+    root = report.parse(real[1])
+    for index, used in enumerate(report.estimates(real[0], root), start=1):
+        measured, body = report.MEASURED_MM[index]
+        assert abs(used - measured) <= measured * report.CALIBRATION_TOLERANCE, (index, used, measured)
+        assert used <= body * report.HEADROOM
+
+
+def test_a_layout_change_beyond_the_tolerance_fails_until_remeasured(monkeypatch, real):
+    monkeypatch.setitem(report.MEASURED_MM, 2, (150.0, 258.8))
+    problems, _, _ = report.run_checks(real[0], real[1])
+    assert any("page-2" in p and "differs from the measured" in p for p in problems)
+
+
+def test_ci_runs_the_report_check_without_a_browser():
+    ci = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "scripts/build_report.py check" in ci
+    assert "build_report.py measure" not in ci

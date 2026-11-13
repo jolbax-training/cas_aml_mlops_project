@@ -64,6 +64,8 @@ jobs:
         run: .venv/bin/python scripts/render_charts.py --check
       - name: Demo recording check
         run: .venv/bin/python scripts/record_demo.py check
+      - name: Four-page report check (no browser)
+        run: .venv/bin/python scripts/build_report.py check
 
   podman:
     name: podman
