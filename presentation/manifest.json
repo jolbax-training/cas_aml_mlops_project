@@ -553,7 +553,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-experiment-runs.png",
       "shows": "Experiment codegen-eval-runs, runs table",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: Baseline run overview (parameters, metrics, tags).",
@@ -564,7 +564,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-run-baseline.png",
       "shows": "Baseline run overview (parameters, metrics, tags)",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: Revised run overview.",
@@ -575,7 +575,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-run-revised.png",
       "shows": "Revised run overview",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: Two-run comparison view.",
@@ -586,7 +586,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-compare.png",
       "shows": "Two-run comparison view",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: A lists_02 baseline trace (explanation after a failed check).",
@@ -597,7 +597,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-trace-lists02-baseline.png",
       "shows": "A lists_02 baseline trace (explanation after a failed check)",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: A lists_02 revised trace.",
@@ -608,7 +608,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-trace-lists02-revised.png",
       "shows": "A lists_02 revised trace",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: strings_01-t2 of the revised run.",
@@ -619,7 +619,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/mlflow-trace-strings01-t2-revised.png",
       "shows": "strings_01-t2 of the revised run",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: report/index.html architecture figure.",
