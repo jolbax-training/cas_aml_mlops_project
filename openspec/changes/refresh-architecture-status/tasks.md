@@ -1,6 +1,6 @@
 ## 1. Evidence and sources
 
-- [x] 1.1 Re-grep (case-insensitive) the nine files, `docs/demo.md`, `README.md` and the "Current status" section of `docs/progress.md` for the stale phrases of design D4 and judge each hit against D2 (stale status, code semantics, history); record the final list in the commit message.
+- [x] 1.1 Re-grep (case-insensitive) the nine files, `docs/demo.md`, `README.md` and the "Current status" section of `docs/progress.md` for the stale phrases of design D4 and judge each hit against D2 (stale status, code semantics, history); record the judged list in the progress entry.
 - [x] 1.2 Write `docs/architecture_status_sources.toml` (component, status, evidence file, phrase, plus the completed-run sentence per twin) from design D1; the MLflow entry uses the "60 of 60 traces read back after `--retrace`" phrase of `docs/progress.md`; a row whose phrase cannot be found keeps its status and goes in the worker report.
 - [x] 1.3 Write `tests/test_architecture_status.py` (design D4) first and see it fail on the current files.
 

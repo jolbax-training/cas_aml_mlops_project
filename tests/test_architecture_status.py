@@ -3,6 +3,7 @@
 Offline: reads only checked-in files (no network, Podman, MLflow, draw.io, or retained bundles)."""
 
 import html
+import json
 import re
 import tomllib
 import xml.etree.ElementTree as ET
@@ -24,21 +25,29 @@ DRAWINGS = ["architecture_logical.drawio.svg", "architecture_physical.drawio.svg
 # Phrases that only a pre-paid-phase status could contain (matched case-insensitively).
 STALE = [r"no live run", r"no live (call|model|spend)", r"no live or real run", r"has not been run live",
          r"has not run\b", r"built offline only", r"no paid", r"not yet run", r"does not exist yet",
-         r"only a fixture", r"no live client", r"\bunset\b", r"until the human writes",
+         r"only a fixture", r"no live client", r"\bunset\b", r"until the human writes", r"offline-tested only",
          r"\bPENDING\b", r"NO LIVE RUN"]
 # README.md and docs/demo.md also use "pending" for the work log's pending sections, so they get the run-related subset.
 STALE_PROSE = [p for p in STALE if p not in (r"\bPENDING\b", r"\bunset\b")]
-# (file, text that must be part of the line, why the stale phrase is fine there)
+# Exact vocabulary sentences that may contain a stale phrase: the figures and twins still define the reserved
+# PARTIAL and PENDING labels. Only the listed fragment is exempt, never the rest of its line, so a stale claim
+# on the same line is still found. (file, fragment, why)
 ALLOWED = [
-    ("*", "reserved", "the status vocabulary: partial and pending stay defined but no component uses them"),
-    ("*", "no box uses it now", "the status vocabulary"),
-    ("*", "no lane uses it now", "the status vocabulary"),
-    ("*", "no element uses it now", "the status vocabulary"),
-    ("*", "no participant uses them now", "the status vocabulary"),
-    ("*", "none is pending now", "the status vocabulary"),
-    ("*", "is labelled pending in the report", "the report's own pending sections still exist as a mechanism"),
-    ("README.md", 'kind = "pending"', "describes the work log's pending-section mechanism, not a component status"),
+    ("work_log_architecture.svg", "reserved for components that are built offline only or whose evidence is missing, and no box uses them now", "legend vocabulary in the figure description"),
+    ("work_log_architecture.svg", "Reserved (solid yellow): built offline only; unused", "legend vocabulary"),
+    ("architecture_logical.drawio.svg", "PARTIAL: NO LIVE RUN YET (reserved,", "status key box"),
+    ("architecture_logical.drawio.svg", "PENDING (reserved); EXTERNAL: dashed", "status key box"),
+    ("architecture_logical.md", "**PARTIAL: NO LIVE RUN YET** (no box uses it now) means built and tested offline only; **PENDING** (no box uses it now) means the evidence does not exist", "status vocabulary"),
+    ("architecture_logical.md", "solid yellow (partial) and a dashed pending box are reserved and no box uses them now", "status key"),
+    ("architecture_logical.md", '(key line: "PENDING (reserved); EXTERNAL: dashed")', "status key"),
+    ("architecture_physical.md", "**PARTIAL: NO LIVE RUN YET** (no element uses it now) means built and tested offline only", "status vocabulary"),
+    ("run_flow_activity.md", "**PARTIAL: NO LIVE RUN YET**: built and tested offline only, no lane uses it now; **PENDING**: the evidence does not exist, no lane uses it now", "status vocabulary"),
     ("run_flow_activity.md", "refuses a variant whose prompt is unset", "code semantics of the `variant_prompt` check"),
+    ("run_flow_sequence.md", "**PARTIAL: NO LIVE RUN YET** and **PENDING** are reserved and no participant uses them now", "status vocabulary"),
+    ("work_log_architecture.md", "**partial** (no box uses it now) means built and tested offline, but with no live model run; **pending** (no box uses it now) means the evidence does not exist", "status vocabulary"),
+    ("work_log_architecture.md", "is labelled pending in the report; none is pending now", "the report's pending sections remain a mechanism"),
+    ("README.md", "sections whose reviewed record does not exist yet are `kind = \"pending\"`", "describes the work log's pending-section mechanism"),
+    ("README.md", "solid yellow (built offline only) and dashed (evidence missing) are reserved labels that no box uses now", "status vocabulary"),
 ]
 
 
@@ -132,15 +141,49 @@ SCANNED = (["docs/work_log_architecture.svg"] + [f"docs/{n}" for n in DRAWINGS +
            + ["README.md", "docs/demo.md", "docs/progress.md"])
 
 
+def stale_offenders(name, lines):
+    """Lines that still claim a stale status once the exact vocabulary fragments allowed for this file are removed."""
+    patterns = STALE_PROSE if name in ("README.md", "demo.md") else STALE
+    allowed = [fragment for f, fragment, _ in ALLOWED if f == name]
+    bad = []
+    for line in lines:
+        rest = line
+        for fragment in allowed:
+            rest = rest.replace(fragment, " ")
+        if any(re.search(p, rest, re.I) for p in patterns):
+            bad.append(line[:160])
+    return bad
+
+
 @pytest.mark.parametrize("path", SCANNED)
 def test_no_current_status_text_claims_a_stale_status(path):
-    name = Path(path).name
-    bad = []
-    for line in _lines_of(path):
-        if any(re.search(p, line, re.I) for p in (STALE_PROSE if name in ("README.md", "demo.md") else STALE)):
-            if not any(f in ("*", name) and part in line for f, part, _ in ALLOWED):
-                bad.append(line[:160])
+    bad = stale_offenders(Path(path).name, _lines_of(path))
     assert bad == [], f"{path}: stale status text: {bad}"
+
+
+ORIGINALS = json.loads((REPO / "tests" / "fixtures" / "stale_status_sentences.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("original", ORIGINALS, ids=[f"{o['file']}#{i}" for i, o in enumerate(ORIGINALS)])
+def test_each_original_stale_sentence_fails_the_check_if_reintroduced(original):
+    """The lines as they were before the refresh (main at 6e1a478), including ones that contain the word
+    "reserved", must be reported when put back, with or without the vocabulary fragments next to them."""
+    name = original["file"]
+    assert stale_offenders(name, [original["line"]]) != []
+    fragments = " ".join(f for f_, f, _ in ALLOWED if f_ == name)
+    assert stale_offenders(name, [original["line"] + " " + fragments]) != []
+
+
+@pytest.mark.parametrize("name,fragment", [(f, x) for f, x, _ in ALLOWED])
+def test_an_allowed_fragment_alone_is_not_a_stale_claim(name, fragment):
+    assert stale_offenders(name, [fragment]) == []
+
+
+def test_a_stale_sentence_is_not_hidden_by_a_nearby_vocabulary_word():
+    for text in ("every paid attempt is reserved in the spending ledger first. No live model call has been made.",
+                 "each attempt reserved in the ledger first. No live call has been made yet.",
+                 "it reserves each attempt in the ledger; PARTIAL: NO LIVE RUN YET"):
+        assert stale_offenders("architecture_physical.md", [text]) != [], text
 
 
 @pytest.mark.parametrize("twin", TWINS)

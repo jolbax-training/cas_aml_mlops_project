@@ -161,7 +161,7 @@
   <g class="arch-box arch-impl"><rect x="20" y="720" width="60" height="28" rx="5"/></g>
   <text x="92" y="739">Implemented and exercised (solid blue)</text>
   <g class="arch-box arch-part"><rect x="500" y="720" width="60" height="28" rx="5"/></g>
-  <text x="572" y="739">Reserved: built and tested offline only (solid yellow); unused</text>
+  <text x="572" y="739">Reserved (solid yellow): built offline only; unused</text>
   <g class="arch-box arch-plan"><rect x="20" y="760" width="60" height="28" rx="5"/></g>
   <text x="92" y="779">Reserved: evidence missing (dashed); unused</text>
   <rect class="arch-bound" x="500" y="760" width="60" height="28" rx="5"/>

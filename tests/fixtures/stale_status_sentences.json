@@ -1,0 +1,270 @@
+[
+ {
+  "file": "work_log_architecture.svg",
+  "line": "The task and versioned prompt go to a bounded coding agent (trial.py) that calls an external model through an OpenRouter client with a spending ledger; that client is built and tested offline only, with no live call yet. The agent runs agent-authored development checks (run_checks.py) in fresh Podman containers (sandbox.py, worker.py), which hold only candidate code. An explicit final submission passes source validation (contract.py) and separate hidden acceptance grading (evaluate.py), whose expected answers and scoring stay outside candidate containers. Results go to local run bundles (bundle.py, run_recording.py), which feed grading replay (replay.py) and local MLflow recording (mlflow_tracking.py, so far only a fixture bundle recorded against the local service). Comparison metrics are computed from the bundles, not read back from MLflow (comparison.py; experiment.py writes the bundles). The tooling is built offline but no comparison has run, so reviewed Markdown summaries of results are pending. Deterministic CI covers fixtures and probes and reaches the report through the reviewed CI evidence page, and the report builder (scripts/build_work_log.py) turns selected Markdown into the local report. Solid blue boxes are implemented; solid yellow boxes are partly implemented with no live or real run yet; dashed boxes are pending."
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "PARTIAL: NO LIVE RUN YET"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "tested offline; no live call yet"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "only a fixture recorded so far"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "PENDING"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "offline tooling done, no paid run"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "Built and tested offline; no live model run yet (solid yellow)"
+ },
+ {
+  "file": "work_log_architecture.svg",
+  "line": "Pending: evidence does not exist yet (dashed)"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "PHASE 2: no live call has been made"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "PENDING"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "PARTIAL: NO LIVE RUN YET"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "(not from MLflow); not yet run"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "secondary record; only a fixture"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "PARTIAL: NO LIVE RUN YET: built, tested"
+ },
+ {
+  "file": "architecture_logical.drawio.svg",
+  "line": "PENDING: dashed box, evidence missing"
+ },
+ {
+  "file": "architecture_physical.drawio.svg",
+  "line": "PARTIAL: NO LIVE RUN YET"
+ },
+ {
+  "file": "architecture_physical.drawio.svg",
+  "line": "CHF 10 checkpoint, CHF 15 ceiling; no live spend yet"
+ },
+ {
+  "file": "architecture_physical.drawio.svg",
+  "line": "PHASE 2: no live call has been made yet"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "PENDING"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "PARTIAL: NO LIVE RUN YET"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "EXTERNAL, PHASE 2, PENDING"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "Experiment lifecycle: activity diagram (run drawn once as an expanded sub-activity; no live run has happened)"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "no live call has been made"
+ },
+ {
+  "file": "run_flow_activity.drawio.svg",
+  "line": "reviewed result summary (PENDING)"
+ },
+ {
+  "file": "run_flow_sequence.drawio.svg",
+  "line": "One trial: sequence diagram (the order of calls inside one trial; no live run has happened)"
+ },
+ {
+  "file": "run_flow_sequence.drawio.svg",
+  "line": "PARTIAL: NO LIVE RUN YET"
+ },
+ {
+  "file": "run_flow_sequence.drawio.svg",
+  "line": "PENDING"
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "Text equivalent of the logical architecture figure ([`architecture_logical.drawio.svg`](architecture_logical.drawio.svg), editable in draw.io), as of 2026-11-01 on the base commit `078130a` of `main`. It shows components and data flow independent of where they run; where they run is the [physical view](architecture_physical.md). Boxes name real files under `src/codegen_eval/` or `scripts/`. **IMPLEMENTED** means the code exists on `main` and its tests ran; **PARTIAL: NO LIVE RUN YET** means built and tested offline only (no live model call, no real comparison run has happened); **PENDING** means the evidence does not exist. Status comes from the [progress record](progress.md) and the [CI evidence](ci_evidence.md). No result, run identifier, URL, or spend appears here because none exists."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "**Model access (phase 2 pieces, built offline only)**"
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`openrouter_client.py`** (with `openrouter_config.py` and the `model_configs/` directory; PARTIAL: NO LIVE RUN YET) implements the model client interface (\"impl.\") and reserves each attempt in the ledger before sending (\"reserve\"). Arrow \"HTTPS\" (dashed) to **OpenRouter (external model API)** (PENDING, PHASE 2: no live call has been made)."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`openrouter_cli.py`** (PARTIAL: NO LIVE RUN YET): the live smoke command; with `experiment_cli.py` it is the only reader of `OPENROUTER_API_KEY`. Arrow \"builds client\" to `openrouter_client.py`. It has not been run live."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`ledger.py`** (PARTIAL: NO LIVE RUN YET): the spending ledger with a CHF 15 ceiling."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`mlflow_tracking.py`** (PARTIAL: NO LIVE RUN YET): records a bundle after it is written (\"bundle then record\"); it never reads MLflow back. Arrow \"uploads\" to **MLflow tracking store** (PARTIAL: NO LIVE RUN YET): a secondary record that has so far received only a fixture bundle."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`experiment.py + experiment_cli.py`** (PARTIAL: NO LIVE RUN YET): hold the prompt variants and schedule and inject the MLflow recorder. Arrow \"runs variants\" to `run_recording.py` (each variant is run through it); arrow \"compare\" to `comparison.py` (the `compare` subcommand compares two finished bundles)."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`summary.py`** (PARTIAL: NO LIVE RUN YET): fixed-denominator run summaries read from bundles (\"reads bundle\" from `run_recording.py + bundle.py`). Single arrow \"summaries\" from `summary.py` to `comparison.py`, which uses them."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`comparison.py`** (PARTIAL: NO LIVE RUN YET): compares baseline and revised runs from bundles, not from MLflow; the comparison has not run. Dashed arrow \"reviewed by a human\" to the result summaries."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **`reviewed result summaries`** (PENDING): reviewed Markdown summaries of results, run identifiers, and limitations. They need the comparison runs and are not invented here. Arrow \"selected .md\" to the work-log builder."
+ },
+ {
+  "file": "architecture_logical.md",
+  "line": "- **STATUS KEY (text label on every box)**: repeats the three status labels; every box carries its status as text, so meaning never depends on colour. Solid blue is implemented, solid yellow is partial, dashed is pending or external."
+ },
+ {
+  "file": "architecture_physical.md",
+  "line": "Text equivalent of the physical architecture figure ([`architecture_physical.drawio.svg`](architecture_physical.drawio.svg), editable in draw.io), as of 2026-11-01 on the base commit `078130a` of `main`. It shows where each part runs and which trust boundaries separate them; components and data flow are in the [logical view](architecture_logical.md). **Phase 1** is everything implemented today: local and offline on one macOS laptop. **Phase 2** is the paid, live phase: the same system once it calls OpenRouter live, plus GitHub, GitHub Actions CI, and the image registries. Phase-2 elements are drawn dashed on their own draw.io layer (their containers and arrows are orange) and are labelled `PHASE 2` or `EXTERNAL` in text. **IMPLEMENTED** means the code exists on `main` and its tests ran; **PARTIAL: NO LIVE RUN YET** means built and tested offline only. No live model call, comparison run, or spend exists, and no result or run identifier appears here."
+ },
+ {
+  "file": "architecture_physical.md",
+  "line": "  - **`~/.codegen_eval/spend_ledger.jsonl`** (PARTIAL: NO LIVE RUN YET): the budget ledger of reservations and settlements, with a CHF 10 checkpoint and a CHF 15 ceiling; no live spend has happened."
+ },
+ {
+  "file": "architecture_physical.md",
+  "line": "  - **`mlflow_data/ (durable local storage)`** (PARTIAL: NO LIVE RUN YET): the SQLite backend store and artifact store; they survive container stop and removal."
+ },
+ {
+  "file": "architecture_physical.md",
+  "line": "  - **`MLflow service container (separate, durable)`** (PARTIAL: NO LIVE RUN YET): started by `scripts/mlflow_service.sh` from a pinned `ghcr.io` digest, published on `127.0.0.1:5000` only, with `mlflow_data/` as its only mount (arrow \"mount\" to `mlflow_data/`). The host CLI reaches it over HTTP on `127.0.0.1` (arrow \"HTTP\"). No candidate container can reach it. So far it has recorded only a fixture bundle."
+ },
+ {
+  "file": "architecture_physical.md",
+  "line": "- **OpenRouter API (EXTERNAL)** (PHASE 2): `https://openrouter.ai/api/v1/chat/completions`, called over HTTPS from the host process only, with the key in a header and each attempt reserved in the ledger first (dashed arrow \"HTTPS + key\"). No live call has been made yet."
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "Text equivalent of the experiment-lifecycle activity diagram ([`run_flow_activity.drawio.svg`](run_flow_activity.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` and `scripts/` at commit `37968d8` of `main` (no code changed on the branch). The [physical view](architecture_physical.md) shows where things run and the [logical view](architecture_logical.md) which components exist; this view shows the **order**: when the whole experiment starts, what must hold before a run, what one `run` command does, and every way a run or a command ends. A supplement, the [one-trial sequence diagram](run_flow_sequence.md), shows the exact call order inside one trial. **No live run has happened**: no model call, spend, or result exists, so none is shown. Lane headers carry the status of their modules (**IMPLEMENTED**: code exists and its tests ran; **PARTIAL: NO LIVE RUN YET**: built and tested offline only; **PENDING**: the evidence does not exist); action and decision nodes carry no status. Phase-2 and external elements (OpenRouter, the paid smoke trial) have a dashed outline and the literal tags `EXTERNAL` and `PHASE 2`."
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "1. **One `run` command runs one variant.** `experiment_cli run --variant baseline` and `run --variant revised` are two separate invocations, each writing its own bundle. The diagram draws the `run` command once as a sub-activity (the dashed frame) and calls it twice from the lifecycle. The revised prompt is unset in `experiments/prompt_comparison_v1.json` today, so a `revised` run is refused by the `variant_prompt` check until the human writes it."
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "| human (manual steps) | reviewed result summaries | PENDING |"
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "| host CLI (trusted process) | `experiment.py + experiment_cli.py`, `run_recording.py`, `trial.py`, `run_checks.py`, `evaluate.py + contract.py`, `sandbox.py + limits.py`, `comparison.py`, `summary.py` | PARTIAL: NO LIVE RUN YET (the weakest status of its boxes) |"
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "| OpenRouter (EXTERNAL) | `OpenRouter (external model API)`, reached through `openrouter_client.py` | EXTERNAL, PHASE 2, PENDING |"
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "| on disk and MLflow | `run_recording.py + bundle.py` (bundles, run marker), `ledger.py` (the file), `mlflow_tracking.py`, `MLflow tracking store` | PARTIAL: NO LIVE RUN YET |"
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "- (OpenRouter (EXTERNAL); action) OpenRouter API (EXTERNAL, PHASE 2); no live call has been made — code: https://openrouter.ai/api/v1/chat/completions (openrouter_config)"
+ },
+ {
+  "file": "run_flow_activity.md",
+  "line": "- (human; action) Human review of the comparison; reviewed result summary (PENDING) — code: `reviewed result summaries (logical diagram, PENDING)`"
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "Text equivalent of the one-trial sequence diagram ([`run_flow_sequence.drawio.svg`](run_flow_sequence.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` at commit `37968d8` of `main`. It is the supplement to the [experiment-lifecycle activity diagram](run_flow_activity.md): the activity diagram shows the whole experiment and every ending, this one shows the exact call order inside **one trial**. Dashed arrows with an open head are replies (and returned results); solid arrows with a filled head are calls; the orange dashed arrows to and from OpenRouter mark the external call and its reply. Participant headers carry the name of the logical-diagram box and its status (**IMPLEMENTED**, **PARTIAL: NO LIVE RUN YET**, **PENDING**); messages carry no status. OpenRouter is `EXTERNAL` and `PHASE 2` (dashed). No live run has happened, so the diagram shows control flow only: no result, spend, or run identifier."
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "- `rr`: run_recording.py; + experiment.py; PARTIAL: NO LIVE RUN YET — code: `run_variant, run_recorded, RecordingClient`"
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "- `oc`: openrouter_client.py; ModelClient, model_client.py; PARTIAL: NO LIVE RUN YET — code: `OpenRouterClient.complete`"
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "- `lg`: ledger.py; spend ledger file; PARTIAL: NO LIVE RUN YET — code: `Ledger.reserve, settle, keep`"
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "- `or`: OpenRouter; (EXTERNAL, PHASE 2); PENDING — code: `chat completions endpoint`"
+ },
+ {
+  "file": "run_flow_sequence.md",
+  "line": "- `ml`: mlflow_tracking.py; MLflow recorder; PARTIAL: NO LIVE RUN YET — code: `bundle_recorder, record_bundle`"
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "Text equivalent of the figure above, as of 2026-10-31. Boxes name the implemented modules under `src/codegen_eval/`. **Implemented** means code exists on `main` and its tests ran; **partial** means built and tested offline, but with no live model run yet; **pending** means the evidence does not exist. Status comes from the [progress record](progress.md) and the [CI evidence](ci_evidence.md), not from this page."
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "**Agent flow (implemented, offline-tested only for the model)**"
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "2. The agent calls the model through the OpenRouter client (`openrouter_client.py`) behind the `ModelClient` interface (`model_client.py`); every paid attempt is reserved in the spending ledger (`ledger.py`) first. **Partial:** this is tested with fixtures and fakes only. No live model call has been made."
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "7. Partial: local MLflow recording (`mlflow_tracking.py`) is built from bundles and has so far recorded only a fixture bundle against the local service; no live model or comparison run has been recorded. MLflow is a secondary record and is never read back: comparison metrics come from the bundles. The comparison tooling (`comparison.py`, `experiment.py`, `experiment_cli.py`) and fixed-denominator summaries (`summary.py`) are built and tested offline; the baseline-versus-revised comparison itself has not run."
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "8. Pending: reviewed Markdown summaries of the comparison (results, evidence identifiers, limitations). They need the comparison runs and are not invented here."
+ },
+ {
+  "file": "work_log_architecture.md",
+  "line": "Sections of this report whose evidence does not exist yet are labelled pending. No result, URL, or reflection is invented to fill them."
+ },
+ {
+  "file": "README.md",
+  "line": "The current implementation is still an offline pilot: it loads three tasks and twelve cases, validates Python source, executes one case at a time in a restricted Podman container, and scores returned values outside that container. The agent loop, OpenRouter client (offline only), bundles/replay, the ten-task benchmark, CI, MLflow recording, and the comparison tooling are implemented on `main`; no live model run or comparison result exists yet. The offline HTML work-log builder exists (see below). Local orchestration will run on the laptop with uv; MLflow and disposable candidate execution use Podman. Complete the local loop before CI/tracking integration."
+ },
+ {
+  "file": "README.md",
+  "line": "These fixtures verify controller behaviour (tool handling, limits, stopping, classification). They do not measure live model quality; there is no live client yet."
+ },
+ {
+  "file": "README.md",
+  "line": "- **Diagram:** edit `docs/work_log_architecture.svg` (plain SVG, reviewed: no scripts or external references) and its text equivalent `docs/work_log_architecture.md` together; solid blue means implemented, solid yellow means built offline with no live or real run yet, dashed means pending evidence (each box also carries a text label and its module names, so status never depends on colour alone). Update both when a component or its evidence changes. There is no graph engine: the figure is hand-placed SVG, so move boxes and edges by editing coordinates, and keep `role=\"img\"`, the title/desc, and the text equivalent in sync."
+ },
+ {
+  "file": "demo.md",
+  "line": "Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (solid blue = implemented, solid yellow = built offline with no live run yet, dashed = pending), then the status, benchmark review, CI evidence, setup, and this demo section. Sections without a reviewed record are shown as pending or incomplete; say so rather than skipping them."
+ }
+]
