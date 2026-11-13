@@ -439,3 +439,46 @@ def test_story_facts_are_quoted_documents(summary):
     assert values["story.lists_02.revised_model_calls"] == 1 and values["story.lists_02.revised_tool_attempts"] == 0
     assert values["story.strings_01.failed_check"] == "strings_01_d" and values["story.strings_01.failed_actual"] == 0
     assert pe.cross_check(summary) == []
+
+
+# --- round 4: the latest recorded CI run ------------------------------------------------------------
+
+def test_the_latest_ci_run_is_marked_in_the_quote_table_not_typed():
+    marked = [key for key, spec in pe.CI_RUNS.items() if spec.get("latest")]
+    assert marked == ["r9"]
+    sections = pe.assemble_doc_sections(pe.build_documents(REPO))
+    latest = next(r for r in sections["ci_runs"] if r["run"] == sections["ci_latest"])
+    assert latest["commit"] == "e00236d" and latest["conclusion"] == "success"
+    assert (latest["offline_tests"], latest["offline_skipped"]) == (1199, 67)
+    assert (latest["podman_tests"], latest["podman_skipped"], latest["podman_failed"]) == (64, 0, 0)
+    assert sections["ci_runs"][-1]["run"] == sections["ci_latest"]
+
+
+def test_the_summary_records_the_latest_run_from_the_document(summary):
+    assert summary["engineering"]["ci"]["latest"] == "43461309299"
+    latest = next(r for r in summary["engineering"]["ci"]["runs"] if r["run"] == "43461309299")
+    assert latest["offline_tests"] == 1199 and latest["podman_tests"] == 64
+    assert "https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299" in (
+        REPO / "docs/ci_evidence.md").read_text(encoding="utf-8")
+
+
+def test_a_summary_latest_run_that_differs_from_the_document_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    rewrite_summary(root, lambda data: data["engineering"]["ci"].update(latest="41581787430"))
+    assert any("engineering.ci.latest" in p for p in pe.check_all(root))
+
+
+def test_editing_the_latest_ci_section_of_the_document_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / "docs" / "ci_evidence.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("tests=1199", "tests=1200"), encoding="utf-8")
+    assert any("ci.r9.offline_tests" in p for p in pe.check_all(root))
+
+
+def test_the_engineering_charts_show_the_latest_run(summary):
+    charts = load_script("render_charts")
+    rendered = charts.render_all(summary)
+    for name in ("engineering-tests.svg", "engineering-tests-compact.svg"):
+        assert "1,199" in rendered[name] and "825" not in rendered[name].replace("offline_collected", "")
+    assert "43461309299" in rendered["engineering-tests.svg"]
+    assert "43461309299" in rendered["engineering-ci.svg"]

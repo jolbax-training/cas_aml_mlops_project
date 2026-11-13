@@ -340,10 +340,15 @@ def chart_cost(s: Mapping[str, Any]) -> tuple[str, str, str]:
         describe(rows) + " Measured once per variant, not attributed to the prompt.", body
 
 
+def latest_ci_run(s: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The run the evidence documents mark as latest (never chosen by position or typed id)."""
+    ci = s["engineering"]["ci"]
+    return next(r for r in ci["runs"] if r["run"] == ci["latest"])
+
+
 def chart_engineering_tests(s: Mapping[str, Any]) -> tuple[str, str, str]:
     eng = s["engineering"]
-    runs = eng["ci"]["runs"]
-    latest = next(r for r in reversed(runs) if r.get("offline_tests"))
+    latest = latest_ci_run(s)
     rows = [("Offline, collected", [("single", eng["tests"]["offline_collected"],
                                       fmt_int(eng["tests"]["offline_collected"]))]),
             ("Sandbox, collected", [("single", eng["tests"]["sandbox_collected"],
@@ -571,7 +576,7 @@ def c_cost(s: Mapping[str, Any]) -> tuple[str, str, str]:
 
 def c_tests(s: Mapping[str, Any]) -> tuple[str, str, str]:
     eng = s["engineering"]
-    latest = next(r for r in reversed(eng["ci"]["runs"]) if r.get("offline_tests"))
+    latest = latest_ci_run(s)
     rows = [(label, [("single", n, fmt_int(n))]) for label, n in (
         ("Offline, collected", eng["tests"]["offline_collected"]),
         ("Sandbox, collected", eng["tests"]["sandbox_collected"]),

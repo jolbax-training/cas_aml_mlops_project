@@ -113,6 +113,17 @@ CI_RUNS = {
         "offline": (None, r"`offline` \| (\w+) \|", "str"),
         "podman": (None, r"`podman` \| (\w+):", "str"),
         "podman_tests": (None, r"(\d+) tests", "int")}},
+    # The newest recorded run is the one marked "latest" (an explicit marker, not a typed id).
+    "r9": {"file": CI, "start": "| Run | [43461309299]", "lines": 5, "latest": True, "fields": {
+        "run": (None, r"\[(\d+)\]", "str"), "commit": (None, r"/ `(\w+)`", "str"),
+        "conclusion": (None, r"Workflow conclusion \| (\w+) \|", "str"),
+        "offline": (None, r"`offline` \| (\w+):", "str"),
+        "offline_tests": (None, r"`offline` \|[^\n]*tests=(\d+)", "int"),
+        "offline_skipped": (None, r"`offline` \|[^\n]*skipped=(\d+)", "int"),
+        "podman": (None, r"`podman` \| (\w+):", "str"),
+        "podman_tests": (None, r"`podman` \|[^\n]*tests=(\d+)", "int"),
+        "podman_skipped": (None, r"`podman` \|[^\n]*skipped=(\d+)", "int"),
+        "podman_failed": (None, r"`podman` \|[^\n]*failures=(\d+)", "int")}},
     "r8": {"file": PR, "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
            "lines": 1, "fields": {
                "run": (None, r"CI run (\d+) success", "str"),
@@ -255,10 +266,13 @@ def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
     """Sections that are pure views of the quote table (so a stored copy cannot drift from it)."""
     v = doc_values(documents)
     runs: dict[str, dict[str, Any]] = {}
-    for key in CI_RUNS:  # one run can be described by two documents; merge by run id
+    latest = None
+    for key, spec in CI_RUNS.items():  # one run can be described by two documents; merge by run id
         record = {name.split(".", 2)[2]: val for name, val in v.items()
                   if name.startswith(f"ci.{key}.")}
         runs.setdefault(record["run"], {}).update(record)
+        if spec.get("latest"):
+            latest = record["run"]
     return {
         "protocol": {
             "tasks": v["protocol.tasks"], "trials_per_task": v["protocol.trials_per_task"],
@@ -269,7 +283,8 @@ def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
             "probes_passed": v["protocol.probes_passed"],
             "probe_categories": [v[f"protocol.probe_category.{i}"] for i in range(len(PROBE_ASSET_ROWS))],
             "source": "quoted from committed documents (see documents); the ledger is never read"},
-        "ci_runs": list(runs.values()),
+        "ci_runs": sorted(runs.values(), key=lambda r: r["run"]),
+        "ci_latest": latest,
         "mlflow_runs": {variant: v[f"mlflow_run.{variant}"] for variant in VARIANTS},
         "ledger_quotes": {variant: v[f"ledger_chf.{variant}"] for variant in VARIANTS},
         "limits": {"items": [v[f"limit.{i}"] for i in range(len(LIMITS))],
@@ -371,7 +386,8 @@ def archive_listing(root: Path) -> list[dict[str, str]]:
     return items
 
 
-def engineering_section(live: Mapping[str, Any], root: Path, ci_runs: list[Any]) -> dict[str, Any]:
+def engineering_section(live: Mapping[str, Any], root: Path, ci_runs: list[Any],
+                        ci_latest: str | None) -> dict[str, Any]:
     items = archive_listing(root)
     by_date: dict[str, int] = {}
     for item in items:
@@ -380,7 +396,7 @@ def engineering_section(live: Mapping[str, Any], root: Path, ci_runs: list[Any])
     return {
         "tests": {**live["tests"],
                   "note": "collected by pytest --collect-only at the recorded commit; not pass counts"},
-        "ci": {"runs": ci_runs, "source": "committed documents (see documents)"},
+        "ci": {"runs": ci_runs, "latest": ci_latest, "source": "committed documents (see documents)"},
         "changes_archived": {"count": len(items), "items": items, "by_date": by_date},
         "specs": {"count": len([p for p in specs.iterdir() if p.is_dir()]) if specs.is_dir() else 0}}
 
@@ -402,7 +418,7 @@ def assemble(live: Mapping[str, Any], root: Path = REPO_ROOT, *,
                          "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"],
             "runs": assemble_runs(live, documents)},
         **bundle_sections,
-        "engineering": engineering_section(live, root, doc_sections["ci_runs"]),
+        "engineering": engineering_section(live, root, doc_sections["ci_runs"], doc_sections["ci_latest"]),
         "protocol": doc_sections["protocol"],
         "ledger_quotes": {**doc_sections["ledger_quotes"],
                           "source": "quoted from docs/prompt_comparison.md; the ledger is never read"},
@@ -675,6 +691,9 @@ def check_documents(summary: Mapping[str, Any], root: Path) -> list[str]:
             problems.append(f"{key}: differs from the quote table")
     if summary["engineering"]["ci"]["runs"] != doc_sections["ci_runs"]:
         problems.append("engineering.ci.runs: differs from the quote table")
+    if summary["engineering"]["ci"].get("latest") != doc_sections["ci_latest"]:
+        problems.append(f"engineering.ci.latest: the summary has {summary['engineering']['ci'].get('latest')!r} "
+                        f"but {CI} marks {doc_sections['ci_latest']!r} as the latest run")
     for variant in VARIANTS:
         if summary["provenance"]["runs"][variant]["mlflow_run_id"] != doc_sections["mlflow_runs"][variant]:
             problems.append(f"provenance.runs.{variant}.mlflow_run_id: differs from the quote table")

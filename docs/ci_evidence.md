@@ -56,3 +56,15 @@ After the runs above, the branch was rebased onto `main` (which gained its own c
 ## Required checks (task 2.3)
 
 Configured 2026-11-06 by the user as repository ruleset `main` (id 26678579), checked through the public API (`GET /repos/jolbax-training/cas_aml_mlops_project/rulesets/26678579`): enforcement `active`, target `refs/heads/main`, rules `deletion`, `non_fast_forward` and `required_status_checks` with `offline` and `podman` (integration 15368, GitHub Actions; strict policy off), no pull-request rule. Repository admins may bypass (`always`), so the coordinator's direct pushes to `main` still go through; the next push after activation (`7212a36`, CI run 42192054359) ran both checks green.
+
+## Latest run on main
+
+Observed 2026-11-13 in the GitHub check-run annotations through `scripts/orchestration/ciwatch.sh`.
+
+| Field | Value |
+| --- | --- |
+| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |
+| Branch / commit | `main` / `e00236d` |
+| Workflow conclusion | success |
+| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |
+| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |
