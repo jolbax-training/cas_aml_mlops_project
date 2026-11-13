@@ -48,4 +48,4 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 - [x] 7.1 Fix the footnote overlap in `outcome-by-category` (full-size and compact) through the generator, and harden the overlap test (ascent, descent, strokes, clearance) with the old chart as a failing fixture.
 - [x] 7.2 Add the pipeline-overview and trust-boundary diagrams (decision 15) to `scripts/render_charts.py`, register them in the manifest (`diagram-pipeline-overview`, `diagram-trust-boundary`), and test the box-to-source mapping, the element set, font size, determinism and the absence of status labels.
-- [ ] 7.3 Regenerate the charts, summary and manifest through the scripts, record the results in `docs/progress.md` and `docs/presentation_evidence.md`, and rerun the checks and tests.
+- [x] 7.3 Regenerate the charts, summary and manifest through the scripts, record the results in `docs/progress.md` and `docs/presentation_evidence.md`, and rerun the checks and tests.
