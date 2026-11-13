@@ -42,4 +42,4 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [x] 6.2 Add the `protocol` section (decision 12) from the quote table, with tamper tests and the `check` cross-verification.
 - [x] 6.3 Add `presentation/user_text.toml` with empty marked slots, list it in the manifest, and test that tools never write it (decision 13).
 - [x] 6.4 Require non-empty `alt` on every manifest entry including assets and improve the logo's alt text.
-- [ ] 6.5 Record in `docs/presentation_evidence.md` and `docs/progress.md` the additions and that `schema_version` stays 1 because they are additive (decision 14); rerun the full checks and tests.
+- [x] 6.5 Record in `docs/presentation_evidence.md` and `docs/progress.md` the additions and that `schema_version` stays 1 because they are additive (decision 14); rerun the full checks and tests.
