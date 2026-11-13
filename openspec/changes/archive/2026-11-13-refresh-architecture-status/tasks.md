@@ -20,5 +20,5 @@
 - [x] 3.2 `.venv/bin/python scripts/presentation_evidence.py check` passes (design D7); if it fails, regenerate `summary.json` with its own script, never by hand.
 - [x] 3.3 `openspec validate refresh-architecture-status --strict`; `scripts/build_work_log.py --check`.
 - [x] 3.4 Rebuild the work log and grep the opening figure and the four diagram sections of `report/index.html` (not the whole page) for the stale phrases of design D4; none may remain outside the allowlist.
-- [ ] 3.5 Commit (Sonnet co-author line); `git status` clean; leave push, merge and archive to the coordinator.
-- [ ] 3.6 Browser visual check of the rebuilt opening figure and the four diagrams (coordinator, Orca browser, on the committed rebuild); left unticked for the coordinator.
+- [x] 3.5 Commit (Sonnet co-author line); `git status` clean; leave push, merge and archive to the coordinator.
+- [x] 3.6 Browser visual check of the rebuilt opening figure and the four diagrams (coordinator, Orca browser, on the committed rebuild); done by the coordinator 2026-11-13 on 0bc9f0c: all five figures rendered in headless Chrome 157 and inspected, no clipped or overflowing labels, statuses consistent.
