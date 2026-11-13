@@ -47,7 +47,7 @@ MIN_PRINT_PT = 7.5
 MIN_MM = MIN_PRINT_PT * 25.4 / 72  # 2.646 mm
 HEADROOM = 0.94
 CONTRAST_MIN = 4.5
-SLOT_MAX_CHARS = {"motivation": 600, "takeaways": 600}
+SLOT_MAX_CHARS = {"motivation": 500, "takeaways": 500}
 
 # Tokens with digits that the template prose may contain; whole tokens, never substrings.
 DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256", "lists_02", "strings_01"})
@@ -203,7 +203,7 @@ def svg_for_inline(inputs: Inputs, kind: str, entry: dict) -> tuple[str, float]:
     text = (inputs.root / entry["path"]).read_text(encoding="utf-8")
     wl = inputs.work_log
     try:
-        if kind == "diagram":
+        if kind == "diagram" and entry["path"].endswith(".drawio.svg"):
             markup = wl.sanitize_drawio_svg(text, entry["id"], entry["caption"], entry["alt"])
         else:
             markup = wl.validate_svg(text)
@@ -660,22 +660,16 @@ def check_legibility(inputs: Inputs, root: Node, css: str) -> tuple[list[str], l
         cls = node.attrs["data-est-class"]
         width = mm_var(css, {"fig-compact": "--w-compact", "fig-full": "--w-full"}.get(cls, f"--w-{cls.removeprefix('fig-')}"))
         view = [float(v) for v in re.search(r'viewBox="([^"]+)"', markup).group(1).split()]
-        if kind == "diagram":
-            font = [float(v) for v in re.findall(r'font-size="([\d.]+)(?:px)?"', markup)]
-            smallest = min(font) if font else None
-        else:
-            smallest = svg_min_font(markup)
-            if entry.get("min_font_units") and smallest is not None and smallest < entry["min_font_units"]:
-                problems.append(f"{ident}: smallest font {smallest} units is below the manifest min_font_units")
+        fonts = [float(v) for v in re.findall(r'font-size[=:]\s*"?([\d.]+)(?:px)?', markup)]
+        smallest = min(fonts) if fonts else None
+        if entry.get("min_font_units") and smallest is not None and smallest < entry["min_font_units"]:
+            problems.append(f"{ident}: smallest font {smallest} units is below the manifest min_font_units")
         if smallest is None:
+            problems.append(f"{ident}: no font size found, so legibility cannot be shown")
             continue
         mm = smallest * width / view[2]
-        message = f"{ident}: smallest text {smallest:g} units at {width:g} mm wide prints {mm * 72 / 25.4:.1f} pt"
-        if kind == "diagram":
-            if mm < MIN_MM:
-                warnings.append(message + f" (diagram, below {MIN_PRINT_PT} pt; see docs/presentation_report.md)")
-        elif mm < MIN_MM:
-            problems.append(message + f", below {MIN_PRINT_PT} pt")
+        if mm < MIN_MM - 1e-9:
+            problems.append(f"{ident}: smallest text {smallest:g} units at {width:g} mm wide prints {mm * 72 / 25.4:.1f} pt, below {MIN_PRINT_PT} pt")
     return problems, warnings
 
 
@@ -819,6 +813,8 @@ def estimate_page_mm(page: Node, css: str, budgets: dict) -> float:
             return mm_var(css, "--slot-h") + budgets["block_gap_mm"]
         if node.tag in {"h1", "h2", "h3"}:
             return budgets["heading_mm"]
+        if "side" in node.classes():
+            return prose_mm(node, mm_var(css, "--w-side"))
         if "figrow" in node.classes():
             return max((height(k, width) for k in node.children), default=0.0)
         if "cols2" in node.classes():
@@ -918,17 +914,34 @@ def evaluate_measurements(rows: list[dict]) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
-def run_browser(browser: str, args: list[str], timeout: int = 90) -> subprocess.CompletedProcess:
-    with tempfile.TemporaryDirectory() as profile:
-        try:
-            return subprocess.run([browser, "--headless=new", "--disable-gpu", f"--user-data-dir={profile}", *args],
-                                  capture_output=True, timeout=timeout, text=False)
-        except subprocess.TimeoutExpired:
-            raise ReportError(f"the browser did not finish within {timeout} s; nothing was measured") from None
+BROWSER_TIMEOUT_S = 60
+
+
+def run_browser(browser: str, args: list[str], timeout: int = BROWSER_TIMEOUT_S) -> subprocess.CompletedProcess:
+    """Run the browser headless with a hard timeout; its whole process group is killed on expiry."""
+    with tempfile.TemporaryDirectory() as scratch:
+        out, err = Path(scratch, "out"), Path(scratch, "err")
+        command = [browser, "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+                   "--disable-extensions", "--disable-background-networking", f"--user-data-dir={scratch}/profile", *args]
+        with out.open("wb") as o, err.open("wb") as e:
+            process = subprocess.Popen(command, stdout=o, stderr=e, stdin=subprocess.DEVNULL, start_new_session=True)
+            try:
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, 9)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+                raise ReportError(f"the browser did not finish within {timeout} s and was killed; nothing was measured") from None
+        return subprocess.CompletedProcess(command, process.returncode, out.read_bytes(), err.read_bytes())
 
 
 def measure(inputs: Inputs, built: Path, browser: str, pdf_out: Path | None) -> int:
-    version = subprocess.run([browser, "--version"], capture_output=True, text=True).stdout.strip()
+    try:
+        version = subprocess.run([browser, "--version"], capture_output=True, text=True, timeout=15).stdout.strip()
+    except subprocess.TimeoutExpired:
+        raise ReportError("the browser did not answer --version within 15 s") from None
     with tempfile.TemporaryDirectory() as tmp:
         copy = Path(tmp) / "measure.html"
         text = built.read_text(encoding="utf-8")

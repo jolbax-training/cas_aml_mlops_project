@@ -61,7 +61,7 @@ Implemented on the worktree branch after `add-presentation-evidence` merged; res
 
 - **Built:** `.venv/bin/python scripts/build_report.py build` wrote `report/presentation_report.html` (four A4 pages, script-free, self-contained); `check` passes offline. Placeholders remain by design: the date, the `report` keys of `motivation` and `takeaways` in `presentation/user_text.toml`, and any pending screenshot.
 - **Not measured:** headless Chrome did not return in this session's sandbox (the `--dump-dom` call timed out), so no printed page count or per-page fill exists yet. The static height budgets are marked `UNMEASURED`; task 4.2 (`build_report.py measure`) and 4.3 (calibration) are the coordinator's, and the CI step is added only after calibration.
-- **Diagrams:** `check` warns that the draw.io architecture and run-flow diagrams print far below 7.5 pt at page width; they are reused by reference with their text twins, see `docs/presentation_report.md`.
+- **Diagrams:** the dense draw.io diagrams print far below 7.5 pt, so page 2 uses `diagram-pipeline-overview` and `diagram-trust-boundary` (128 mm) and lists the draw.io files by path only; the legibility check fails for any figure below 7.5 pt.
 - **Offline tests:** `tests/test_presentation_report.py`.
 
 ## 2026-11-06 — Demo rehearsal and completion accounting (`prepare-reproducible-demo`, tasks 2.2, 2.3, 3.1, 3.2, 3.3)

@@ -1,6 +1,6 @@
 # Four-page printable report
 
-The report is one self-contained HTML file, `report/presentation_report.html`, built from committed sources and the shared presentation evidence. It has four A4 pages in the structure of the talk: page 1 the title, the motivation slot and the problem statement; page 2 the approach (architecture and run flow, scoring integrity, reproducibility, the budget ledger, the experiment design); page 3 the results and statistics; page 4 the limits, the lessons learned, the conclusions slot and the references and evidence. The prompt comparison is a worked example with its limits; the report makes no claim of a measured gain.
+The report is one self-contained HTML file, `report/presentation_report.html`, built from committed sources and the shared presentation evidence. It has four A4 pages in the structure of the talk: page 1 the title, the motivation slot and the problem statement; page 2 the approach (pipeline overview and trust-boundary diagrams, scoring integrity, reproducibility, the budget ledger, the experiment design); page 3 the results and statistics; page 4 the limits, the lessons learned, the conclusions slot and the references and evidence. The prompt comparison is a worked example with its limits; the report makes no claim of a measured gain.
 
 ## Build and check
 
@@ -28,7 +28,7 @@ To change what page 3 shows, edit the `{{fig:...}}` list in the template: charts
 
 ## Your text, the date and pending items
 
-Nothing here is drafted for you. Write the `report` keys of `[motivation]` and `[takeaways]` in `presentation/user_text.toml` (at most 600 characters each so the box keeps the page at four) and set the title date in the manifest source. Until then the report shows bordered placeholder boxes, and a screenshot that is pending, or whose file is absent, shows a placeholder naming what it will show and its owner. The release build fails while any of these remains. Avoid the words improvement and breakthrough in your own text: the check rejects them outside quotations, and "no measured gain" says the same thing.
+Nothing here is drafted for you. Write the `report` keys of `[motivation]` and `[takeaways]` in `presentation/user_text.toml` (at most 500 characters each so the box keeps the page at four) and set the title date in the manifest source. Until then the report shows bordered placeholder boxes, and a screenshot that is pending, or whose file is absent, shows a placeholder naming what it will show and its owner. The release build fails while any of these remains. Avoid the words improvement and breakthrough in your own text: the check rejects them outside quotations, and "no measured gain" says the same thing.
 
 ## Exactly four pages: how it is enforced and checked
 
@@ -42,5 +42,6 @@ Print it yourself: open the file in the browser, print, destination "Save as PDF
 
 ## Known limits
 
-- The draw.io diagrams (`docs/*.drawio.svg`) are large exports; at the width they can have on a page their text prints far below 7.5 pt. `check` reports each as a warning and does not fail. The text twins (`docs/architecture_logical.md`, `docs/run_flow_sequence.md`) hold the same content as text, and the diagrams stay as they are reused by reference, not redrawn.
+- Only figures that print at 7.5 pt or more are placed: the compact charts (88 mm) and the pipeline-overview and trust-boundary diagrams (128 mm). The dense draw.io diagrams (`docs/*.drawio.svg`) print at 1 to 3 pt at any width a page allows, so the report lists them by path only; their text twins hold the same content. `check` fails if a figure, a draw.io export included, would print below 7.5 pt.
 - The static estimate and the 94 percent headroom are not a substitute for `measure` and a look at the print preview.
+- `measure` starts the browser in its own process group with a 60 s hard timeout; on a timeout it kills the group and reports that nothing was measured.

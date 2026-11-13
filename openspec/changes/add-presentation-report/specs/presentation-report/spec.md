@@ -73,9 +73,17 @@ Source: accepted user decisions.
 - **THEN** the build fails and names it, and no empty value is rendered
 
 ### Requirement: Print legibility
-The report SHALL use the compact chart variants from the evidence manifest on page three, and no text in the printed report MUST be smaller than 7.5 pt (2.646 mm), counting chart text by viewBox arithmetic and stylesheet sizes directly; text colours MUST have a contrast ratio of at least 4.5:1.
+The report SHALL place only figures whose text prints at 7.5 pt (2.646 mm) or more, computed by viewBox arithmetic for figures and read directly from the stylesheet, with text contrast of at least 4.5:1. Page three uses the compact chart variants and page two the pipeline-overview and trust-boundary diagrams.
 
 Source: accepted user decision D1 (compact charts and tables, nothing below 7.5 pt printed).
+
+#### Scenario: Dense draw.io diagrams
+- **WHEN** the references are read
+- **THEN** the draw.io diagrams appear only as repository paths, not as figures
+
+#### Scenario: Dense diagram as a figure
+- **WHEN** a figure, including a diagram, would print text below 7.5 pt
+- **THEN** the check fails and does not merely warn
 
 #### Scenario: Chart too small
 - **WHEN** a chart's minimum font size in viewBox units times its rendered width over its viewBox width is below 2.646 mm

@@ -14,10 +14,11 @@
   --page-w: 184mm;
   --w-compact: 88mm;
   --w-full: 160mm;
-  --w-architecture: 118mm;
-  --w-run-flow: 62mm;
+  --w-pipeline: 128mm;
+  --w-trust-boundary: 128mm;
+  --w-side: 52mm;
   --w-shot: 88mm;
-  --slot-h: 32mm;
+  --slot-h: 28mm;
   --stats-h: 17mm;
 }
 * { box-sizing: border-box; }
@@ -65,8 +66,9 @@ q.quoted { quotes: none; font-style: normal; }
 .fig, .tab { margin: 0 0 2mm; }
 .fig-compact { width: var(--w-compact); }
 .fig-full { width: var(--w-full); }
-.fig-architecture { width: var(--w-architecture); }
-.fig-run-flow { width: var(--w-run-flow); }
+.fig-pipeline { width: var(--w-pipeline); }
+.fig-trust-boundary { width: var(--w-trust-boundary); }
+.side { width: var(--w-side); }
 .fig-shot { width: var(--w-shot); }
 .figbox { border: 0.2mm solid var(--line); background: var(--bg); line-height: 0; }
 .figbox svg, .figbox img { display: block; width: 100%; height: auto; }

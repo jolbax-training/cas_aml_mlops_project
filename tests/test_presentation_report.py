@@ -327,12 +327,40 @@ def test_chart_too_narrow_fails_legibility(tmp_path):
     assert any("outcome-overview-compact" in p and "below 7.5 pt" in p for p in problems)
 
 
-def test_real_compact_charts_print_at_least_the_floor(real):
+def test_real_figures_print_at_least_the_floor(real):
     inputs, text = real
     problems, warnings = report.check_legibility(inputs, report.parse(text), inputs.css)
-    assert problems == []
-    # draw.io diagrams are reported, not failed: see docs/presentation_report.md
-    assert any("diagram" in w for w in warnings)
+    assert problems == [] and warnings == []
+    used = set(re.findall(r'id="fig-([\w-]+)"', text))
+    assert {"diagram-pipeline-overview", "diagram-trust-boundary"} <= used
+    # the dense draw.io exports are references only, never figures
+    assert not any(i.startswith(("diagram-architecture", "diagram-run-flow", "diagram-work-log")) for i in used)
+    assert "docs/run_flow_sequence.drawio.svg" in text
+
+
+def test_a_diagram_too_small_fails_not_warns(tmp_path):
+    inputs = make_inputs(tmp_path, template=page_template("{{fig:diagram-pipeline-overview}}"), css=css_with("--w-pipeline: 128mm", "--w-pipeline: 60mm"))
+    problems, warnings = report.check_legibility(inputs, report.parse(report.build_html(inputs)), inputs.css)
+    assert any("diagram-pipeline-overview" in p and "below 7.5 pt" in p for p in problems) and warnings == []
+
+
+def test_a_drawio_diagram_at_page_width_fails_the_floor(tmp_path):
+    inputs = make_inputs(tmp_path, template=page_template("{{fig:diagram-architecture-logical}}"), css=css_with("--w-pipeline: 128mm", "--w-architecture: 184mm"))
+    css = inputs.css + "\n.fig-architecture { width: var(--w-architecture); }\n"
+    problems, _ = report.check_legibility(inputs, report.parse(report.build_html(inputs)), css)
+    assert any("diagram-architecture-logical" in p and "below 7.5 pt" in p for p in problems)
+
+
+def test_browser_run_has_a_hard_timeout(tmp_path):
+    fake = tmp_path / "browser.sh"
+    fake.write_text("#!/bin/sh\nsleep 30\n")
+    fake.chmod(0o755)
+    import time
+
+    start = time.monotonic()
+    with pytest.raises(report.ReportError, match="killed"):
+        report.run_browser(str(fake), ["--dump-dom"], timeout=1)
+    assert time.monotonic() - start < 10
 
 
 # --- budgets, overflow and the page counter -------------------------------------
