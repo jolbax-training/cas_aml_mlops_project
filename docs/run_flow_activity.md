@@ -1,8 +1,8 @@
-Text equivalent of the experiment-lifecycle activity diagram ([`run_flow_activity.drawio.svg`](run_flow_activity.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` and `scripts/` at commit `37968d8` of `main` (no code changed on the branch). The [physical view](architecture_physical.md) shows where things run and the [logical view](architecture_logical.md) which components exist; this view shows the **order**: when the whole experiment starts, what must hold before a run, what one `run` command does, and every way a run or a command ends. A supplement, the [one-trial sequence diagram](run_flow_sequence.md), shows the exact call order inside one trial. **No live run has happened**: no model call, spend, or result exists, so none is shown. Lane headers carry the status of their modules (**IMPLEMENTED**: code exists and its tests ran; **PARTIAL: NO LIVE RUN YET**: built and tested offline only; **PENDING**: the evidence does not exist); action and decision nodes carry no status. Phase-2 and external elements (OpenRouter, the paid smoke trial) have a dashed outline and the literal tags `EXTERNAL` and `PHASE 2`.
+Text equivalent of the experiment-lifecycle activity diagram ([`run_flow_activity.drawio.svg`](run_flow_activity.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` and `scripts/` at commit `37968d8` of `main` (no code changed on the branch); statuses refreshed 2026-11-13. The [physical view](architecture_physical.md) shows where things run and the [logical view](architecture_logical.md) which components exist; this view shows the **order**: when the whole experiment starts, what must hold before a run, what one `run` command does, and every way a run or a command ends. A supplement, the [one-trial sequence diagram](run_flow_sequence.md), shows the exact call order inside one trial. The baseline and revised comparison runs have completed (evidence: [comparison evidence](comparison_evidence.md), [prompt comparison](prompt_comparison.md)). The evidence is a 30-trial pilot per variant and draws no general conclusion; the student's own interpretation in the prompt comparison is still open. No result, spend, or run identifier is shown here. Lane headers carry the status of their modules (**IMPLEMENTED**: code exists and its tests ran; **PARTIAL: NO LIVE RUN YET**: built and tested offline only, no lane uses it now; **PENDING**: the evidence does not exist, no lane uses it now); action and decision nodes carry no status. Phase-2 and external elements (OpenRouter, the paid smoke trial) have a dashed outline and the literal tags `EXTERNAL` and `PHASE 2`.
 
 ## How the code differs from a one-loop picture
 
-1. **One `run` command runs one variant.** `experiment_cli run --variant baseline` and `run --variant revised` are two separate invocations, each writing its own bundle. The diagram draws the `run` command once as a sub-activity (the dashed frame) and calls it twice from the lifecycle. The revised prompt is unset in `experiments/prompt_comparison_v1.json` today, so a `revised` run is refused by the `variant_prompt` check until the human writes it.
+1. **One `run` command runs one variant.** `experiment_cli run --variant baseline` and `run --variant revised` are two separate invocations, each writing its own bundle. The diagram draws the `run` command once as a sub-activity (the dashed frame) and calls it twice from the lifecycle. The revised prompt is set in `experiments/prompt_comparison_v1.json` (`baseline_agent_v2`); the `variant_prompt` check refuses a variant whose prompt is unset.
 2. **MLflow is recorded once per run, after the bundle is finalized**, not per trial: `experiment.run_variant` calls `record_run` after `BundleWriter.finish` and `verify_schedule`. Per trial the order is: the trial record is written to the bundle, then the next trial.
 3. **`compare`, human review, and the work-log rebuild are separate commands outside `run`.** `compare` calls `summary.summarize_bundle` and `experiment.verify_schedule` on two finished bundles and reads bundles only, never MLflow.
 
@@ -10,11 +10,11 @@ Text equivalent of the experiment-lifecycle activity diagram ([`run_flow_activit
 
 | Lane | Logical-diagram boxes | Header status |
 |---|---|---|
-| human (manual steps) | reviewed result summaries | PENDING |
-| host CLI (trusted process) | `experiment.py + experiment_cli.py`, `run_recording.py`, `trial.py`, `run_checks.py`, `evaluate.py + contract.py`, `sandbox.py + limits.py`, `comparison.py`, `summary.py` | PARTIAL: NO LIVE RUN YET (the weakest status of its boxes) |
-| OpenRouter (EXTERNAL) | `OpenRouter (external model API)`, reached through `openrouter_client.py` | EXTERNAL, PHASE 2, PENDING |
+| human (manual steps) | reviewed result summaries | IMPLEMENTED |
+| host CLI (trusted process) | `experiment.py + experiment_cli.py`, `run_recording.py`, `trial.py`, `run_checks.py`, `evaluate.py + contract.py`, `sandbox.py + limits.py`, `comparison.py`, `summary.py` | IMPLEMENTED |
+| OpenRouter (EXTERNAL) | `OpenRouter (external model API)`, reached through `openrouter_client.py` | EXTERNAL, PHASE 2 |
 | sandbox container (TRUST BOUNDARY) | `worker.py` | IMPLEMENTED |
-| on disk and MLflow | `run_recording.py + bundle.py` (bundles, run marker), `ledger.py` (the file), `mlflow_tracking.py`, `MLflow tracking store` | PARTIAL: NO LIVE RUN YET |
+| on disk and MLflow | `run_recording.py + bundle.py` (bundles, run marker), `ledger.py` (the file), `mlflow_tracking.py`, `MLflow tracking store` | IMPLEMENTED |
 
 The container lane is the only trust-boundary region. Only candidate source plus one check's or one case's arguments flow in, and only one bounded report flows out, always to and from the host launcher `sandbox.py`. Expected answers, scoring, the key, and the ledger stay on the host side. No arrow joins the container lane to OpenRouter, the ledger, the bundle, or MLflow.
 
@@ -32,7 +32,7 @@ The container lane is the only trust-boundary region. Only candidate source plus
 - (host CLI; action) build-config (--check); experiment.build_config, config_drift — code: `experiment.build_config, experiment.config_drift`
 - (host CLI; action) record-probes (Podman probe suite); experiment_cli.run_probe_suite — code: `experiment_cli.run_probe_suite, experiment.write_probes_evidence`
 - (host CLI; action) smoke trial (PAID, PHASE 2); openrouter_cli smoke --i-accept-cost; retained smoke bundle — code: `openrouter_cli.run_smoke`
-- (OpenRouter (EXTERNAL); action) OpenRouter API (EXTERNAL, PHASE 2); no live call has been made — code: https://openrouter.ai/api/v1/chat/completions (openrouter_config)
+- (OpenRouter (EXTERNAL); action) OpenRouter API (EXTERNAL, PHASE 2); used for the live smokes and runs — code: https://openrouter.ai/api/v1/chat/completions (openrouter_config)
 - (host CLI; action) calibrate --smoke-bundle B; experiment.calibrate — code: `experiment.calibrate`
 - (host CLI; action) freeze-settings --smoke-bundle B; experiment.write_settings_freeze — code: `experiment.write_settings_freeze`
 - (host CLI; action) mlflow_service.sh start; (optional; an outage never blocks a run) — code: `scripts/mlflow_service.sh`
@@ -50,7 +50,7 @@ The container lane is the only trust-boundary region. Only candidate source plus
 - (host CLI; action) compare --baseline RUN_A --revised RUN_B; comparison.compare_runs — code: `comparison.compare_runs -> summary.summarize_bundle, experiment.verify_schedule`
 - (host CLI; decision) headline; comparison? — code: `result['headline_comparison']`
 - (human; final node) FINAL: compare is not a headline comparison; exit 1, figures still printed — code: `experiment_cli.main compare: return 0 if headline else 1`
-- (human; action) Human review of the comparison; reviewed result summary (PENDING) — code: `reviewed result summaries (logical diagram, PENDING)`
+- (human; action) Human review of the comparison; reviewed result summary (IMPLEMENTED) — code: `reviewed result summaries (logical diagram, IMPLEMENTED)`
 - (host CLI; action) scripts/build_work_log.py (--check); rebuild the offline work log — code: `scripts/build_work_log.py`
 - (host CLI; final node) FINAL: experiment complete — code: `end of the lifecycle`
 

@@ -83,7 +83,7 @@ In the UI: experiment `codegen-eval-runs` → the run named after the run ID. Sh
 open report/index.html
 ```
 
-Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (solid blue = implemented, solid yellow = built offline with no live run yet, dashed = pending), then the status, benchmark review, CI evidence, setup, and this demo section. Sections without a reviewed record are shown as pending or incomplete; say so rather than skipping them.
+Needs no network, Podman, MLflow, or JavaScript. Walk the architecture figure (solid blue = implemented, solid yellow and dashed are reserved labels that no box uses now), then the status, benchmark review, CI evidence, setup, and this demo section. Sections without a reviewed record are shown as pending or incomplete; say so rather than skipping them.
 
 ### 6. The comparison and keep-or-reject decision
 

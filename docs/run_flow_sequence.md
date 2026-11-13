@@ -1,14 +1,14 @@
-Text equivalent of the one-trial sequence diagram ([`run_flow_sequence.drawio.svg`](run_flow_sequence.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` at commit `37968d8` of `main`. It is the supplement to the [experiment-lifecycle activity diagram](run_flow_activity.md): the activity diagram shows the whole experiment and every ending, this one shows the exact call order inside **one trial**. Dashed arrows with an open head are replies (and returned results); solid arrows with a filled head are calls; the orange dashed arrows to and from OpenRouter mark the external call and its reply. Participant headers carry the name of the logical-diagram box and its status (**IMPLEMENTED**, **PARTIAL: NO LIVE RUN YET**, **PENDING**); messages carry no status. OpenRouter is `EXTERNAL` and `PHASE 2` (dashed). No live run has happened, so the diagram shows control flow only: no result, spend, or run identifier.
+Text equivalent of the one-trial sequence diagram ([`run_flow_sequence.drawio.svg`](run_flow_sequence.drawio.svg), editable in draw.io), verified against `src/codegen_eval/` at commit `37968d8` of `main`; statuses refreshed 2026-11-13. It is the supplement to the [experiment-lifecycle activity diagram](run_flow_activity.md): the activity diagram shows the whole experiment and every ending, this one shows the exact call order inside **one trial**. Dashed arrows with an open head are replies (and returned results); solid arrows with a filled head are calls; the orange dashed arrows to and from OpenRouter mark the external call and its reply. Participant headers carry the name of the logical-diagram box and its status (**IMPLEMENTED**; **PARTIAL: NO LIVE RUN YET** and **PENDING** are reserved and no participant uses them now); messages carry no status. OpenRouter is `EXTERNAL` and `PHASE 2` (dashed). The baseline and revised comparison runs have completed (evidence: [comparison evidence](comparison_evidence.md), [prompt comparison](prompt_comparison.md)). The evidence is a 30-trial pilot per variant and draws no general conclusion; the student's own interpretation in the prompt comparison is still open. The diagram shows control flow only: no result, spend, or run identifier.
 
 ## Participants (left to right)
 
-- `rr`: run_recording.py; + experiment.py; PARTIAL: NO LIVE RUN YET — code: `run_variant, run_recorded, RecordingClient`
+- `rr`: run_recording.py; + experiment.py; IMPLEMENTED — code: `run_variant, run_recorded, RecordingClient`
 - `tr`: trial.py; the bounded agent loop; IMPLEMENTED — code: `run_trial`
-- `oc`: openrouter_client.py; ModelClient, model_client.py; PARTIAL: NO LIVE RUN YET — code: `OpenRouterClient.complete`
-- `lg`: ledger.py; spend ledger file; PARTIAL: NO LIVE RUN YET — code: `Ledger.reserve, settle, keep`
-- `or`: OpenRouter; (EXTERNAL, PHASE 2); PENDING — code: `chat completions endpoint`
+- `oc`: openrouter_client.py; ModelClient, model_client.py; IMPLEMENTED — code: `OpenRouterClient.complete`
+- `lg`: ledger.py; spend ledger file; IMPLEMENTED — code: `Ledger.reserve, settle, keep`
+- `or`: OpenRouter; (EXTERNAL, PHASE 2); used in the live runs — code: `chat completions endpoint`
 - `bd`: bundle.py; run bundle writer; IMPLEMENTED — code: `BundleWriter`
-- `ml`: mlflow_tracking.py; MLflow recorder; PARTIAL: NO LIVE RUN YET — code: `bundle_recorder, record_bundle`
+- `ml`: mlflow_tracking.py; MLflow recorder; IMPLEMENTED — code: `bundle_recorder, record_bundle`
 - `rc`: run_checks.py; development tool; IMPLEMENTED — code: `run_checks`
 - `ev`: evaluate.py + contract.py; grader on the host; IMPLEMENTED — code: `grade_trial, score_case`
 - `sb`: sandbox.py + limits.py; host launcher; IMPLEMENTED — code: `execute_check, run_case`

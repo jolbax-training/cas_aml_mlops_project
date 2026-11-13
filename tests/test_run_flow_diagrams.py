@@ -21,7 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src" / "codegen_eval"
 SVG_NS = "{http://www.w3.org/2000/svg}"
 KINDS = ("activity", "sequence")
-STATUSES = ("IMPLEMENTED", "PARTIAL: NO LIVE RUN YET", "PENDING")
+STATUSES = ("IMPLEMENTED", "PARTIAL: NO LIVE RUN YET", "PENDING", "EXTERNAL")
 DOCTYPE = re.compile(r"<!DOCTYPE[^>]*>")
 
 spec = importlib.util.spec_from_file_location("build_work_log_run_flow", REPO / "scripts" / "build_work_log.py")
@@ -254,7 +254,8 @@ def test_no_invented_results_urls_identifiers_or_spend(kind):
     assert urls <= {"https://openrouter.ai/api/v1/chat/completions"}, urls
     assert set(re.findall(r"CHF\s*(\d+)", text)) <= {"10", "15"}
     assert not re.search(r"\b\d+(\.\d+)?\s*%|pass rate|\bwins?\b|improv", text, re.I)
-    assert "no live run has happened" in twin(kind).lower()
+    assert "comparison runs have completed" in twin(kind).lower()
+    assert "no live run has happened" not in twin(kind).lower()
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -545,7 +546,8 @@ def test_the_work_log_shows_both_diagrams_after_the_existing_ones():
         section = re.search(rf'<section id="{ident}".*?</section>', text, re.S).group(0)
         assert 'role="img"' in section and "<title" in section and "<desc" in section and "<text" in section
         assert "content=" not in section and "mxfile" not in section
-        assert "no live run has happened" in section.lower()
+        assert "comparison runs have completed" in section.lower()
+        assert "no live run has happened" not in section.lower()
     assert "run_flow_activity.drawio.svg" in text and "run_flow_sequence.md" in text  # provenance rows
 
 

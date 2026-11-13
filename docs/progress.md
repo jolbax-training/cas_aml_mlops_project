@@ -1,25 +1,33 @@
 # Project progress and decisions
 
-Updated 2026-11-06. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
+Updated 2026-11-13. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
 
 ## Current status
 
-**Planning is consolidated; implementation remains the offline pilot.** The target is a bounded tool-using coding agent plus reproducible evaluation/MLOps evidence within 32 working hours. Start with the execution boundary, agent fixtures, local bundles, and grading replay; add the live smoke path and HTML foundation on day two, CI/MLflow/comparison on day three, then finish evidence, transfer design, and the demo. Personal explanations are encouraged and do not block delivery.
+**The offline pilot and the paid comparison phase are complete; the student's interpretation and any live presentation remain.** The target was a bounded tool-using coding agent plus reproducible evaluation/MLOps evidence within 32 working hours. Start with the execution boundary, agent fixtures, local bundles, and grading replay; add the live smoke path and HTML foundation on day two, CI/MLflow/comparison on day three, then finish evidence, transfer design, and the demo. Personal explanations are encouraged and do not block delivery.
 
 | Area | Observed state / provenance | Required next evidence |
 | --- | --- | --- |
 | Benchmark | 2026-10-30: ten tasks, forty cases, frozen as version 1 (see entry below); reviewed by models only, no human review | User spot-check of tasks and references if desired; any change needs a new version |
-| Evaluator | Dataset/source validation, per-check Podman execution, external scoring implemented | Agent loop, development tool, durable bundles, distinct inspection/regrading commands |
-| Offline checks | Earlier in this conversation: `.venv/bin/pytest -q` gave 21 passed, eight skipped | New implementation checks and retained deterministic CI evidence |
+| Evaluator | Dataset/source validation, per-check Podman execution, external scoring implemented | None outstanding: the agent loop, development tool, durable bundles and the inspection/regrading commands are implemented (archived changes `add-bounded-agent-loop`, `add-run-bundles-and-grading-replay`) |
+| Offline checks | 2026-11-13 (entry below): `.venv/bin/pytest -q` 825 passed, 67 skipped on the presentation-evidence branch; GitHub runs in [ci_evidence.md](ci_evidence.md) | Re-run on each further branch |
 | Podman | 2026-10-30: CLI 6.1.4, running libkrun VM, pinned image present; 8/8 baseline and 33/33 current sandbox tests passed (see entry below) | Re-run the probes on any other environment (Linux/CI) before trusting results there |
-| Execution boundary | 2026-10-30: ten-second configurable limits, supervisor/executor split, 33 Podman probes/tests passing on the local macOS VM; [threat model](threat_model.md) records residual limitations | Probe run on each further environment (CI) before it is trusted; live comparison still needs its other prerequisites |
+| Execution boundary | 2026-10-30: ten-second configurable limits, supervisor/executor split, 33 Podman probes/tests passing on the local macOS VM; [threat model](threat_model.md) records residual limitations | Probe run on each further environment (CI) before it is trusted |
 | Version control / CI | `origin` points to the project's GitHub repository; 2026-10-30: `.github/workflows/ci.yml` green on GitHub (current: run 41131517803, rebased commit `15c9eb9`; earlier run 41128433037, commit `ef1186e`; both groups; failure demos 41128978798 and 41128979150); required checks `offline` and `podman` enforced by ruleset 26678579 since 2026-11-06, latest recorded run 42192054359 on `7212a36` green ([evidence](ci_evidence.md)) | Required deterministic and Podman check groups on a verified compatible Linux runner |
-| OpenSpec | One planned HTML change, revised to the smaller scope; main specs empty | Implement the revised tasks separately; planning completion is not implementation completion |
-| Live generation / tracking | OpenRouter client and budget ledger tested offline; paid smoke passed 2026-11-03 ([evidence](smoke_evidence.md)); settings frozen; comparison runs done 2026-11-03 (see entry below), live bundles recorded in MLflow | shared CHF controls (in use); local bundles; containerized MLflow run of a live bundle |
+| OpenSpec | Fifteen changes archived under `openspec/changes/archive/` and their specs in `openspec/specs/`; further changes in flight on their own branches | Archive each in-flight change after its review; planning completion is not implementation completion |
+| Live generation / tracking | OpenRouter client and budget ledger used in the paid smokes (passed 2026-11-03, [evidence](smoke_evidence.md)); settings frozen; baseline and revised comparison runs done 2026-11-03 ([prompt comparison](prompt_comparison.md)), both recorded in MLflow with 60 of 60 traces read back after `--retrace` (checklist row 6, entries of 2026-11-06) | None outstanding; the bundles and the MLflow store exist on one machine and are not in Git |
 | Report / demo | HTML builder and architecture figure implemented 2026-10-30 (see entry below); comparison results and evidence sections filled 2026-11-03; credential-free command rehearsal of the demo 2026-11-06 (see entry), browser views not opened in it | Student's interpretation and any live presentation |
 | Transfer design | Coordinator/worker/verifier/final-check scope agreed | Guide and six-scenario example drafted (design only, not executed); registered as work-log sources 2026-10-30 |
 
-Runtime observations above are from the earlier read-only exploration in this conversation, not new live/container tests during this documentation update. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result.
+Runtime observations above cite the dated entries below and the named evidence files; this status refresh ran no new live or container test. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result.
+
+## 2026-11-13 — Architecture and run-flow status refreshed (`refresh-architecture-status`)
+
+Documentation and tests only; no `src/` change. Results below are the output of the commands named.
+
+- **Changed:** statuses in `docs/work_log_architecture.svg` and `.md`, the logical, physical, activity and sequence diagrams (`.drawio.svg`, embedded model and rendered SVG edited together by a scripted per-cell edit) and their twins moved from `PARTIAL: NO LIVE RUN YET` and `PENDING` to `IMPLEMENTED`, with OpenRouter labelled `EXTERNAL`. Each change cites a committed source in the new `docs/architecture_status_sources.toml` (`docs/smoke_evidence.md`, `docs/comparison_evidence.md`, `docs/prompt_comparison.md`, `docs/progress.md`, `docs/ci_evidence.md`). The partial and pending labels remain defined and no box uses them. The stale sentences of `README.md`, `docs/demo.md` and the "Current status" section of this file were updated; `docs/comparison_evidence.md` got a dated note that the 5-of-60 trace limit was superseded on 2026-11-06 (the sentence is unchanged). Older entries and `docs/project_spec.md` are unchanged.
+- **Still open:** the student's own interpretation in `docs/prompt_comparison.md`; the visual check of the rebuilt figures in a browser (coordinator).
+- **Checks:** `tests/test_architecture_status.py` (31 tests) failed on the pre-edit files (20 failures) and passes now; `.venv/bin/pytest -q` 880 passed, 67 skipped; `scripts/build_work_log.py --check` passed (16 sources, 0 pending sections) and the report was rebuilt; `scripts/presentation_evidence.py check` passed; the opening figure and the four diagram sections of the rebuilt report contain the old label text only inside the status-vocabulary definitions. The Podman group was not run (no `src/` change).
 
 ## 2026-11-13 — Presentation evidence (`add-presentation-evidence`)
 

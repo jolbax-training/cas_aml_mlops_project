@@ -14,7 +14,8 @@ REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src" / "codegen_eval"
 SVG_NS = "{http://www.w3.org/2000/svg}"
 NAMES = ("logical", "physical")
-STATUSES = {"IMPLEMENTED", "PARTIAL: NO LIVE RUN YET", "PENDING"}
+# EXTERNAL marks a third-party service (OpenRouter); PARTIAL and PENDING stay reserved vocabulary.
+STATUSES = {"IMPLEMENTED", "PARTIAL: NO LIVE RUN YET", "PENDING", "EXTERNAL"}
 # Files under src/codegen_eval/ that the logical twin does not need to name, with the reason.
 NOT_DRAWN = {"__init__.py": "package marker"}
 DOCTYPE = re.compile(r"<!DOCTYPE[^>]*>")
@@ -158,7 +159,7 @@ def test_trust_boundary_is_stated_in_diagram_and_twin(kind):
 def test_physical_twin_marks_both_phases_and_the_external_subsystems():
     text = twin("physical")
     for phrase in ("PHASE 1", "PHASE 2", "EXTERNAL", "OpenRouter", "GitHub Actions", "IMAGE REGISTRIES",
-                   "127.0.0.1", "No live", "no live"):
+                   "127.0.0.1", "comparison runs have completed"):
         assert phrase in text, phrase
     labels = " ".join(rendered_texts("physical"))
     assert labels.count("PHASE 2") >= 5 and "EXTERNAL" in labels
@@ -219,7 +220,7 @@ def _old_figure_statuses():
     svg = (REPO / "docs" / "work_log_architecture.svg").read_text(encoding="utf-8")
     found = {}
     for kind, body in re.findall(r'<g class="arch-box arch-(impl|part|plan)">(.*?)</g>', svg, re.S):
-        status = {"impl": "IMPLEMENTED", "part": "PARTIAL: NO LIVE RUN YET", "plan": "PENDING"}[kind]
+        status = {"impl": "IMPLEMENTED", "part": "PARTIAL: NO LIVE RUN YET", "plan": "PENDING"}[kind]  # part/plan are reserved
         for name in re.findall(r"\b[a-z_]+\.py\b", body):
             found[name] = status
     return found

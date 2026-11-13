@@ -330,6 +330,7 @@ def test_repository_diagram_names_existing_modules_and_labels_every_status():
     assert len(boxes) == 14
     labels = {"impl": "IMPLEMENTED", "part": "PARTIAL: NO LIVE RUN YET", "plan": "PENDING"}
     assert all(labels[kind] == label for kind, label in boxes)
+    assert {kind for kind, _ in boxes} == {"impl"}  # partial and plan are reserved; statuses are checked in test_architecture_status.py
     builder.validate_svg(SVG)
 
 

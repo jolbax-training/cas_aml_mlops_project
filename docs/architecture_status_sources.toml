@@ -1,0 +1,72 @@
+# Status sources for the architecture and run-flow figures (checked offline by tests/test_architecture_status.py).
+#
+# Every component whose status depends on a run names the committed file that supports its status and a
+# phrase that must occur in that file. A figure or twin status may change only together with this file.
+# `match` lists substrings of an item's first label line (`^` anchors a prefix) (or, in the work-log figure, of its name lines).
+# Statuses: IMPLEMENTED, EXTERNAL (a third-party service), PARTIAL and PENDING (reserved: no component uses
+# them now), open (named as still open in every twin; it is not a box).
+
+completed_runs_sentence = "comparison runs have completed"
+
+[[component]]
+name = "OpenRouter client, config and smoke command"
+match = ["openrouter_client.py", "openrouter_cli.py", "Model via OpenRouter"]
+status = "IMPLEMENTED"
+evidence = "docs/smoke_evidence.md"
+phrase = "Calibration and settings freeze"
+
+[[component]]
+name = "Spending ledger and its file"
+match = ["ledger.py", "spend_ledger.jsonl"]
+status = "IMPLEMENTED"
+evidence = "docs/smoke_evidence.md"
+phrase = "Ledger and projection"
+
+[[component]]
+name = "Run recording, experiment tooling and the comparison runs"
+match = ["run_recording.py", "experiment.py", "Baseline vs revised comparison"]
+status = "IMPLEMENTED"
+evidence = "docs/comparison_evidence.md"
+phrase = "Both bundles verify as COMPLETE"
+
+[[component]]
+name = "Run summaries and comparison"
+match = ["summary.py", "comparison.py"]
+status = "IMPLEMENTED"
+evidence = "docs/prompt_comparison.md"
+phrase = "Results (primary metric and diagnostics)"
+
+[[component]]
+name = "MLflow recording, store, storage and service"
+match = ["mlflow_tracking.py", "MLflow tracking store", "mlflow_data/", "MLflow service container", "Local MLflow recording"]
+status = "IMPLEMENTED"
+evidence = "docs/progress.md"
+phrase = "60 of 60 traces read back after `--retrace`"
+
+[[component]]
+name = "Reviewed result summaries"
+match = ["reviewed result", "Reviewed Markdown summaries"]
+status = "IMPLEMENTED"
+evidence = "docs/prompt_comparison.md"
+phrase = "Decision of the user, 2026-11-03"
+
+[[component]]
+name = "OpenRouter (third-party service)"
+match = ["^OpenRouter"]
+status = "EXTERNAL"
+evidence = "docs/prompt_comparison.md"
+phrase = "Ledger (CHF)"
+
+[[component]]
+name = "Deterministic CI and required checks"
+match = ["ci.yml", "CI gate", "Deterministic CI"]
+status = "IMPLEMENTED"
+evidence = "docs/ci_evidence.md"
+phrase = "Required checks"
+
+[[component]]
+name = "The student's own interpretation of the comparison"
+match = []
+status = "open"
+evidence = "docs/prompt_comparison.md"
+phrase = "Student interpretation"

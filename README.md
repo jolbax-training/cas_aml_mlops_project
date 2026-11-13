@@ -2,7 +2,7 @@
 
 The goal is to understand transferable agent-evaluation methods and demonstrate a reproducible MLOps workflow in **four eight-hour working days (32 hours)**. The target is a bounded function-writing agent with its own development checks, hidden final grading, durable traces/results, and offline grading replay. Required deliverables include deterministic CI, local MLflow in Podman, an offline HTML work-log, an evaluation-design guide with a research-orchestrator example, and a runnable demo. [The specification](docs/project_spec.md) defines the agreed scope and acceptance criteria.
 
-The current implementation is still an offline pilot: it loads three tasks and twelve cases, validates Python source, executes one case at a time in a restricted Podman container, and scores returned values outside that container. The agent loop, OpenRouter client (offline only), bundles/replay, the ten-task benchmark, CI, MLflow recording, and the comparison tooling are implemented on `main`; no live model run or comparison result exists yet. The offline HTML work-log builder exists (see below). Local orchestration will run on the laptop with uv; MLflow and disposable candidate execution use Podman. Complete the local loop before CI/tracking integration.
+The implementation began as an offline pilot and now runs the frozen ten-task benchmark (forty cases): it validates Python source, executes one case at a time in a restricted Podman container, and scores returned values outside that container. The agent loop, OpenRouter client, bundles/replay, the ten-task benchmark, CI, MLflow recording, and the comparison tooling are implemented on `main`; the paid smokes and the baseline and revised comparison runs have completed (see `docs/smoke_evidence.md` and `docs/prompt_comparison.md`). The offline HTML work-log builder exists (see below). Local orchestration will run on the laptop with uv; MLflow and disposable candidate execution use Podman. Complete the local loop before CI/tracking integration.
 
 ## Setup
 
@@ -45,7 +45,7 @@ The controller talks to a `ModelClient` (`model_client.py`); `FixtureClient` rep
 .venv/bin/pytest -q tests/test_agent_trial.py tests/test_run_checks.py tests/test_model_client.py
 ```
 
-These fixtures verify controller behaviour (tool handling, limits, stopping, classification). They do not measure live model quality; there is no live client yet.
+These fixtures verify controller behaviour (tool handling, limits, stopping, classification). They do not measure live model quality; the live runs are documented in `docs/prompt_comparison.md`.
 
 ## Run bundles, trace inspection, and grading replay
 
@@ -121,7 +121,7 @@ What is written for one bundle: an MLflow run named after the run ID, tagged wit
 
 Tests: `tests/test_mlflow_tracking.py` runs offline against a temporary SQLite store (needs `--group tracking`; SQLAlchemy and Alembic for the store are in the `dev` group). `tests/test_mlflow_service_integration.py` (marked `sandbox` and `mlflow_service`; run it locally, CI's `podman` job deselects it, needs Podman and the pinned image) starts the real service on a free port with temporary storage and checks persistence across `restart` and container removal, idempotent re-upload, outage then later upload, and candidate isolation.
 
-## Prompt-comparison experiment tooling (offline; the baseline has run, the revised run has not)
+## Prompt-comparison experiment tooling (both the baseline and the revised run have completed)
 
 [`experiments/prompt_comparison_v1.json`](experiments/prompt_comparison_v1.json) is the versioned experiment configuration: the baseline prompt (`baseline_agent_v1`, with its SHA-256), the revised variant (`baseline_agent_v2`, recorded after the baseline failures were inspected; it differs from v1 by one sentence), the benchmark version, hash and freeze hash, the settings hash (model config, agent limits, execution limits, container image), the `container_platform` the experiment runs on (`arm64`, the laptop) with the image pinned for it (so `build-config --check` gives the same answer on every host; `build-config --container-platform amd64` records another platform, and regenerating an existing file keeps its recorded one), and the 10 x 3 schedule in `task_major` order (all trials of a task, then the next task). `build-config --check` fails if it no longer matches the repository; `build-config --revised-prompt <version>` records a revised prompt once it exists. It is a plan, not a result.
 
@@ -190,7 +190,7 @@ A failed build or check leaves the previous `report/index.html` untouched. Outpu
 
 - **Sources:** only files named in `docs/work_log.toml` are read, in that order, with a `current`, `historical`, `personal`, or `reviewed` label. Missing, absolute, escaping, symlinked, or private-looking paths (secrets, `runs/`, `mlruns/`, and similar) fail the build; nothing is harvested from neighbours.
 - **Pending evidence:** sections whose reviewed record does not exist yet are `kind = "pending"` and render as visibly pending. After a milestone, write or update the reviewed Markdown summary (results, run and MLflow identifiers, limitations), replace the pending entry with a `kind = "document"` entry, `label = "reviewed"` and that path, then rebuild. A partly finished document (the demo path, incomplete until the credential-free rehearsal is done) is registered as `label = "current"`, `status = "incomplete"` until its last placeholder is filled. Link local evidence from that summary rather than embedding raw bundles; external CI/MLflow URLs are references that are never fetched.
-- **Diagram:** edit `docs/work_log_architecture.svg` (plain SVG, reviewed: no scripts or external references) and its text equivalent `docs/work_log_architecture.md` together; solid blue means implemented, solid yellow means built offline with no live or real run yet, dashed means pending evidence (each box also carries a text label and its module names, so status never depends on colour alone). Update both when a component or its evidence changes. There is no graph engine: the figure is hand-placed SVG, so move boxes and edges by editing coordinates, and keep `role="img"`, the title/desc, and the text equivalent in sync.
+- **Diagram:** edit `docs/work_log_architecture.svg` (plain SVG, reviewed: no scripts or external references) and its text equivalent `docs/work_log_architecture.md` together; solid blue means implemented, solid yellow (built offline only) and dashed (evidence missing) are reserved labels that no box uses now (each box also carries a text label and its module names, so status never depends on colour alone). Update both when a component or its evidence changes. There is no graph engine: the figure is hand-placed SVG, so move boxes and edges by editing coordinates, and keep `role="img"`, the title/desc, and the text equivalent in sync.
 
 ## Architecture diagrams (draw.io)
 
