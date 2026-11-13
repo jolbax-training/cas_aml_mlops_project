@@ -19,7 +19,7 @@
 {{user:motivation}}
 
 <h2>Problem statement</h2>
-<p>Scores reported for coding agents are hard to trust. Four things go wrong, and the project is built around closing each one:</p>
+<p>Scores reported for coding agents are hard to trust. These things go wrong, and the project is built around closing each one:</p>
 <ul>
 <li><b>Unsafe candidate code.</b> The agent writes code that has to be run to be judged, and running untrusted code can reach credentials, the host or the scoring itself.</li>
 <li><b>Flaky or hidden cost.</b> Paid model calls add up unnoticed, and a retry loop can spend more than was planned.</li>
@@ -35,7 +35,7 @@
 <div class="stat"><b>{{val:comparison.baseline.primary|ratio}} / {{val:comparison.revised.primary|ratio}}</b><span>successful task trials, baseline / revised</span></div>
 <div class="stat"><b>{{val:protocol.planned_trials_total}}</b><span>task trials planned in total</span></div>
 <div class="stat"><b>{{val:protocol.probes_passed}}</b><span>sandbox and isolation tests recorded as passing</span></div>
-<div class="stat"><b>CHF {{val:protocol.ledger_total_chf|chf4}}</b><span>ledger total after both comparison runs</span></div>
+<div class="stat"><b>CHF {{val:protocol.ledger_total_chf|chf4}}</b><span>ledger total after both comparison runs (rounded)</span></div>
 </div>
 
 <h2>How to read this report</h2>
@@ -51,7 +51,7 @@
 {{fig:diagram-pipeline-overview}}
 <div class="side">
 <h3>Budget-safe paid calls</h3>
-<p>All paid calls share one ledger. The worst-case cost is reserved before each request; one that would pass the ceiling is never sent. A checkpoint of CHF {{val:protocol.checkpoint_chf|chf}} lets work continue, a ceiling of CHF {{val:protocol.ceiling_chf|chf}} stops it. Ledger total after both runs: CHF {{val:protocol.ledger_total_chf|chf4}}, quoted from the comparison document.</p>
+<p>All paid calls share one ledger. The worst-case cost is reserved before each request; one that would pass the ceiling is never sent. A checkpoint of CHF {{val:protocol.checkpoint_chf|chf}} lets work continue, a ceiling of CHF {{val:protocol.ceiling_chf|chf}} stops it. Ledger total after both runs: CHF {{val:protocol.ledger_total_chf|chf4}} (rounded to four decimals; the exact value is quoted in the comparison document).</p>
 </div>
 </div>
 
@@ -68,7 +68,7 @@
 <h3>What the isolation probes cover</h3>
 <p>The probes target the protected assets of the threat model: {{val:protocol.probe_categories.0}}; {{val:protocol.probe_categories.1}}; {{val:protocol.probe_categories.2}}; {{val:protocol.probe_categories.3}}; and {{val:protocol.probe_categories.4}}. One accepted residual: code that walks the executor's frames can forge a report, but expected answers never enter the container, so a forged value is no better than a returned one.</p>
 <h3>Experiment design</h3>
-<p>{{val:protocol.tasks}} tasks in five categories, {{val:protocol.trials_per_task}} trials per task and variant, {{val:comparison.baseline.hidden_checks.of}} hidden checks per variant. One model, fixed sampling, one prompt sentence changed.</p>
+<p>{{val:protocol.tasks}} tasks in {{val:comparison.baseline.categories|count}} categories, {{val:protocol.trials_per_task}} trials per task and variant, {{val:comparison.baseline.hidden_checks.of}} hidden checks per variant. One model, fixed sampling, one prompt sentence changed.</p>
 </div>
 <div>
 <h3>Reproducibility</h3>
@@ -90,7 +90,7 @@
 {{fig:cost-charged-reserved-compact}}
 {{fig:engineering-tests-compact}}
 </div>
-<p>Failed trials: baseline {{val:comparison.baseline.failure_labels.syntax_error}} syntax errors, {{val:comparison.baseline.failure_labels.contract_error}} contract error; revised {{val:comparison.revised.failure_labels.wrong_answer}} wrong answer. Gained {{val:comparison.delta.gained_tasks.0}}, regressed {{val:comparison.delta.regressed_tasks.0}} ({{ref:story-lists-02-compact}}, {{ref:story-strings-01-compact}}, {{ref:per-task}}). One run per prompt, two trials apart: the stories show what changed, not why. Test counts ({{ref:engineering-tests-compact}}): commit {{val:engineering.tests.commit|short}}; latest CI run {{val:engineering.ci.runs.last.run}}.</p>
+<p>Failed trials: {{failures}}. Tasks: {{delta}} ({{ref:story-lists-02-compact}}, {{ref:story-strings-01-compact}}, {{ref:per-task}}). One run per prompt: the stories show what changed, not why. Test counts ({{ref:engineering-tests-compact}}): commit {{val:engineering.tests.commit|short}}; latest CI run {{val:engineering.ci.runs.last.run}}.</p>
 {{table:resources}}
 </div>
 {{footer:3}}
@@ -119,7 +119,7 @@
 <li><a href="../docs/demo.md"><code>docs/demo.md</code></a></li>
 <li><a href="../docs/evaluation_design_guide.md"><code>docs/evaluation_design_guide.md</code></a></li>
 <li><a href="../docs/progress.md"><code>docs/progress.md</code></a></li>
-<li><code>docs/*.drawio.svg</code> (four full diagrams)</li>
+<li><code>docs/*.drawio.svg</code> (the full diagrams)</li>
 <li>Work log: {{link:index}}</li>
 <li>Recording: {{link:demo}}</li>
 </ul>

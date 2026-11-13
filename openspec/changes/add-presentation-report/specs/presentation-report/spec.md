@@ -128,7 +128,7 @@ Source: accepted user decisions; docs/prompt_comparison.md.
 - **THEN** the check fails, because only the limits and quote directives emit the marker
 
 ### Requirement: User-authored slots are visible placeholders
-The motivation and takeaways SHALL come from the `report` keys of the shared `presentation/user_text.toml` created by the evidence change, and no tool or agent MUST draft them. An empty slot SHALL render as a placeholder that survives print and a filled slot as escaped text; an over-long text MUST fail the check.
+The motivation and takeaways SHALL come from the `report` keys of the shared `presentation/user_text.toml`, and no tool or agent MUST draft them. An empty slot SHALL render as a placeholder that survives print and a filled slot as escaped text, and a filled text MUST NOT be cut off: it fails when it does not fit its box.
 
 Source: accepted user decisions (authorship).
 
@@ -148,9 +148,16 @@ Source: accepted user decisions (authorship).
 - **WHEN** the change's files are listed
 - **THEN** none is a user-text file
 
+#### Scenario: Slot fit rule
+(A text that does not fit its fixed box, paragraph breaks included, MUST fail the check and the build naming the slot and the limit, and the browser measurement MUST report it if it is clipped there.)
+
 #### Scenario: Slot too long
-- **WHEN** the user's `report` text exceeds the slot's allowed length
-- **THEN** the check fails naming the slot and the limit
+- **WHEN** the user's `report` text, with its paragraph breaks, needs more lines than the slot's box holds
+- **THEN** the check and the build fail naming the slot and the limit, and nothing is written
+
+#### Scenario: Slot clipped in the browser
+- **WHEN** the browser measurement finds a slot or figure box whose content is taller than the box
+- **THEN** the measurement fails naming it
 
 ### Requirement: Pending screenshots and the date are shown, not hidden
 A screenshot that the manifest marks pending, or whose file is absent, SHALL render as a visible placeholder naming what it will show and its owner, and the default build MUST succeed with it. A null date SHALL render the manifest's date placeholder, and the builder MUST NOT choose a date.
@@ -206,7 +213,7 @@ Source: accepted user decisions; docs/project_spec.md line 175.
 - **THEN** they succeed
 
 ### Requirement: Offline deterministic tests
-The change SHALL be tested with fixtures, with no browser, bundles, network, Podman or credentials, in the existing offline CI group; the browser measurement is run and recorded by hand on a prepared laptop.
+The change SHALL be tested offline against the committed evidence and small templates written per test, with no browser, bundles, network, Podman or credentials, in the existing offline CI group; the browser measurement is run and recorded by hand on a prepared laptop.
 
 Source: docs/project_spec.md (CI section).
 

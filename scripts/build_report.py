@@ -47,10 +47,18 @@ MIN_PRINT_PT = 7.5
 MIN_MM = MIN_PRINT_PT * 25.4 / 72  # 2.646 mm
 HEADROOM = 0.94
 CONTRAST_MIN = 4.5
-SLOT_MAX_CHARS = {"motivation": 650, "takeaways": 420}
+SLOTS = ("motivation", "takeaways")
+# A filled slot is a fixed box with hidden overflow, so its text must fit by a deterministic rule:
+# greedy word wrap at SLOT_CPL characters per line (conservative: Chrome fits about 105 at 9.5 pt in
+# the 177 mm text width), one line costs SLOT_LINE_MM and each paragraph break SLOT_PARA_GAP_MM,
+# against the box height from report.css minus padding and border.
+SLOT_CPL = 96
+SLOT_LINE_MM = 4.56
+SLOT_PARA_GAP_MM = 1.8
+SLOT_PADDING_MM = 4.6
 
 # Tokens with digits that the template prose may contain; whole tokens, never substrings.
-DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256", "lists_02", "strings_01"})
+DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256"})
 
 # Static height model. `calibrated_against` is empty until `measure` has been run and the
 # constants below have been fitted to it; `check` refuses to pass while it is empty.
@@ -67,7 +75,6 @@ BUDGETS = {
 }
 
 NAV_HIDE_RULE = ".screen-only"
-ALLOWED_PRINT_RULES = {"@page", ".page", ".screen-only", "body"}
 
 DIRECTIVE = re.compile(r"\{\{([a-z_]+)(?::([^|}]*))?(?:\|([a-z0-9_]+))?\}\}")
 FRAMING = re.compile(r"\b(improvement|breakthrough)s?\b", re.I)
@@ -141,13 +148,17 @@ def lookup(summary: dict, path: str):
 
 
 def format_value(value, fmt: str | None, path: str) -> str:
-    """The closed format set: int, id, short, chf, chf4, ratio, pct, ratiopct, ms, text."""
+    """The closed format set: int, id, short, count, chf, chf4, ratio, pct, ratiopct, ms, text."""
     if fmt in ("ratio", "pct", "ratiopct"):
         if not (isinstance(value, dict) and {"count", "of", "rate"} <= set(value)):
             raise ReportError(f"{path!r}: format {fmt!r} needs an object with count, of and rate")
         ratio = f"{value['count']}/{value['of']}"
         pct = f"{value['rate'] * 100:.1f}%"
         return {"ratio": ratio, "pct": pct, "ratiopct": f"{ratio} ({pct})"}[fmt]
+    if fmt == "count":
+        if not isinstance(value, (dict, list)):
+            raise ReportError(f"{path!r}: format 'count' needs an object or a list")
+        return str(len(value))
     if isinstance(value, (dict, list)):
         raise ReportError(f"{path!r} is not a single value")
     if fmt in (None, "text", "id"):
@@ -292,7 +303,7 @@ def user_slot_state(inputs: Inputs, slot: str) -> str:
 
 
 def render_user(inputs: Inputs, slot: str) -> str:
-    if slot not in SLOT_MAX_CHARS:
+    if slot not in SLOTS:
         raise ReportError(f"unknown user slot {slot!r}")
     text = user_slot_state(inputs, slot).strip()
     if not text:
@@ -323,6 +334,23 @@ def render_limits(inputs: Inputs) -> str:
         f'<ol class="limits">{"".join(items)}</ol>'
         f'<p class="nonclaim"><q class="quoted" data-source="{esc(non_claim["file"])}">{esc(summary["limits"]["statement"])}</q></p>'
     )
+
+
+def render_failures(inputs: Inputs) -> str:
+    """Failed trials per label and variant, iterated from the summary so no label can be omitted."""
+    parts = []
+    for variant in ("baseline", "revised"):
+        labels = inputs.summary["comparison"][variant]["failure_labels"]
+        listed = ", ".join(f"{esc(label)} {esc(count)}" for label, count in labels.items()) or "none"
+        parts.append(f"{variant}: {listed}")
+    return "; ".join(parts)
+
+
+def render_delta(inputs: Inputs) -> str:
+    delta = inputs.summary["comparison"]["delta"]
+    gained = ", ".join(esc(t) for t in delta["gained_tasks"]) or "none"
+    regressed = ", ".join(esc(t) for t in delta["regressed_tasks"]) or "none"
+    return f"gained {gained}; regressed {regressed}; unchanged {len(delta['unchanged_tasks'])} tasks"
 
 
 def render_evidence(inputs: Inputs) -> str:
@@ -470,6 +498,10 @@ def substitute(inputs: Inputs, numbers: Numbers, template: str) -> str:
             return render_user(inputs, arg)
         if kind == "limits":
             return render_limits(inputs)
+        if kind == "failures":
+            return render_failures(inputs)
+        if kind == "delta":
+            return render_delta(inputs)
         if kind == "evidence_table":
             return render_evidence(inputs)
         if kind == "nav":
@@ -612,6 +644,25 @@ def mm_var(css: str, name: str) -> float:
     return float(match.group(1))
 
 
+ZERO = re.compile(r"0(?:mm|px|pt)?(?:\s+0(?:mm|px|pt)?)*")
+
+
+def print_declaration_problems(head: str, body: str) -> list[str]:
+    """Only declarations that cannot move a page: colour, shadow, and zeroed spacing on body and main."""
+    problems = []
+    for declaration in filter(None, (d.strip() for d in body.split(";"))):
+        prop, _, value = declaration.partition(":")
+        prop, value = prop.strip(), value.strip()
+        if prop in {"print-color-adjust", "-webkit-print-color-adjust"} or (prop == "background" and head == "body"):
+            continue
+        if head == ".page" and prop == "box-shadow" and value == "none":
+            continue
+        if head in {"body", "main"} and prop in {"margin", "padding", "gap", "row-gap", "column-gap"} and ZERO.fullmatch(value):
+            continue
+        problems.append(f"print block rule {head!r} may not change geometry or type ({prop}: {value})")
+    return problems
+
+
 def check_css(css: str) -> list[str]:
     problems = []
     for rule in ("@page", "break-after: page", "296mm"):
@@ -626,13 +677,13 @@ def check_css(css: str) -> list[str]:
                     problems.append(f"print block rule {inner_head!r} may not change layout")
                 if inner_head == ".screen-only" and "display: none" not in inner_body:
                     problems.append("print block must hide .screen-only")
-                forbidden = r"(?:width|height|font|line-height)" if inner_head in {"body", "main"} else r"(?:width|height|margin|padding|font|line-height|display|overflow)"
-                if inner_head != ".screen-only" and re.search(forbidden, inner_body):
-                    problems.append(f"print block rule {inner_head!r} may not change geometry or type")
+                if inner_head != ".screen-only":
+                    problems += print_declaration_problems(inner_head, inner_body)
     if not any(h.startswith("@media") and "print" in h and ".screen-only" in b for h, b in css_blocks(css)):
         problems.append("report.css has no print rule hiding .screen-only")
     # font sizes: only pt, never below the floor
-    for size in re.findall(r"font-size\s*:\s*([^;}]+)", css):
+    shorthand = re.findall(r"(?<![-\w])font\s*:\s*(?:(?:italic|bold|normal|\d{3})\s+)*([\d.]+[a-z%]*)", css)
+    for size in re.findall(r"font-size\s*:\s*([^;}]+)", css) + shorthand:
         match = re.fullmatch(r"\s*([\d.]+)pt\s*", size)
         if not match:
             problems.append(f"font-size {size.strip()!r} must be in pt")
@@ -758,12 +809,47 @@ def check_structure(html_text: str, root: Node) -> list[str]:
     return problems
 
 
+def wrap_lines(paragraph: str) -> int:
+    """Lines needed by a paragraph under greedy word wrap at SLOT_CPL characters."""
+    lines, width = 1, 0
+    for word in paragraph.split():
+        while len(word) > SLOT_CPL:  # a very long word breaks across lines
+            lines += 1 if width else 0
+            word, width = word[SLOT_CPL:], 0
+        if width and width + 1 + len(word) > SLOT_CPL:
+            lines, width = lines + 1, len(word)
+        else:
+            width += (1 if width else 0) + len(word)
+    return lines
+
+
+def slot_fit(text: str, box_mm: float) -> tuple[int, float, float, int]:
+    """(lines, needed mm, capacity mm, lines one paragraph could use) for a slot text."""
+    paragraphs = [p for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+    lines = sum(wrap_lines(p) for p in paragraphs)
+    needed = lines * SLOT_LINE_MM + max(len(paragraphs) - 1, 0) * SLOT_PARA_GAP_MM
+    capacity = box_mm - SLOT_PADDING_MM
+    return lines, needed, capacity, int(capacity // SLOT_LINE_MM)
+
+
+def slot_limits(css: str, slot: str) -> str:
+    """The limit as the user sees it, from the box height."""
+    _, _, capacity, one = slot_fit("x", mm_var(css, f"--slot-h-{slot}"))
+    return f"{one} lines of about {SLOT_CPL} characters (about {one * SLOT_CPL} characters in one paragraph; each paragraph break costs part of a line)"
+
+
 def check_slots(inputs: Inputs) -> list[str]:
     problems = []
-    for slot, limit in SLOT_MAX_CHARS.items():
-        length = len(user_slot_state(inputs, slot).strip())
-        if length > limit:
-            problems.append(f"user text {slot!r} has {length} characters, above the {limit} allowed")
+    for slot in SLOTS:
+        text = user_slot_state(inputs, slot).strip()
+        if not text:
+            continue
+        box = mm_var(inputs.css, f"--slot-h-{slot}")
+        lines, needed, capacity, _ = slot_fit(text, box)
+        if needed > capacity + 1e-9:
+            problems.append(
+                f"user text {slot!r} does not fit its box: it needs {lines} lines ({needed:.1f} mm) and the box holds "
+                f"{capacity:.1f} mm; the limit is {slot_limits(inputs.css, slot)}; shorten it, because text beyond the box would be cut off")
     return problems
 
 
@@ -880,7 +966,14 @@ window.addEventListener('load', function () {
       var r = c.getBoundingClientRect(), m = parseFloat(getComputedStyle(c).marginBottom) || 0;
       bottom = Math.max(bottom, r.bottom + m);
     });
-    out.push({id: p.id, scroll: p.scrollHeight, client: p.clientHeight,
+    var clipped = [];
+    p.querySelectorAll('.slot, .figbox').forEach(function (e) {
+      if (e.scrollHeight > e.clientHeight + 1) {
+        var fig = e.closest('figure');
+        clipped.push({name: e.dataset.slot ? 'user text ' + e.dataset.slot : (fig ? fig.id : 'box'), over: e.scrollHeight - e.clientHeight});
+      }
+    });
+    out.push({id: p.id, clipped: clipped, scroll: p.scrollHeight, client: p.clientHeight,
               bodyScroll: b.scrollHeight, bodyClient: b.clientHeight, used: bottom - top,
               ppx: p.getBoundingClientRect().height});
   });
@@ -897,8 +990,14 @@ BROWSER_CANDIDATES = (
 
 
 def find_browser(explicit: str | None) -> str | None:
-    for candidate in (explicit, os.environ.get("REPORT_BROWSER"), *BROWSER_CANDIDATES):
-        if candidate and (Path(candidate).is_file() or shutil.which(candidate)):
+    """An explicit path (argument or $REPORT_BROWSER) must exist; it is never silently replaced."""
+    requested = explicit or os.environ.get("REPORT_BROWSER")
+    if requested:
+        if Path(requested).is_file() or shutil.which(requested):
+            return requested
+        raise ReportError(f"browser {requested!r} not found")
+    for candidate in BROWSER_CANDIDATES:
+        if Path(candidate).is_file() or shutil.which(candidate):
             return candidate
     return None
 
@@ -927,6 +1026,8 @@ def evaluate_measurements(rows: list[dict]) -> tuple[list[str], list[str]]:
     for row in rows:
         # the body box is a flex item that stretches, so its scrollHeight is never below its
         # client height; the content height is the lowest child edge ("used")
+        for box in row.get("clipped", []):
+            errors.append(f"{row['id']}: {box['name']} is clipped by {box['over']} px (text or figure beyond its box)")
         used = row.get("used", row["bodyScroll"])
         spare = row["bodyClient"] - used
         if row["scroll"] > row["client"] or row["bodyScroll"] > row["bodyClient"] or used > row["bodyClient"]:
@@ -1044,7 +1145,7 @@ def main(argv: list[str] | None = None) -> int:
                 for line in holders:
                     print(f"error: unfilled: {line}", file=sys.stderr)
                 return 1
-            problems = check_structure(html_text, parse(html_text))
+            problems = check_structure(html_text, parse(html_text)) + check_slots(inputs)
             if problems:
                 raise ReportError("; ".join(problems))
             write_atomic(output, html_text)

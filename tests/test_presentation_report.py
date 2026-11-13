@@ -204,9 +204,70 @@ def test_slot_text_is_escaped_filled_slots_are_not_placeholders(tmp_path):
     assert "user text motivation" not in report.placeholders(report.parse(text))
 
 
-def test_over_long_slot_fails_check(tmp_path):
-    inputs = make_inputs(tmp_path, template=page_template("{{user:motivation}}"), user=user_toml(motivation="word " * 200))
-    assert any("motivation" in p and "characters" in p for p in report.check_slots(inputs))
+def slot_problems(tmp_path, **texts):
+    return report.check_slots(make_inputs(tmp_path, template=page_template("{{user:motivation}}"), user=user_toml(**texts)))
+
+
+def words(n_chars: int) -> str:
+    return " ".join(["word"] * (n_chars // 5))
+
+
+def test_over_long_slot_fails_check_naming_slot_and_limit(tmp_path):
+    problems = slot_problems(tmp_path, takeaways=words(2000))
+    assert len(problems) == 1
+    assert "'takeaways'" in problems[0] and "does not fit its box" in problems[0] and "lines of about" in problems[0]
+    assert "cut off" in problems[0]
+
+
+def test_a_slot_filled_to_its_limit_fits_and_one_character_more_does_not(tmp_path):
+    css = (REPO / report.STYLESHEET).read_text(encoding="utf-8")
+    for slot in report.SLOTS:
+        box = report.mm_var(css, f"--slot-h-{slot}")
+        _, _, _, lines = report.slot_fit("x", box)
+        full = " ".join(["x" * 95] * lines)  # exactly `lines` full lines
+        assert report.wrap_lines(full) == lines
+        assert slot_problems(tmp_path, **{slot: full}) == []
+        assert slot_problems(tmp_path, **{slot: full + " y" * 100})
+
+
+def test_paragraph_breaks_cost_space(tmp_path):
+    css = (REPO / report.STYLESHEET).read_text(encoding="utf-8")
+    box = report.mm_var(css, "--slot-h-takeaways")
+    _, _, _, lines = report.slot_fit("x", box)
+    # the same number of lines fits as one paragraph but not as three paragraphs
+    one = " ".join(["x" * 95] * lines)
+    assert slot_problems(tmp_path, takeaways=one) == []
+    short = ["x" * 40] * (lines - 2)
+    three = f"{' '.join(['x' * 95] * (lines - 2))}\n\n{short[0]}\n\n{short[1]}"
+    assert report.slot_fit(three, box)[0] == lines
+    assert slot_problems(tmp_path, takeaways=three)
+
+
+def test_three_paragraphs_inside_the_box_pass(tmp_path):
+    assert slot_problems(tmp_path, motivation="First short paragraph.\n\nSecond one.\n\nThird one.") == []
+
+
+def test_a_slot_that_does_not_fit_fails_the_build(tmp_path, capsys, monkeypatch):
+    inputs = make_inputs(tmp_path, user=user_toml(takeaways=words(2000)))
+    monkeypatch.setattr(report, "Inputs", lambda root: inputs)
+    assert report.main(["--root", str(REPO), "build", "--output", str(REPO / "report" / "never_written.html")]) == 1
+    err = capsys.readouterr().err
+    assert "'takeaways'" in err and "does not fit its box" in err
+    assert not (REPO / "report" / "never_written.html").exists()
+
+
+def test_the_browser_measurement_reports_a_clipped_slot():
+    rows = [{"id": "page-4", "scroll": 1000, "client": 1000, "bodyScroll": 1000, "bodyClient": 1000, "used": 600, "ppx": 1118,
+             "clipped": [{"name": "user text takeaways", "over": 20}]}]
+    errors, _ = report.evaluate_measurements(rows)
+    assert any("user text takeaways" in e and "clipped by 20 px" in e for e in errors)
+    assert ".slot, .figbox" in report.MEASURE_SCRIPT
+
+
+def test_the_slot_limits_are_derived_from_the_box():
+    css = (REPO / report.STYLESHEET).read_text(encoding="utf-8")
+    for slot in report.SLOTS:
+        assert "lines of about" in report.slot_limits(css, slot)
 
 
 def test_pending_screenshot_renders_a_visible_box_and_present_one_an_image(tmp_path):
@@ -252,7 +313,8 @@ def test_a_diagram_with_a_script_is_rejected(tmp_path):
 
 
 def test_digits_lint_catches_a_typed_number_and_accepts_directives_and_allowlist():
-    assert report.check_digits("<p>{{val:protocol.tasks}} tasks on A4, lists_02 and strings_01.</p>") == []
+    assert report.check_digits("<p>{{val:protocol.tasks}} tasks on A4 with SHA-256.</p>") == []
+    assert report.check_digits("<p>lists_02</p>")  # task names come from the summary, not the prose
     assert any("27/30" in p or "27" in p for p in report.check_digits("<p>We got 27 right.</p>"))
     assert report.check_digits("<!-- 99 in a comment --><p>none</p>") == []
     # whole tokens, not substrings
@@ -301,6 +363,10 @@ def test_committed_stylesheet_passes():
     [
         ("font-size: 7.6pt", "font-size: 6pt", "below 7.5 pt"),
         ("font-size: 7.6pt", "font-size: 9px", "must be in pt"),
+        ("font: 9.5pt/1.36", "font: 6pt/1.36", "below 7.5 pt"),
+        ("code { font: 8pt", "code { font: 6pt", "below 7.5 pt"),
+        ("main { gap: 0; padding: 0; }", "main { gap: 0; padding: 6mm 0; }", "may not change geometry"),
+        ("body { background: var(--bg); }", "body { background: var(--bg); margin: 10mm; }", "may not change geometry"),
         ("--text-muted: #475569", "--text-muted: #a0aec0", "contrast"),
         ("size: A4; margin: 0", "size: A5; margin: 0", "@page"),
         ("height: 296mm", "height: 297mm", "296mm"),
@@ -422,10 +488,6 @@ def test_a_page_with_spare_space_is_not_reported_as_full():
     assert report.evaluate_measurements([row]) == ([], [])
 
 
-def test_the_measuring_script_reports_content_height_not_the_box():
-    assert "used: bottom - top" in report.MEASURE_SCRIPT and "getBoundingClientRect" in report.MEASURE_SCRIPT
-
-
 def test_lookup_last_and_short_format(real):
     inputs, _ = real
     runs = inputs.summary["engineering"]["ci"]["runs"]
@@ -449,8 +511,6 @@ def test_the_resources_table_caption_describes_the_whole_table(real):
 
 def test_missing_browser_is_skipped_never_a_pass(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(report, "find_browser", lambda explicit: None)
-    built = tmp_path / "p.html"
-    built.write_text(report.build_html(report.Inputs(REPO)), encoding="utf-8")
     code = report.main(["--root", str(REPO), "measure"])
     assert code == report.EXIT_SKIPPED
     assert "SKIPPED" in capsys.readouterr().err
@@ -473,3 +533,23 @@ def test_nothing_this_change_commits_names_a_home_path():
 
 def test_the_change_creates_no_user_text_file():
     assert not list((REPO / "presentation" / "report").glob("user_text*"))
+
+
+def test_an_explicit_browser_that_does_not_exist_is_an_error_not_a_fallback(monkeypatch):
+    with pytest.raises(report.ReportError, match="not found"):
+        report.find_browser("/nonexistent/browser")
+    monkeypatch.setenv("REPORT_BROWSER", "/nonexistent/browser")
+    with pytest.raises(report.ReportError, match="not found"):
+        report.find_browser(None)
+
+
+def test_count_format_and_summary_driven_sentences(real):
+    inputs, text = real
+    assert report.format_value(inputs.summary["comparison"]["baseline"]["categories"], "count", "x") == "5"
+    for variant in ("baseline", "revised"):
+        for label, count in inputs.summary["comparison"][variant]["failure_labels"].items():
+            assert f"{label} {count}" in text
+    delta = inputs.summary["comparison"]["delta"]
+    assert f"gained {', '.join(delta['gained_tasks'])}" in text and f"regressed {', '.join(delta['regressed_tasks'])}" in text
+    template = (REPO / report.TEMPLATE).read_text(encoding="utf-8")
+    assert not re.search(r"\b(two|three|four|five|six|seven|eight|nine|ten) (tasks|categories|trials|things)\b", re.sub(r"<!--.*?-->", "", template, flags=re.S))

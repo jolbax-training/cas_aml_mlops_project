@@ -18,8 +18,8 @@
   --w-trust-boundary: 128mm;
   --w-side: 52mm;
   --w-shot: 88mm;
-  --slot-h-motivation: 40mm;
-  --slot-h-takeaways: 22mm;
+  --slot-h-motivation: 48mm;
+  --slot-h-takeaways: 32mm;
   --stats-h: 17mm;
 }
 * { box-sizing: border-box; }

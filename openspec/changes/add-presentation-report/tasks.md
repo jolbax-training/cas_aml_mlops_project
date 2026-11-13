@@ -16,7 +16,7 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 ## 3. Tests
 
-- [x] 3.1 Add `tests/test_presentation_report.py` (deviation: it runs against the committed manifest, summary, template and stylesheet, which CI has, and writes small templates, user text and a bad diagram into `tmp_path` through the builder's absolute-path inputs, instead of a fixtures directory; 44 tests) covering the groups of design decision 9, including both lints, `pct`/`ratio` reproduction, legibility failures, determinism, hand-made PDFs including the undeterminable case, canned measurement parsing and the static no-ledger/no-bundle inspection. Tests fail on an unknown manifest or summary id.
+- [x] 3.1 Add `tests/test_presentation_report.py` (deviation: it runs against the committed manifest, summary, template and stylesheet, which CI has, and writes small templates, user text and a bad diagram into `tmp_path` through the builder's absolute-path inputs, instead of a fixtures directory; 63 tests at the code-review fixes) covering the groups of design decision 9, including both lints, `pct`/`ratio` reproduction, legibility failures, determinism, hand-made PDFs including the undeterminable case, canned measurement parsing and the static no-ledger/no-bundle inspection. Tests fail on an unknown manifest or summary id.
 - [x] 3.2 Run the full offline test suite and `openspec validate add-presentation-report --strict`.
 
 ## 4. Real build, measurement, calibration
