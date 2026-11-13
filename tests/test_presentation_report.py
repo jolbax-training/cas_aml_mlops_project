@@ -74,7 +74,7 @@ def test_real_build_is_four_pages_and_deterministic(real):
 def test_real_check_passes_and_reports_placeholders(real):
     problems, warnings, holders = report.run_checks(real[0], real[1])
     assert problems == []
-    assert any("unmeasured" in w for w in warnings)
+    assert not any("unmeasured" in w for w in warnings)
     # the user text and the date are the user's; the report shows them as placeholders
     assert "date" in holders and "user text motivation" in holders and "user text takeaways" in holders
 
