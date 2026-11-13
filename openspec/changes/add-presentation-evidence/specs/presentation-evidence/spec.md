@@ -68,7 +68,7 @@ Source: accepted user decisions.
 - **THEN** the SVG files are byte-identical and contain no script or external reference
 
 ### Requirement: Accessible, print-legible charts
-Each chart MUST have a title and description naming what is compared and the two variants, an opaque light background, text value labels with counts beside rates, and a hatch or marker difference between variants so it stays legible in greyscale print. Every chart MUST use a fixed 960x540 viewBox, text of at least 20 viewBox units, and only the element set the work-log builder accepts.
+Each chart MUST have a title and description naming what is compared and the two variants, an opaque light background, text value labels with counts beside rates, and a hatch or marker difference between variants so it stays legible in greyscale print. Every full-size chart MUST use a fixed 960x540 viewBox and text of at least 20 viewBox units; every chart, compact ones included, MUST use only the element set the work-log builder accepts.
 
 Source: accepted user decisions.
 
@@ -222,3 +222,21 @@ Source: accessibility rules of the accepted decisions.
 #### Scenario: Logo without alt text
 - **WHEN** the logo entry has no alt text
 - **THEN** the manifest check fails
+
+### Requirement: Story figures cross-checked offline
+The offline check SHALL verify the story-level values of the two trace stories that a reviewed document states (the revised `lists_02` trials made one model call and no tool attempt; the revised `strings_01` failure is the hidden check `strings_01_d` with actual 0) against the summary, in addition to the headline numbers.
+
+Source: review hardening; docs/prompt_comparison.md trace-based explanations.
+
+#### Scenario: Story value edited together with its charts
+- **WHEN** a story trial value in the summary is edited and its charts are regenerated
+- **THEN** the offline check exits non-zero and names the story field
+
+### Requirement: No overlapping chart text
+In every chart, no text box SHALL overlap another text box or a bar, square or swatch.
+
+Source: code review finding 1.
+
+#### Scenario: Footnote collides with the last row
+- **WHEN** a chart is parsed
+- **THEN** no estimated text box intersects another text box or a filled shape

@@ -74,7 +74,7 @@ def _pair(name: str, start: str, pattern: str, *, kind: str = "int", group: int 
             for variant, cell in ((BASELINE, 2), (REVISED, 3))]
 
 
-WORD_INTS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+WORD_INTS = {"no": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
              "eight": 8, "nine": 9, "ten": 10}
 PROBE_ASSET_ROWS = ("| Hidden expected answers", "| Credentials, API keys", "| Tracking services",
                     "| Podman control", "| Score integrity")
@@ -185,6 +185,15 @@ def document_table() -> list[dict[str, Any]]:
         _entry("protocol.ceiling_chf", PR, budget, r"CHF (\d+) ceiling", kind="int"),
         _entry("protocol.ledger_total_chf", PC, "| Ledger (CHF) |", r"-> ([\d.]+)$", cell=3),
         _entry("protocol.probes_passed", PR, cut, r"the (\d+) probes", kind="int")]
+    gain, regression = "**Gain, `lists_02`", "**Regression, `strings_01`"
+    gain_pattern = r"all (\w+) `lists_02` trials made (\w+) model call, (\w+) tool attempt"
+    t += [
+        _entry("story.lists_02.revised_trials", PC, gain, gain_pattern, kind="wordint"),
+        _entry("story.lists_02.revised_model_calls", PC, gain, gain_pattern, group=2, kind="wordint"),
+        _entry("story.lists_02.revised_tool_attempts", PC, gain, gain_pattern, group=3, kind="wordint"),
+        _entry("story.strings_01.failed_check", PC, regression, r"edge check `(\w+)` failed \(actual (\d+)\)"),
+        _entry("story.strings_01.failed_actual", PC, regression,
+               r"edge check `(\w+)` failed \(actual (\d+)\)", group=2, kind="int")]
     for i, row in enumerate(PROBE_ASSET_ROWS):
         t.append(_entry(f"protocol.probe_category.{i}", "docs/threat_model.md", row, r"^(.+)$", cell=1))
     for key, run in CI_RUNS.items():
@@ -617,6 +626,16 @@ def cross_check(summary: Mapping[str, Any]) -> list[str]:
         problems.append("protocol: tasks x trials per task is not the planned trials per variant")
     if not summary["ledger_quotes"][REVISED].endswith(protocol["ledger_total_chf"]):
         problems.append("protocol.ledger_total_chf is not the end of the revised ledger quote")
+    lists = summary["stories"]["lists_02"]["revised"]
+    if len(lists) != v["story.lists_02.revised_trials"] or any(
+            t["model_calls"] != v["story.lists_02.revised_model_calls"]
+            or t["tool_attempts"] != v["story.lists_02.revised_tool_attempts"] for t in lists):
+        problems.append("stories.lists_02.revised: model calls or tool attempts differ from "
+                        f"{PC} (all revised trials made {v['story.lists_02.revised_model_calls']} call(s), "
+                        f"{v['story.lists_02.revised_tool_attempts']} tool attempt(s))")
+    failed = [c for t in summary["stories"]["strings_01"]["revised"] for c in t["failed_checks"]]
+    if failed != [{"id": v["story.strings_01.failed_check"], "actual": v["story.strings_01.failed_actual"]}]:
+        problems.append(f"stories.strings_01.revised: the failed checks {failed!r} differ from {PC}")
     delta = summary["comparison"]["delta"]
     if [v["task.gained"]] != delta["gained_tasks"] or [v["task.regressed"]] != delta["regressed_tasks"]:
         problems.append("gained/regressed tasks differ from the comparison document")

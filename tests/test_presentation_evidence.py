@@ -414,3 +414,28 @@ def test_version_one_interface_is_extended_additively():
     assert set(full) == old_ids
     for entry in full.values():
         assert entry["path"] == f"presentation/charts/{entry['id']}.svg" and entry["viewbox"] == "0 0 960 540"
+
+
+def test_story_values_are_cross_checked_even_when_the_charts_are_regenerated(tmp_path):
+    root = copy_repo(tmp_path)
+    render_charts = load_script("render_charts")
+
+    def change(data):
+        data["stories"]["lists_02"]["revised"][0]["model_calls"] = 2
+        data["stories"]["strings_01"]["revised"][1]["failed_checks"][0]["actual"] = 5
+    rewrite_summary(root, change)
+    summary = pe.load_summary(root)
+    for name, svg in render_charts.render_all(summary).items():  # regenerate the charts together
+        (root / pe.CHARTS_REL / name).write_text(svg, encoding="utf-8")
+    problems = pe.check_all(root)
+    assert any("stories.lists_02.revised" in p for p in problems)
+    assert any("stories.strings_01.revised" in p for p in problems)
+    assert not any("differs from a fresh render" in p for p in problems)
+
+
+def test_story_facts_are_quoted_documents(summary):
+    values = {d["field"]: d["value"] for d in summary["documents"]}
+    assert values["story.lists_02.revised_trials"] == 3
+    assert values["story.lists_02.revised_model_calls"] == 1 and values["story.lists_02.revised_tool_attempts"] == 0
+    assert values["story.strings_01.failed_check"] == "strings_01_d" and values["story.strings_01.failed_actual"] == 0
+    assert pe.cross_check(summary) == []

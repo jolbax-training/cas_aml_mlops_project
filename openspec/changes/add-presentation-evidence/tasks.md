@@ -25,7 +25,7 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 - [x] 4.1 Add `scripts/record_demo.py` (`record`, `build-player`, `check`) and the hand-written `presentation/recording/player.html` per design decision 8, with the step list, scrubbing, synthetic timing, and static transcript fallback.
 - [ ] 4.2 (recorded and committed; the recorder ran with Podman, the player script was exercised under Node with a stubbed DOM; opening `report/demo.html` in a browser, with and without scripting, is left to the coordinator) Run the recorder in a fresh worktree with an empty `run_bundles/` (Podman running, credential-free environment), commit `presentation/recording/demo.cast`, build `report/demo.html`, and verify by opening it and with scripting disabled.
-- [ ] 4.3 (user) Review the transcript and approve it for keeping; until then the manifest marks the recording pending.
+- [ ] 4.3 (user) Review the transcript and approve it by adding `presentation/recording/review.txt`; until then the manifest marks the committed recording `unreviewed` (`pending` only when no cast exists).
 
 ## 5. Tests, documentation, wiring
 

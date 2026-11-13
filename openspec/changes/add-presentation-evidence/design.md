@@ -23,7 +23,7 @@ presentation/
   charts/<id>.svg               committed; generated from summary.json
   assets/zhaw_rgb.jpg           committed; with zhaw_rgb.jpg.source.txt
   screenshots/<id>.png          committed once captured by the coordinator
-  recording/demo.cast           committed after the user reviews the transcript
+  recording/demo.cast           committed unreviewed; the user's approval is the marker file review.txt
   recording/player.html         committed; hand-written template, no embedded cast
 scripts/presentation_evidence.py   collect | check | manifest
 scripts/render_charts.py           summary.json -> charts/*.svg
@@ -38,7 +38,7 @@ Committed versus generated, with reasons:
 | `summary.json` | committed | Bundles are Git-ignored and absent in CI and in the deck/report builds; a reviewed summary is exactly what `project_spec.md` allows ("reviewed result summaries"). It holds aggregates and short excerpts only. |
 | chart SVGs | committed | Small deterministic text assets that the deck and the report both embed; the spec says to commit assets. Drift is caught by byte comparison against a fresh render in `check`, so committing them cannot hide staleness. |
 | `manifest.json` | committed | The interface must be readable without running code. |
-| `demo.cast` | committed after review | A text file of tens of KB; it cannot be regenerated without Podman and the repository checkout, and it is reviewed once (it contains run IDs and timings that differ per run, so it is not byte-reproducible; the script is). |
+| `demo.cast` | committed as `unreviewed`; approved by the user's `review.txt` marker | A text file of tens of KB; it cannot be regenerated without Podman and the repository checkout, and the user reviews the transcript once and approval is recorded by adding `presentation/recording/review.txt` (it contains run IDs and timings that differ per run, so it is not byte-reproducible; the script is). |
 | player page with the cast embedded | generated into Git-ignored `report/demo.html` | It is a built HTML page (spec: exclude generated HTML); the hand-written template is what is committed. |
 | deck and report HTML | generated into `report/` by changes 2 and 3 | Same rule. |
 | raw bundles, MLflow stores, ledger | never committed, never read by these scripts | Spec line 175; the ledger additionally by the user's decision. |
@@ -176,6 +176,8 @@ Alternative rejected: installing asciinema, agg or vhs (not installed; third-par
 
 All offline, deterministic, no bundles, no network, no Podman: `tests/fixtures/presentation/` holds a tiny `compare --json` output and two trial records for each story (copied from the real shapes, with invented-free values marked as fixture), a stub documents directory for the quote check, and a golden SVG per chart type. Tests cover: schema validation and arithmetic checks (failing on a tampered count); the quote check failing when a document line is edited; `check` failing on a stale chart or manifest; chart determinism and accessibility (title, desc, labels, counts beside rates, pattern fill present, no `<script>`, no `http` reference); manifest path resolution, pending status and the null date; logo digest; cast validation (accepts a valid cast, rejects a home path, a secret pattern, an out-of-order time); the player build embedding the transcript; a scan that no committed presentation file contains `/Users/`, a key-like string, or a ledger path; a static test that no script imports `codegen_eval.ledger` directly or contains the ledger path, and a runtime test that patches `open` to fail on any path under `~/.codegen_eval` while `collect` runs on the fixtures and asserts `CODEGEN_EVAL_LEDGER` was redirected; a test that tampers with a stored document-derived value while leaving its quote intact and expects `check` to fail, and one that edits a `docs/prompt_comparison.md` fixture line and expects the offline cross-check to fail; a chart test that every `font-size` is at least 20 and only the allowed element set occurs. A separate offline test skips cleanly only on the optional live path (`--bundles`), which is exercised once by hand on the primary checkout and recorded in progress.
 
+Recording status has three values in the manifest: `pending` (no cast), `unreviewed` (a cast is committed, `presentation/recording/review.txt` absent) and `approved` (the user added `review.txt`). The deck and the report must treat anything but `approved` as not yet endorsed by the user.
+
 ### 11. Compact half-width chart variants (user decision D1, round 2)
 
 The report keeps exactly four A4 pages, shows about eight key charts across the four sets, and gives the remaining figures as compact numeric tables read from `summary.json`. For that, ten charts get a compact variant with its own id `<id>-compact` and the file `presentation/charts/<id>-compact.svg`; the manifest entry carries `variant: "compact"` and `full_size: "<id>"` (full-size entries carry `variant: "full"`, `full_size: null`). Compact charts exist for `outcome-overview`, `outcome-by-category`, `failure-labels`, `story-lists-02`, `story-strings-01`, `efficiency-calls`, `efficiency-latency`, `cost-charged-reserved`, `engineering-tests` and `engineering-changes`; `outcome-by-task` and `engineering-ci` are tables in the report.
@@ -198,7 +200,7 @@ The manifest gains `variant` and `full_size` on figures, compact figure entries,
 
 - Documents edited later break quotes → intended; the check names the stale quote so a human re-reviews.
 - Test and archive counts grow as changes 2 and 3 land → snapshot carries its commit; `check --staleness` reports staleness non-fatally; refresh the summary after those changes.
-- Charts embedded at slide size are small at print size → fonts at least 14 viewBox units and labels on bars rather than legends; verified for real in changes 2 and 3.
+- Charts embedded at slide size are small at print size → fonts at least 20 viewBox units (17 in the compact variants, rendered no narrower than 78 mm) and labels on bars rather than legends; the offline tests check font sizes, text extents and overlaps, and the finished pages are confirmed in changes 2 and 3.
 - The recording is not byte-reproducible (run IDs) → the script and its command list are the reproducible part; the cast is reviewed once.
 - Using a third-party logo → source recorded, user decides.
 - Hatched patterns and hand-written JS add code → small, tested, and no dependency.

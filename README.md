@@ -174,7 +174,7 @@ Outcomes are either candidate-attributable (`returned`, `exception`, `timeout`, 
 
 ## Presentation evidence
 
-`presentation/` holds the evidence shared by the 15-minute presentation and the 4-page report: a reviewed summary with provenance (`presentation/evidence/summary.json`), 13 plain SVG charts, a manifest that the deck and the report read, the ZHAW logo, and a scripted credential-free demo recording. Every number comes from the retained bundles or a committed document; `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check` and `scripts/record_demo.py check` verify it offline (they also run in CI), and `check --bundles run_bundles` verifies it against the bundles on the primary checkout. Commands, the manifest interface, the screenshot list and the Git boundaries are in [docs/presentation_evidence.md](docs/presentation_evidence.md).
+`presentation/` holds the evidence shared by the 15-minute presentation and the 4-page report: a reviewed summary with provenance (`presentation/evidence/summary.json`), 13 full-size and 10 compact plain SVG charts, a manifest that the deck and the report read, the ZHAW logo, and a scripted credential-free demo recording. Every number comes from the retained bundles or a committed document; `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check` and `scripts/record_demo.py check` verify it offline (they also run in CI), and `check --bundles run_bundles` verifies it against the bundles on the primary checkout. Commands, the manifest interface, the screenshot list and the Git boundaries are in [docs/presentation_evidence.md](docs/presentation_evidence.md).
 
 ## Local HTML work log
 

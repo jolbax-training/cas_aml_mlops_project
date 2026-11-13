@@ -226,3 +226,43 @@ def test_compact_note_wraps_and_rejects_overlong_notes():
     assert charts.cfoot("word " * 14).count("<text") == 2
     with pytest.raises(ValueError):
         charts.cfoot("word " * 30)
+
+
+def boxes(root):
+    """Estimated text boxes (0.56 em wide per character, 0.72 em above the baseline) and shapes."""
+    texts, shapes = [], []
+    rects = [e for e in root.iter() if local(e.tag) == "rect"][1:]  # the first is the background
+    for e in rects:
+        x, y, w, h = (float(e.get(k)) for k in ("x", "y", "width", "height"))
+        shapes.append((x, y, x + w, y + h, "rect"))
+    for e in root.iter():
+        if local(e.tag) != "text":
+            continue
+        size, x, y = int(e.get("font-size")), float(e.get("x")), float(e.get("y"))
+        width = len(e.text or "") * size * 0.56
+        left = x - width if e.get("text-anchor") == "end" else x
+        texts.append((left, y - 0.72 * size, left + width, y, e.text))
+    return texts, shapes
+
+
+def overlaps(a, b):
+    return min(a[2], b[2]) - max(a[0], b[0]) > 1 and min(a[3], b[3]) - max(a[1], b[1]) > 1
+
+
+def test_no_text_overlaps_another_text_or_a_shape(rendered):
+    for name, svg in rendered.items():
+        texts, shapes = boxes(parse(svg))
+        for i, a in enumerate(texts):
+            for b in texts[i + 1:]:
+                assert not overlaps(a, b), (name, a[4], b[4])
+            for shape in shapes:
+                assert not overlaps(a, shape), (name, a[4], shape)
+
+
+def test_the_overlap_check_detects_a_collision():
+    svg = charts.svg_doc("x", "t", "d", charts.text(40, 100, "label text") + charts.rect(50, 90, 60, 12, "#000"))
+    texts, shapes = boxes(parse(svg))
+    assert overlaps(texts[0], shapes[0])
+    svg = charts.svg_doc("y", "t", "d", charts.text(40, 100, "aaaa") + charts.text(40, 104, "bbbb"))
+    texts, _ = boxes(parse(svg))
+    assert overlaps(texts[0], texts[1])

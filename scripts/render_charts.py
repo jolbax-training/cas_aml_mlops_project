@@ -206,7 +206,7 @@ def chart_outcome_by_task(s: Mapping[str, Any]) -> tuple[str, str, str]:
              text(560, 70, "Revised", weight="bold"), text(780, 70, "Change", weight="bold")]
     desc_parts = []
     for i, task in enumerate(tasks):
-        y = 106 + i * 40
+        y = 100 + i * 36
         parts.append(text(40, y + 17, task))
         for variant, x0 in (("baseline", 330), ("revised", 560)):
             won = c[variant]["per_task"][task]["succeeded"]
