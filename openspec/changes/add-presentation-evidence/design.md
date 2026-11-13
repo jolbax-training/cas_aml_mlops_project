@@ -1,0 +1,191 @@
+# Design
+
+## Context
+
+The project is complete; the user will give a 15-minute HTML presentation and hand in a 4-page printable HTML report (changes `add-presentation-deck`, `add-presentation-report`). This change produces what both share. Existing material it builds on: `codegen_eval.comparison` (`experiment_cli compare --json` already computes outcomes, per-category, per-task, failure labels, efficiency, tokens, latency, cost), `codegen_eval.trace_inspect` and `codegen_eval.bundle` (trial records), the reviewed documents (`docs/prompt_comparison.md`, `comparison_evidence.md`, `ci_evidence.md`, `smoke_evidence.md`, `demo.md`, `progress.md`), the four `docs/*.drawio.svg` diagrams, and `scripts/build_work_log.py` (the precedent for a standalone, offline, documented script with `--check` and tests loading it by path).
+
+Fixed inputs: comparison runs baseline `20261103T053309Z-280182` and revised `20261103T095324Z-d25905`; forced passing smoke `20261103T050806Z-30949f`. Retained bundles live in the primary checkout's Git-ignored `run_bundles/`, never in a worktree or in CI.
+
+## Goals / Non-Goals
+
+**Goals:** one provenanced evidence summary; deterministic accessible SVG charts; a stable manifest for the deck and the report; a screenshot plan; a reproducible credential-free recording; the logo; offline tests.
+
+**Non-Goals:** slides, report pages, new experiments or paid calls, changes under `src/`, third-party or JavaScript libraries, capturing screenshots (coordinator), writing the user's interpretation or reflections, presenting 27/30 to 29/30 as an improvement.
+
+## Decisions
+
+### 1. Layout and what is committed
+
+```
+presentation/
+  manifest.json                 committed; the consumer interface (decision 6)
+  evidence/summary.json         committed; reviewed summary (decision 2)
+  charts/<id>.svg               committed; generated from summary.json
+  assets/zhaw_rgb.jpg           committed; with zhaw_rgb.jpg.source.txt
+  screenshots/<id>.png          committed once captured by the coordinator
+  recording/demo.cast           committed after the user reviews the transcript
+  recording/player.html         committed; hand-written template, no embedded cast
+scripts/presentation_evidence.py   collect | check | manifest
+scripts/render_charts.py           summary.json -> charts/*.svg
+scripts/record_demo.py             record | build-player | check
+tests/test_presentation_*.py, tests/fixtures/presentation/
+```
+
+Committed versus generated, with reasons:
+
+| Output | Decision | Reason |
+| --- | --- | --- |
+| `summary.json` | committed | Bundles are Git-ignored and absent in CI and in the deck/report builds; a reviewed summary is exactly what `project_spec.md` allows ("reviewed result summaries"). It holds aggregates and short excerpts only. |
+| chart SVGs | committed | Small deterministic text assets that the deck and the report both embed; the spec says to commit assets. Drift is caught by byte comparison against a fresh render in `check`, so committing them cannot hide staleness. |
+| `manifest.json` | committed | The interface must be readable without running code. |
+| `demo.cast` | committed after review | A text file of tens of KB; it cannot be regenerated without Podman and the repository checkout, and it is reviewed once (it contains run IDs and timings that differ per run, so it is not byte-reproducible; the script is). |
+| player page with the cast embedded | generated into Git-ignored `report/demo.html` | It is a built HTML page (spec: exclude generated HTML); the hand-written template is what is committed. |
+| deck and report HTML | generated into `report/` by changes 2 and 3 | Same rule. |
+| raw bundles, MLflow stores, ledger | never committed, never read by these scripts | Spec line 175; the ledger additionally by the user's decision. |
+
+`/report/` is already ignored; no `.gitignore` change is needed. Scripts live in `scripts/`, not `src/`, so the evaluator source hash recorded by future runs is untouched.
+
+### 2. The summary file
+
+`presentation/evidence/summary.json`, canonical JSON (sorted keys, two-space indent, trailing newline), `schema_version: 1`. Top-level sections:
+
+- `provenance`: `generated_by` (script name and its own sha256), `commit` (Git revision it was generated at), `commands` (the exact `experiment_cli compare ... --json` and `trace_inspect verify` invocations, with relative bundle paths), and `runs`: for `baseline`, `revised`, and `smoke_forced_pass`: `run_id`, `bundle` (relative, `run_bundles/<id>`), `bundle_digest` (sha256 of `manifest.json`), `prompt` name and sha256, `mlflow_run_id` (from `comparison_evidence.md`), `completeness` (from `trace_inspect verify`).
+- `comparison`: the `compare --json` fields we need, copied unchanged: `primary`, `hidden_checks`, `edge_cases`, `categories`, `per_task`, `failure_labels`, `tasks_passing_at_least_one_trial`, `tasks_passing_every_trial`, `delta` (gained, regressed, unchanged tasks), `caveats`.
+- `efficiency`: `model_calls`, `attempts`, `tool_attempts`, `revisions`, `recovery`, `tokens`, `model_latency_ms`, `trial_wall_clock_ms`, `cost` (`reported_usd`, `charged_chf`, `reserved_before_send_chf`), per variant.
+- `stories`: `lists_02` (per variant, per trial: failure label or success, model calls, tool attempts, whether a development check failed, whether the final source began with code, from the trial records through `codegen_eval.bundle`) and `strings_01` (same, plus for the failing revised trial the failing check id and its actual value). Excerpts are truncated to a fixed length and contain no prompt text beyond what the documents already show.
+- `smoke`: forced-pass smoke run facts (call and tool-attempt counts) from its bundle, cited to `docs/smoke_evidence.md`.
+- `engineering`: `tests` (collected counts: offline group and `-m sandbox` group, from `pytest --collect-only -q` at generation, with the commit), `ci` (run IDs, jobs, outcomes and test counts), `changes_archived` (names and dates, from `openspec/changes/archive/`), `specs` (count from `openspec/specs/`).
+- `ledger_quotes`: ledger totals exactly as written in `docs/prompt_comparison.md`, taken by quoting the document, never by reading `~/.codegen_eval/spend_ledger.jsonl`.
+- `limits`: the documented limits and the non-claim ("not a measured improvement or breakthrough"), each with a `quote` from `docs/prompt_comparison.md`.
+
+Every leaf group has `source`: either `{"command": ..., "field": ...}` (bundle-derived) or `{"file": ..., "quote": ...}` (document-derived). Values derived from documents (CI run IDs and test counts, MLflow run IDs, ledger quotes, limits) are not parsed by fragile regex; the collector holds a small explicit table of `(file, quote, field)` entries, and `check` asserts that every quote still occurs verbatim in its file. If a document is edited, the check fails and a human re-reviews, which is the intended behaviour.
+
+No absolute paths: bundle locations are relative to the bundles directory that `--bundles` names.
+
+### 3. Regeneration and checking
+
+```sh
+# on the primary checkout, which has run_bundles/ (bundles dir is a flag, never written to)
+PYTHONPATH=src .venv/bin/python scripts/presentation_evidence.py collect --bundles run_bundles
+.venv/bin/python scripts/render_charts.py
+.venv/bin/python scripts/presentation_evidence.py manifest
+
+# anywhere, including CI (no bundles)
+.venv/bin/python scripts/presentation_evidence.py check
+.venv/bin/python scripts/render_charts.py --check
+# primary checkout only: also recompute bundle-derived sections
+PYTHONPATH=src .venv/bin/python scripts/presentation_evidence.py check --bundles run_bundles
+```
+
+`collect` calls `comparison.compare_runs` and `bundle` in-process (as `experiment_cli compare --json` does), refuses to run if the two runs are not a headline comparison or are incomplete, and refuses to write into the bundles directory (it opens bundles read-only through the existing loaders). It never imports `ledger` and never opens the ledger path. `check` (offline) validates structure against a schema embedded in the script, verifies every `quote`, verifies internal arithmetic (counts of at most denominators, per-task sums equal totals), and verifies the committed charts and manifest equal a fresh render. `check --bundles` additionally recomputes the bundle-derived sections and requires equality, naming the first differing field. The engineering snapshot is compared against the repository only in `check --refresh`, which reports (non-fatally) when the snapshot is older than HEAD, because test and archive counts legitimately grow when changes 2 and 3 land.
+
+The offline `check` and `render_charts.py --check` are added to the CI `offline` group's command list (task) so drift fails CI; they need only `summary.json` and documents.
+
+### 4. Chart generator
+
+`scripts/render_charts.py` reads only `summary.json` and writes plain SVG with the standard library (string templates, `xml.sax.saxutils.escape`, fixed `%.1f`/integer formatting, no timestamps or random IDs), so output is byte-identical. No JavaScript, no external font or image reference; font stack `system-ui, sans-serif`. Each SVG has `role="img"`, `aria-labelledby` pointing at `<title>` and `<desc>`, an opaque white background rect (legible on dark slides and in print), a fixed `viewBox` (16:9 for slides, with a note on narrower variants for the report: each chart is built for both by using only relative scaling inside the box and fonts at least 14 units tall at the viewBox size). The two variants differ by fill pattern (solid versus diagonal hatch) as well as hue (a colour-blind-safe blue/orange pair), so greyscale print still separates them. Every bar carries its count and denominator beside the rate (`27/30 (90.0%)`).
+
+Charts (ids are the interface):
+
+| Id | Shows |
+| --- | --- |
+| `outcome-overview` | successful trials /30, hidden checks /120, edge cases /60, baseline vs revised |
+| `outcome-by-category` | five categories, successes /6 |
+| `outcome-by-task` | ten tasks, successes /3, gained and regressed marked |
+| `failure-labels` | label counts per variant (`syntax_error`, `contract_error`, `wrong_answer`) |
+| `story-lists-02` | the six `lists_02` trials: outcome, model calls, tool attempts, failed development check, final-message form |
+| `story-strings-01` | the six `strings_01` trials, with the one failing check of `strings_01-t2` |
+| `efficiency-calls` | model calls, tool attempts, revisions |
+| `efficiency-tokens` | prompt and completion tokens |
+| `efficiency-latency` | total and mean per trial; caption: measured once, different times, no attribution |
+| `cost-charged-reserved` | charged versus reserved-before-send CHF per variant, drawn on separate scales with explicit values (the two differ by an order of magnitude) |
+| `engineering-tests` | collected offline and sandbox tests; CI `offline` and `podman` counts |
+| `engineering-ci` | CI runs recorded in `ci_evidence.md` with outcome (failed runs shown, as history) |
+| `engineering-changes` | OpenSpec changes archived, by date |
+
+Captions never use the words "improvement" or "breakthrough"; `story-lists-02` and `outcome-overview` captions in the manifest repeat the limits. Chart text comes from the summary's fields, so a number cannot be typed into a chart.
+
+### 5. Existing diagrams
+
+`docs/architecture_logical.drawio.svg`, `architecture_physical.drawio.svg`, `run_flow_activity.drawio.svg`, `run_flow_sequence.drawio.svg` (and `work_log_architecture.svg`) are listed in the manifest by repository-relative path with a role (`architecture`, `run-flow`) and caption. They are neither copied nor redrawn. A test checks each parses as XML, has no `<script>` and no external reference. Whether each is legible at slide and print size is judged in changes 2 and 3 where the layout is known.
+
+### 6. Consumer interface (changes 2 and 3)
+
+`presentation/manifest.json`, `schema_version: 1`:
+
+```json
+{
+  "schema_version": 1,
+  "title": {"author": "Jose Luis Barahona", "course": "CAS Applied Machine Learning (ZHAW)",
+            "date": null, "date_placeholder": "[DATE: fill in]",
+            "headline": "A trustworthy, reproducible, budget-safe evaluation pipeline for a coding agent"},
+  "summary": "presentation/evidence/summary.json",
+  "figures":     [{"id", "path", "format": "svg", "caption", "alt", "uses": ["deck","report"], "viewbox", "source_keys": ["comparison.primary", ...]}],
+  "diagrams":    [{"id", "path": "docs/...drawio.svg", "format": "svg", "caption", "alt", "role"}],
+  "screenshots": [{"id", "path", "format": "png", "caption", "alt", "status": "present|pending", "owner": "coordinator", "shows"}],
+  "assets":      [{"id": "zhaw-logo", "path", "format": "jpg", "source_note", "sha256"}],
+  "recording":   {"cast": "...", "player_template": "...", "built_player": "report/demo.html", "status"}
+}
+```
+
+Rules: ids and `schema_version` are stable; a change to either bumps the version. All paths are repository-relative, forward-slash, and resolve from the repository root. Consumers copy or inline files at build time into the Git-ignored `report/` and never fetch anything. Consumers read numbers from `summary.json` (never retype them) and may quote `source_keys` for footnotes. The manifest is generated by `presentation_evidence.py manifest` from a hand-edited list of ids, captions and alt texts kept in the script (so captions are reviewed text, not data), and `check` fails if a path is missing and its status is not `pending`. The date stays `null` with the placeholder visible; neither tooling nor consumers choose a date.
+
+### 7. Screenshots (coordinator-owned)
+
+The coordinator captures these with the Orca browser; MLflow must run on port 5001 and cannot run while the sandbox tests run. Files go to `presentation/screenshots/`, PNG, light theme, viewport 1440x900, and each is registered `pending` in the manifest until the file exists:
+
+| File | Shows | Must display |
+| --- | --- | --- |
+| `mlflow-experiment-runs.png` | experiment `codegen-eval-runs`, runs table | both comparison runs with names/IDs, `success_rate`, tags |
+| `mlflow-run-baseline.png` | baseline run overview (params, metrics, tags) | run `930a188254d34d279a88a7613ea55518`, bundle digest tag |
+| `mlflow-run-revised.png` | revised run overview | run `bcddf5c9561c43129504555b020a7557` |
+| `mlflow-compare.png` | the two-run comparison view | the runs side by side with `success_rate` |
+| `mlflow-trace-lists02-baseline.png` | a `lists_02` baseline trace (the explanation-after-failed-check story) | AGENT, CHAT_MODEL, TOOL spans |
+| `mlflow-trace-lists02-revised.png` | a `lists_02` revised trace | one model call, final `submission` |
+| `mlflow-trace-strings01-t2-revised.png` | `strings_01-t2` of the revised run | the final source |
+| `report-local-architecture.png` | `report/index.html` opened from disk, architecture figure | implemented/planned legend |
+| `report-local-results.png` | the report's results/comparison section | counts and limits |
+
+The three traces used avoid the five traces that MLflow cannot read back (`comparison_evidence.md`); screenshots show only local identifiers. They are references to a local service, not evidence of a hosted one.
+
+### 8. Recorder and player
+
+`scripts/record_demo.py record` runs a scripted list of steps (the credential-free part of `docs/demo.md`: credential check `env | grep -c OPENROUTER` printing 0, fixture bundle creation `run_recording --scenario tool_use_and_revision --task strings_01 --trials 2 --grade` into a temporary bundles directory, `trace_inspect list/verify/show`, `replay`, `build_work_log.py --check`) and writes `demo.cast` in asciicast v2 (JSON header line plus `[time, "o", data]` events). Decisions:
+
+- It starts each command through `env -i` with the demo's credential-free PATH, as `docs/demo.md` does; the recorded cast therefore cannot contain an inherited key. A step list of commands is data in the script; a test asserts every command is a line of `docs/demo.md` or a documented variant.
+- Timing is synthetic and fixed (a constant typing rate, a capped delay after each command, output delivered line by line), so the recording does not depend on machine speed and has no idle gaps; the timings of the real run are not shown.
+- Output is scrubbed: the home directory becomes `~`, the temporary bundles directory becomes `run_bundles`, and anything matching a secret pattern aborts the recording instead of being masked.
+- Replay is introduced with a printed line that it regrades saved candidates (no model, no credentials), matching the demo wording.
+- Full `pytest -q` (minutes) and the MLflow section are not recorded; MLflow is shown by screenshots. The comparison step reads no retained bundles unless `--retained-bundles <dir>` is given, so the recording is reproducible from a fresh checkout.
+- Only Podman and uv are required; no API call is possible because no credential is in the environment.
+
+`player.html` is hand-written (about 150 lines of vanilla JavaScript for play, pause, restart, speed, and a scrubber; no library, no network). `record_demo.py build-player` embeds the cast into the template and writes `report/demo.html`. The transcript is also embedded as static `<pre>` text, so the page is readable with scripting disabled and when printed. `record_demo.py check` validates a cast (header, monotonically increasing times, only `o` events, no absolute home path, no secret pattern) and is part of the offline tests and CI.
+
+Alternative rejected: installing asciinema, agg or vhs (not installed; third-party dependencies need the user's approval). Alternative rejected: recording a live terminal (not reproducible from a script, leaks timings and paths).
+
+### 9. Logo
+
+`presentation/assets/zhaw_rgb.jpg`, downloaded once with a single `curl` from `https://www.zhaw.ch/storage/engineering/ueber-uns/medien/zhaw_rgb.jpg`, committed with `zhaw_rgb.jpg.source.txt` (URL, download date, SHA-256, a line saying it is ZHAW's mark used for the course presentation). The manifest records the digest and `check` recomputes it. No code fetches it again. Whether the course permits using the mark is the user's call (open question).
+
+### 10. Tests
+
+All offline, deterministic, no bundles, no network, no Podman: `tests/fixtures/presentation/` holds a tiny `compare --json` output and two trial records for each story (copied from the real shapes, with invented-free values marked as fixture), a stub documents directory for the quote check, and a golden SVG per chart type. Tests cover: schema validation and arithmetic checks (failing on a tampered count); the quote check failing when a document line is edited; `check` failing on a stale chart or manifest; chart determinism and accessibility (title, desc, labels, counts beside rates, pattern fill present, no `<script>`, no `http` reference); manifest path resolution, pending status and the null date; logo digest; cast validation (accepts a valid cast, rejects a home path, a secret pattern, an out-of-order time); the player build embedding the transcript; a scan that no committed presentation file contains `/Users/`, a key-like string, or a ledger path; a test that the scripts do not import `codegen_eval.ledger` (static check). A separate offline test skips cleanly only on the optional live path (`--bundles`), which is exercised once by hand on the primary checkout and recorded in progress.
+
+## Risks / Trade-offs
+
+- Documents edited later break quotes → intended; the check names the stale quote so a human re-reviews.
+- Test and archive counts grow as changes 2 and 3 land → snapshot carries its commit; `check --refresh` reports staleness non-fatally; refresh the summary after those changes.
+- Charts embedded at slide size are small at print size → fonts at least 14 viewBox units and labels on bars rather than legends; verified for real in changes 2 and 3.
+- The recording is not byte-reproducible (run IDs) → the script and its command list are the reproducible part; the cast is reviewed once.
+- Using a third-party logo → source recorded, user decides.
+- Hatched patterns and hand-written JS add code → small, tested, and no dependency.
+
+## Migration Plan
+
+Implement on a branch from `main` in this order: collector and summary, check, charts, manifest, logo, recorder and player, docs and CI wiring. Rollback is deleting `presentation/`, the three scripts, tests, and doc edits; nothing under `src/` changes.
+
+## Open Questions
+
+- May the ZHAW logo be used and committed for this course presentation (user)?
+- Is the recording expected to include the MLflow section (needs the service and conflicts with the sandbox group), or screenshots only (assumed)?
+- Does CI `offline` get the two new `--check` commands (assumed yes; requires the coordinator to push and watch Actions)?
