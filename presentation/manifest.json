@@ -1,7 +1,7 @@
 {
   "assets": [
     {
-      "alt": "ZHAW logo",
+      "alt": "ZHAW logo: the blue lowercase letters zh above aw",
       "caption": "ZHAW logo for the title slide.",
       "format": "jpg",
       "id": "zhaw-logo",
@@ -64,6 +64,7 @@
       "caption": "Successful trials, hidden checks and edge cases for the baseline and the revised prompt. A comparison of two prompts on ten tasks with one model, not a measured improvement.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "outcome-overview",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -80,6 +81,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -87,6 +89,7 @@
       "caption": "Successful trials per category for both prompts.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "outcome-by-category",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -99,6 +102,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -106,6 +110,7 @@
       "caption": "Successful trials per task for both prompts; the gained and the regressed task are marked.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "outcome-by-task",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -119,6 +124,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -126,6 +132,7 @@
       "caption": "Grade labels of failed trials per prompt.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "failure-labels",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -138,6 +145,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -145,6 +153,7 @@
       "caption": "lists_02 trials: the baseline trials ended with explanation or fences after a wrong self-written check; the revised trials made one call and no tool attempt. The trace does not show the added sentence working on its trigger.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "story-lists-02",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -156,6 +165,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -163,6 +173,7 @@
       "caption": "strings_01 trials: one revised trial gave a wrong answer on the edge check strings_01_d.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "story-strings-01",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -174,6 +185,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -181,6 +193,7 @@
       "caption": "Model calls, tool attempts and revisions per prompt.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "efficiency-calls",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -193,6 +206,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -200,6 +214,7 @@
       "caption": "Prompt and completion tokens per prompt.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "efficiency-tokens",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -212,6 +227,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -219,6 +235,7 @@
       "caption": "Model latency per prompt. Measured once per variant at different times against a remote provider; not attributed to the prompt.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "efficiency-latency",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -231,6 +248,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -238,6 +256,7 @@
       "caption": "Charged and reserved-before-send cost in CHF per prompt. Measured once per variant; not attributed to the prompt.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "cost-charged-reserved",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -250,6 +269,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -257,6 +277,7 @@
       "caption": "Collected test counts at the recorded commit and the CI counts recorded in the evidence documents.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "engineering-tests",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -269,6 +290,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -276,6 +298,7 @@
       "caption": "CI runs recorded in the evidence documents, including failed runs kept as history.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "engineering-ci",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -287,6 +310,7 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
     },
     {
@@ -294,6 +318,7 @@
       "caption": "OpenSpec changes archived, by date.",
       "elements": "work-log set",
       "format": "svg",
+      "full_size": null,
       "id": "engineering-changes",
       "min_font_units": 20,
       "min_render_mm": 160,
@@ -305,7 +330,209 @@
         "deck",
         "report"
       ],
+      "variant": "full",
       "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with counts for successful trials, hidden checks and edge cases.",
+      "caption": "Successful trials, hidden checks and edge cases for the baseline and the revised prompt. A comparison of two prompts on ten tasks with one model, not a measured improvement. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "outcome-overview",
+      "id": "outcome-overview-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/outcome-overview-compact.svg",
+      "source_keys": [
+        "comparison.baseline.primary",
+        "comparison.revised.primary",
+        "comparison.baseline.hidden_checks",
+        "comparison.revised.hidden_checks",
+        "comparison.baseline.edge_cases",
+        "comparison.revised.edge_cases"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Paired bars with counts for five task categories.",
+      "caption": "Successful trials per category for both prompts. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "outcome-by-category",
+      "id": "outcome-by-category-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/outcome-by-category-compact.svg",
+      "source_keys": [
+        "comparison.baseline.categories",
+        "comparison.revised.categories"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Paired bars with the number of trials per failure label.",
+      "caption": "Grade labels of failed trials per prompt. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "failure-labels",
+      "id": "failure-labels-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/failure-labels-compact.svg",
+      "source_keys": [
+        "comparison.baseline.failure_labels",
+        "comparison.revised.failure_labels"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Table of the lists_02 trials with result, model calls, tool attempts and final message form.",
+      "caption": "lists_02 trials: the baseline trials ended with explanation or fences after a wrong self-written check; the revised trials made one call and no tool attempt. The trace does not show the added sentence working on its trigger. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "story-lists-02",
+      "id": "story-lists-02-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/story-lists-02-compact.svg",
+      "source_keys": [
+        "stories.lists_02"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Table of the strings_01 trials with result, calls, tool attempts and the failed hidden check.",
+      "caption": "strings_01 trials: one revised trial gave a wrong answer on the edge check strings_01_d. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "story-strings-01",
+      "id": "story-strings-01-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/story-strings-01-compact.svg",
+      "source_keys": [
+        "stories.strings_01"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Paired bars with counts.",
+      "caption": "Model calls, tool attempts and revisions per prompt. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "efficiency-calls",
+      "id": "efficiency-calls-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/efficiency-calls-compact.svg",
+      "source_keys": [
+        "efficiency.baseline",
+        "efficiency.revised"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Paired bars with seconds.",
+      "caption": "Model latency per prompt. Measured once per variant at different times against a remote provider; not attributed to the prompt. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "efficiency-latency",
+      "id": "efficiency-latency-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/efficiency-latency-compact.svg",
+      "source_keys": [
+        "efficiency.baseline.model_latency_ms",
+        "efficiency.revised.model_latency_ms"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Paired bars with CHF values on separate scales.",
+      "caption": "Charged and reserved-before-send cost in CHF per prompt. Measured once per variant; not attributed to the prompt. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "cost-charged-reserved",
+      "id": "cost-charged-reserved-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/cost-charged-reserved-compact.svg",
+      "source_keys": [
+        "efficiency.baseline.cost",
+        "efficiency.revised.cost"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Bars with test counts.",
+      "caption": "Collected test counts at the recorded commit and the CI counts recorded in the evidence documents. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "engineering-tests",
+      "id": "engineering-tests-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/engineering-tests-compact.svg",
+      "source_keys": [
+        "engineering.tests",
+        "engineering.ci"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
+    },
+    {
+      "alt": "Bars with the number of changes archived per date.",
+      "caption": "OpenSpec changes archived, by date. Compact variant for half a text column.",
+      "elements": "work-log set",
+      "format": "svg",
+      "full_size": "engineering-changes",
+      "id": "engineering-changes-compact",
+      "min_font_units": 17,
+      "min_render_mm": 78,
+      "path": "presentation/charts/engineering-changes-compact.svg",
+      "source_keys": [
+        "engineering.changes_archived"
+      ],
+      "uses": [
+        "report"
+      ],
+      "variant": "compact",
+      "viewbox": "0 0 480 270"
     }
   ],
   "recording": {
@@ -424,5 +651,21 @@
     "date": null,
     "date_placeholder": "[DATE: fill in]",
     "headline": "A trustworthy, reproducible, budget-safe evaluation pipeline for a coding agent"
+  },
+  "user_text": {
+    "alt": "Text the user writes for the deck and the report; empty slots show a placeholder.",
+    "note": "tools never fill these slots; consumers show a visible placeholder for an empty one",
+    "owner": "user",
+    "path": "presentation/user_text.toml",
+    "slots": {
+      "motivation": {
+        "deck": "empty",
+        "report": "empty"
+      },
+      "takeaways": {
+        "deck": "empty",
+        "report": "empty"
+      }
+    }
   }
 }

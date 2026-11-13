@@ -105,6 +105,8 @@ Charts (ids are the interface):
 | `engineering-ci` | CI runs recorded in `ci_evidence.md` with outcome (failed runs shown, as history) |
 | `engineering-changes` | OpenSpec changes archived, by date |
 
+Each has the full-size form above and, for ten of them, a compact form (decision 11).
+
 Captions never use the words "improvement" or "breakthrough"; `story-lists-02` and `outcome-overview` captions in the manifest repeat the limits. Chart text comes from the summary's fields, so a number cannot be typed into a chart.
 
 ### 5. Existing diagrams
@@ -173,6 +175,24 @@ Alternative rejected: installing asciinema, agg or vhs (not installed; third-par
 ### 10. Tests
 
 All offline, deterministic, no bundles, no network, no Podman: `tests/fixtures/presentation/` holds a tiny `compare --json` output and two trial records for each story (copied from the real shapes, with invented-free values marked as fixture), a stub documents directory for the quote check, and a golden SVG per chart type. Tests cover: schema validation and arithmetic checks (failing on a tampered count); the quote check failing when a document line is edited; `check` failing on a stale chart or manifest; chart determinism and accessibility (title, desc, labels, counts beside rates, pattern fill present, no `<script>`, no `http` reference); manifest path resolution, pending status and the null date; logo digest; cast validation (accepts a valid cast, rejects a home path, a secret pattern, an out-of-order time); the player build embedding the transcript; a scan that no committed presentation file contains `/Users/`, a key-like string, or a ledger path; a static test that no script imports `codegen_eval.ledger` directly or contains the ledger path, and a runtime test that patches `open` to fail on any path under `~/.codegen_eval` while `collect` runs on the fixtures and asserts `CODEGEN_EVAL_LEDGER` was redirected; a test that tampers with a stored document-derived value while leaving its quote intact and expects `check` to fail, and one that edits a `docs/prompt_comparison.md` fixture line and expects the offline cross-check to fail; a chart test that every `font-size` is at least 20 and only the allowed element set occurs. A separate offline test skips cleanly only on the optional live path (`--bundles`), which is exercised once by hand on the primary checkout and recorded in progress.
+
+### 11. Compact half-width chart variants (user decision D1, round 2)
+
+The report keeps exactly four A4 pages, shows about eight key charts across the four sets, and gives the remaining figures as compact numeric tables read from `summary.json`. For that, ten charts get a compact variant with its own id `<id>-compact` and the file `presentation/charts/<id>-compact.svg`; the manifest entry carries `variant: "compact"` and `full_size: "<id>"` (full-size entries carry `variant: "full"`, `full_size: null`). Compact charts exist for `outcome-overview`, `outcome-by-category`, `failure-labels`, `story-lists-02`, `story-strings-01`, `efficiency-calls`, `efficiency-latency`, `cost-charged-reserved`, `engineering-tests` and `engineering-changes`; `outcome-by-task` and `engineering-ci` are tables in the report.
+
+Arithmetic: viewBox `0 0 480 270` (16:9), rendered at no less than 78 mm wide (half of a 160-180 mm A4 text column less a gutter). One unit is then 78/480 = 0.1625 mm, so a 17-unit font is 2.76 mm = 7.8 pt, above the required 7.5 pt (7.5 pt = 2.646 mm needs at least 16.3 units at that width). The minimum font size is therefore 17 units, enforced by a test for every compact text; the full-size minimum stays 20 units at 160 mm. Compact charts use shorter titles, a short legend (`Baseline v1`, `Revised v2`, derived from the prompt versions), counts with a rounded percentage (`27/30 90%`), and a one- or two-line note of at most 48 characters. Same element set, hatch, opaque background and determinism rules as the full charts; an offline test estimates every text's extent and fails if it leaves the viewBox.
+
+### 12. Protocol facts in the summary (D2)
+
+`summary.json` gains a `protocol` section so neither the deck nor the report keeps a quote table of its own: `tasks` (ten), `trials_per_task` (three), `planned_trials_per_variant` (30), `planned_trials_total` (60), `ceiling_chf` (15), `checkpoint_chf` (10), `ledger_total_chf` (the total after both runs, quoted from the comparison document), `probes_passed` (67) and `probe_categories` (the five protected-asset categories of the threat model, whose probes carry the isolation evidence). Each value is an entry of the existing quote table (committed document, verbatim quote, declared extraction), so `check` verifies the quote is in the file and the value is what the quote gives; counts written as words ("ten", "three") are read with a word-to-integer extraction. The ceiling and checkpoint are quoted from the budget decision in `docs/progress.md`; no ledger file or evaluator ledger code is read.
+
+### 13. Shared user text (D3)
+
+`presentation/user_text.toml` has empty slots `motivation`, `takeaways`, each with `deck` (short) and `report` (long), under a comment saying the user writes them and tools never fill them. The manifest lists it under `user_text` with its slots and whether each is `empty` or `filled`; the deck and the report render empty slots as visible placeholders and create no user-text file of their own. No script in this change opens it for writing; a test asserts the committed file's slots are empty and that none of the scripts writes to it. (The report path `report/presentation_report.html` and the deck's link to it are consumer decisions (D4), not part of this interface.)
+
+### 14. Interface additions and the schema version (A5)
+
+The manifest gains `variant` and `full_size` on figures, compact figure entries, a `user_text` object, and required `alt` text on every entry including assets; `summary.json` gains `protocol`. All of these are additions; no id, path, key or meaning of the version-1 interface changed, so `schema_version` stays 1. A consumer written for the earlier version-1 manifest keeps working; a future removal or rename would need a bump.
 
 ## Risks / Trade-offs
 

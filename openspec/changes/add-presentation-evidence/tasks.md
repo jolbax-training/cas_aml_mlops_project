@@ -35,3 +35,11 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [ ] 5.3a (coordinator) Push, watch the Actions run, and record its run ID and result in `docs/ci_evidence.md`.
 - [x] 5.4 Run `check` without bundles and `check --bundles <absolute path of the primary checkout's run_bundles>` from this worktree (read-only); record both in `docs/progress.md` as observed results only, leaving interpretation and reflections to the user.
 - [x] 5.5 Run `openspec validate add-presentation-evidence --strict`.
+
+## 6. Round 2 additions (decisions D1-D3)
+
+- [x] 6.1 Add compact half-width variants (decision 11): viewBox 480x270, fonts at least 17 units, ten charts, manifest fields `variant` and `full_size`; extend the font-size, extent, determinism and link tests.
+- [x] 6.2 Add the `protocol` section (decision 12) from the quote table, with tamper tests and the `check` cross-verification.
+- [x] 6.3 Add `presentation/user_text.toml` with empty marked slots, list it in the manifest, and test that tools never write it (decision 13).
+- [x] 6.4 Require non-empty `alt` on every manifest entry including assets and improve the logo's alt text.
+- [ ] 6.5 Record in `docs/presentation_evidence.md` and `docs/progress.md` the additions and that `schema_version` stays 1 because they are additive (decision 14); rerun the full checks and tests.

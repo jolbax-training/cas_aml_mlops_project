@@ -1067,6 +1067,162 @@
     },
     {
       "cell": null,
+      "field": "protocol.tasks",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "wordint",
+      "lines": 1,
+      "pattern": "(\\w+) tasks x (\\w+) trials",
+      "quote": "- Experiment `prompt_comparison_v1`: schedule sha256 `2321794e750983439ca52eb5d7980b1dac69fcfa5ea13ae46ca19de271a1274c`, ten tasks x three trials, `task_major` order. The experiment configuration hash as recorded differs by design: baseline `ceec6d99…` (revised prompt not yet set), revised `465c76e8…` (current file, revised prompt set; full values in [comparison_evidence.md](comparison_evidence.md)). The fields that must agree, and do, are the schedule sha256, settings hash and evaluator code hash.",
+      "start": "- Experiment `prompt_comparison_v1`",
+      "value": 10
+    },
+    {
+      "cell": null,
+      "field": "protocol.trials_per_task",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "wordint",
+      "lines": 1,
+      "pattern": "(\\w+) tasks x (\\w+) trials",
+      "quote": "- Experiment `prompt_comparison_v1`: schedule sha256 `2321794e750983439ca52eb5d7980b1dac69fcfa5ea13ae46ca19de271a1274c`, ten tasks x three trials, `task_major` order. The experiment configuration hash as recorded differs by design: baseline `ceec6d99…` (revised prompt not yet set), revised `465c76e8…` (current file, revised prompt set; full values in [comparison_evidence.md](comparison_evidence.md)). The fields that must agree, and do, are the schedule sha256, settings hash and evaluator code hash.",
+      "start": "- Experiment `prompt_comparison_v1`",
+      "value": 3
+    },
+    {
+      "cell": null,
+      "field": "protocol.planned_per_variant",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) trials per variant \\((\\d+) in total\\)",
+      "quote": "**Cut order and buffer (task 3.2).** The cut order was not applied: nothing in this repository's records shows that anything was cut or reduced. The ten-task benchmark, 30 trials per variant (60 in total), fixed denominators, the 67 probes, both CI jobs and the MLflow records are all present as recorded above. No presentation polish was dropped on purpose either. The repository holds no per-day hour log, so use of the two-hour buffer is not recorded.",
+      "start": "**Cut order and buffer (task 3.2).**",
+      "value": 30
+    },
+    {
+      "cell": null,
+      "field": "protocol.planned_total",
+      "file": "docs/progress.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) trials per variant \\((\\d+) in total\\)",
+      "quote": "**Cut order and buffer (task 3.2).** The cut order was not applied: nothing in this repository's records shows that anything was cut or reduced. The ten-task benchmark, 30 trials per variant (60 in total), fixed denominators, the 67 probes, both CI jobs and the MLflow records are all present as recorded above. No presentation polish was dropped on purpose either. The repository holds no per-day hour log, so use of the two-hour buffer is not recorded.",
+      "start": "**Cut order and buffer (task 3.2).**",
+      "value": 60
+    },
+    {
+      "cell": null,
+      "field": "protocol.checkpoint_chf",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "CHF (\\d+) checkpoint",
+      "quote": "- **Budget:** One ledger across all paid calls. CHF 10 checkpoint continues automatically; CHF 15 ceiling blocks over-budget reservations. One retry per failed request and at most two per trial; uncertain charges retain reservations.",
+      "start": "- **Budget:** One ledger across all paid calls.",
+      "value": 10
+    },
+    {
+      "cell": null,
+      "field": "protocol.ceiling_chf",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "CHF (\\d+) ceiling",
+      "quote": "- **Budget:** One ledger across all paid calls. CHF 10 checkpoint continues automatically; CHF 15 ceiling blocks over-budget reservations. One retry per failed request and at most two per trial; uncertain charges retain reservations.",
+      "start": "- **Budget:** One ledger across all paid calls.",
+      "value": 15
+    },
+    {
+      "cell": 3,
+      "field": "protocol.ledger_total_chf",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "-> ([\\d.]+)$",
+      "quote": "| Ledger (CHF) | 0.001123954886 -> 0.003876933730 | 0.003876933730 -> 0.0068475273497 |",
+      "start": "| Ledger (CHF) |",
+      "value": "0.0068475273497"
+    },
+    {
+      "cell": null,
+      "field": "protocol.probes_passed",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "the (\\d+) probes",
+      "quote": "**Cut order and buffer (task 3.2).** The cut order was not applied: nothing in this repository's records shows that anything was cut or reduced. The ten-task benchmark, 30 trials per variant (60 in total), fixed denominators, the 67 probes, both CI jobs and the MLflow records are all present as recorded above. No presentation polish was dropped on purpose either. The repository holds no per-day hour log, so use of the two-hour buffer is not recorded.",
+      "start": "**Cut order and buffer (task 3.2).**",
+      "value": 67
+    },
+    {
+      "cell": 1,
+      "field": "protocol.probe_category.0",
+      "file": "docs/threat_model.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Hidden expected answers and scoring code | Candidate must not see them or influence the verdict beyond its own return value |",
+      "start": "| Hidden expected answers",
+      "value": "Hidden expected answers and scoring code"
+    },
+    {
+      "cell": 1,
+      "field": "protocol.probe_category.1",
+      "file": "docs/threat_model.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Credentials, API keys, host environment | Candidate must not read or exfiltrate them |",
+      "start": "| Credentials, API keys",
+      "value": "Credentials, API keys, host environment"
+    },
+    {
+      "cell": 1,
+      "field": "protocol.probe_category.2",
+      "file": "docs/threat_model.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Tracking services and repository files | Candidate must not reach MLflow, the network, or host files |",
+      "start": "| Tracking services",
+      "value": "Tracking services and repository files"
+    },
+    {
+      "cell": 1,
+      "field": "protocol.probe_category.3",
+      "file": "docs/threat_model.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Podman control | Candidate must not reach the Podman socket or other containers |",
+      "start": "| Podman control",
+      "value": "Podman control"
+    },
+    {
+      "cell": 1,
+      "field": "protocol.probe_category.4",
+      "file": "docs/threat_model.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Score integrity | Candidate must not forge a result or hide that it mutated its inputs |",
+      "start": "| Score integrity",
+      "value": "Score integrity"
+    },
+    {
+      "cell": null,
       "field": "ci.r1.run",
       "file": "docs/progress.md",
       "group": 1,
@@ -1711,7 +1867,7 @@
       "count": 14
     },
     "tests": {
-      "commit": "624d04f3611dcc220a8e1efd80c9a35249be8fca",
+      "commit": "9fdfc0ccd8391a662e123b1db4febec00b0368c8",
       "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
       "offline_collected": 825,
       "sandbox_collected": 67
@@ -1735,16 +1891,34 @@
     "non_claim": "not a claim of improvement",
     "statement": "A comparison of two prompts on ten tasks with one model; the decision is a reasoned keep, not a measured improvement or breakthrough."
   },
+  "protocol": {
+    "ceiling_chf": 15,
+    "checkpoint_chf": 10,
+    "ledger_total_chf": "0.0068475273497",
+    "planned_trials_per_variant": 30,
+    "planned_trials_total": 60,
+    "probe_categories": [
+      "Hidden expected answers and scoring code",
+      "Credentials, API keys, host environment",
+      "Tracking services and repository files",
+      "Podman control",
+      "Score integrity"
+    ],
+    "probes_passed": 67,
+    "source": "quoted from committed documents (see documents); the ledger is never read",
+    "tasks": 10,
+    "trials_per_task": 3
+  },
   "provenance": {
     "commands": [
       "PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli compare --baseline 20261103T053309Z-280182 --revised 20261103T095324Z-d25905 --bundles <bundles> --json",
       "PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles <bundles> verify <run_id> (each of the three runs)",
       "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"
     ],
-    "commit": "624d04f3611dcc220a8e1efd80c9a35249be8fca",
+    "commit": "9fdfc0ccd8391a662e123b1db4febec00b0368c8",
     "generated_by": {
       "script": "scripts/presentation_evidence.py",
-      "sha256": "08e92f669898eccbd86e474a111c47ded1ee42b9afa5820404acd2f569eae936"
+      "sha256": "24513f92bf74ac21ec0eb8112f1ab9f4495c178cbf7f206aff17b8cbded71d45"
     },
     "runs": {
       "baseline": {

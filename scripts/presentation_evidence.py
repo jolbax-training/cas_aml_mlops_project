@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -73,6 +74,10 @@ def _pair(name: str, start: str, pattern: str, *, kind: str = "int", group: int 
             for variant, cell in ((BASELINE, 2), (REVISED, 3))]
 
 
+WORD_INTS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+             "eight": 8, "nine": 9, "ten": 10}
+PROBE_ASSET_ROWS = ("| Hidden expected answers", "| Credentials, API keys", "| Tracking services",
+                    "| Podman control", "| Score integrity")
 CATEGORIES = ("dictionaries", "lists", "numeric_logic", "parsing_formatting", "strings")
 LIMITS = ("Small n.", "Benchmark-informed tuning.", "Single model and provider.",
           "Fixed sampling, no repeated runs.", "Provider precision not returned.",
@@ -166,6 +171,22 @@ def document_table() -> list[dict[str, Any]]:
         t.append(_entry(f"limit.{i}", PC, f"- **{title}", r"^- \*\*(.+?)\*\*"))
     t.append(_entry("non_claim", PC, "3. With 30 trials per variant",
                     r"(not a claim of improvement)"))
+    experiment = "- Experiment `prompt_comparison_v1`"
+    budget, cut = "- **Budget:** One ledger across all paid calls.", "**Cut order and buffer (task 3.2).**"
+    t += [
+        _entry("protocol.tasks", PC, experiment, r"(\w+) tasks x (\w+) trials", kind="wordint"),
+        _entry("protocol.trials_per_task", PC, experiment, r"(\w+) tasks x (\w+) trials", group=2,
+               kind="wordint"),
+        _entry("protocol.planned_per_variant", PR, cut, r"(\d+) trials per variant \((\d+) in total\)",
+               kind="int"),
+        _entry("protocol.planned_total", PR, cut, r"(\d+) trials per variant \((\d+) in total\)",
+               group=2, kind="int"),
+        _entry("protocol.checkpoint_chf", PR, budget, r"CHF (\d+) checkpoint", kind="int"),
+        _entry("protocol.ceiling_chf", PR, budget, r"CHF (\d+) ceiling", kind="int"),
+        _entry("protocol.ledger_total_chf", PC, "| Ledger (CHF) |", r"-> ([\d.]+)$", cell=3),
+        _entry("protocol.probes_passed", PR, cut, r"the (\d+) probes", kind="int")]
+    for i, row in enumerate(PROBE_ASSET_ROWS):
+        t.append(_entry(f"protocol.probe_category.{i}", "docs/threat_model.md", row, r"^(.+)$", cell=1))
     for key, run in CI_RUNS.items():
         for name, (cell, pattern, kind) in run["fields"].items():
             t.append(_entry(f"ci.{key}.{name}", run["file"], run["start"], pattern, cell=cell,
@@ -201,6 +222,10 @@ def extract_value(quote: str, cell: int | None, pattern: str, group: int, kind: 
         return int(raw.replace(",", ""))
     if kind == "float":
         return float(raw)
+    if kind == "wordint":
+        if raw.lower() not in WORD_INTS:
+            raise EvidenceError(f"{raw!r} is not a number word")
+        return WORD_INTS[raw.lower()]
     return raw
 
 
@@ -226,6 +251,15 @@ def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
                   if name.startswith(f"ci.{key}.")}
         runs.setdefault(record["run"], {}).update(record)
     return {
+        "protocol": {
+            "tasks": v["protocol.tasks"], "trials_per_task": v["protocol.trials_per_task"],
+            "planned_trials_per_variant": v["protocol.planned_per_variant"],
+            "planned_trials_total": v["protocol.planned_total"],
+            "checkpoint_chf": v["protocol.checkpoint_chf"], "ceiling_chf": v["protocol.ceiling_chf"],
+            "ledger_total_chf": v["protocol.ledger_total_chf"],
+            "probes_passed": v["protocol.probes_passed"],
+            "probe_categories": [v[f"protocol.probe_category.{i}"] for i in range(len(PROBE_ASSET_ROWS))],
+            "source": "quoted from committed documents (see documents); the ledger is never read"},
         "ci_runs": list(runs.values()),
         "mlflow_runs": {variant: v[f"mlflow_run.{variant}"] for variant in VARIANTS},
         "ledger_quotes": {variant: v[f"ledger_chf.{variant}"] for variant in VARIANTS},
@@ -360,6 +394,7 @@ def assemble(live: Mapping[str, Any], root: Path = REPO_ROOT, *,
             "runs": assemble_runs(live, documents)},
         **bundle_sections,
         "engineering": engineering_section(live, root, doc_sections["ci_runs"]),
+        "protocol": doc_sections["protocol"],
         "ledger_quotes": {**doc_sections["ledger_quotes"],
                           "source": "quoted from docs/prompt_comparison.md; the ledger is never read"},
         "limits": doc_sections["limits"],
@@ -458,7 +493,7 @@ def validate_structure(summary: Mapping[str, Any]) -> list[str]:
     if summary.get("schema_version") != SCHEMA_VERSION:
         problems.append(f"schema_version must be {SCHEMA_VERSION}")
     for key in ("provenance", "comparison", "efficiency", "stories", "smoke", "engineering",
-                "ledger_quotes", "limits", "documents"):
+                "ledger_quotes", "limits", "documents", "protocol"):
         if key not in summary:
             problems.append(f"missing section {key!r}")
     if problems:
@@ -569,6 +604,19 @@ def cross_check(summary: Mapping[str, Any]) -> list[str]:
         actual = summary["comparison"][variant]["failure_labels"].get(label, 0)
         if v[f"failure_label.{label}.{variant}"] != actual:
             problems.append(f"failure_label.{label}.{variant}: summary has {actual}")
+    protocol = summary["protocol"]
+    base = summary["comparison"]["baseline"]
+    if protocol["tasks"] != len(base["per_task"]):
+        problems.append(f"protocol.tasks: {protocol['tasks']} but the comparison has {len(base['per_task'])} tasks")
+    if protocol["trials_per_task"] != base["trials_per_task"][0]:
+        problems.append("protocol.trials_per_task differs from the comparison")
+    if protocol["planned_trials_per_variant"] != base["primary"]["of"] \
+            or protocol["planned_trials_total"] != 2 * base["primary"]["of"]:
+        problems.append("protocol planned trials differ from the comparison denominators")
+    if protocol["tasks"] * protocol["trials_per_task"] != protocol["planned_trials_per_variant"]:
+        problems.append("protocol: tasks x trials per task is not the planned trials per variant")
+    if not summary["ledger_quotes"][REVISED].endswith(protocol["ledger_total_chf"]):
+        problems.append("protocol.ledger_total_chf is not the end of the revised ledger quote")
     delta = summary["comparison"]["delta"]
     if [v["task.gained"]] != delta["gained_tasks"] or [v["task.regressed"]] != delta["regressed_tasks"]:
         problems.append("gained/regressed tasks differ from the comparison document")
@@ -603,7 +651,7 @@ def check_documents(summary: Mapping[str, Any], root: Path) -> list[str]:
         elif have != want:
             problems.append(f"{field}: stored entry differs from the script's table")
     doc_sections = assemble_doc_sections(stored)
-    for key, name in (("limits", "limits"), ("ledger_quotes", "ledger_quotes")):
+    for key, name in (("limits", "limits"), ("ledger_quotes", "ledger_quotes"), ("protocol", "protocol")):
         if {k: v for k, v in summary[key].items() if k in doc_sections[name]} != doc_sections[name]:
             problems.append(f"{key}: differs from the quote table")
     if summary["engineering"]["ci"]["runs"] != doc_sections["ci_runs"]:
@@ -675,6 +723,27 @@ LOGO = ("zhaw-logo", "presentation/assets/zhaw_rgb.jpg", "presentation/assets/zh
 CAST_REL = "presentation/recording/demo.cast"
 PLAYER_REL = "presentation/recording/player.html"
 REVIEW_REL = "presentation/recording/review.txt"
+USER_TEXT_REL = "presentation/user_text.toml"
+USER_TEXT_SLOTS = ("motivation", "takeaways")
+USER_TEXT_KEYS = ("deck", "report")
+
+
+def read_user_text(root: Path) -> dict[str, Any]:
+    path = root / USER_TEXT_REL
+    try:
+        return tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise EvidenceError(f"cannot read {USER_TEXT_REL}: {error}") from error
+
+
+def user_text_entry(root: Path) -> dict[str, Any]:
+    """Where the user's words live and which slots are still empty; this never writes the file."""
+    data = read_user_text(root)
+    slots = {slot: {key: ("filled" if str(data.get(slot, {}).get(key, "")).strip() else "empty")
+                    for key in USER_TEXT_KEYS} for slot in USER_TEXT_SLOTS}
+    return {"path": USER_TEXT_REL, "owner": "user", "slots": slots,
+            "alt": "Text the user writes for the deck and the report; empty slots show a placeholder.",
+            "note": "tools never fill these slots; consumers show a visible placeholder for an empty one"}
 
 
 def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
@@ -683,8 +752,17 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
         figures.append({
             "id": meta["id"], "path": f"{CHARTS_REL}/{meta['id']}.svg", "format": "svg",
             "caption": meta["caption"], "alt": meta["alt"], "uses": ["deck", "report"],
+            "variant": "full", "full_size": None,
             "viewbox": render_charts.VIEWBOX, "min_render_mm": 160,
             "min_font_units": render_charts.MIN_FONT, "elements": "work-log set",
+            "source_keys": meta["source_keys"]})
+    for meta in render_charts.COMPACT_META:
+        figures.append({
+            "id": meta["id"], "path": f"{CHARTS_REL}/{meta['id']}.svg", "format": "svg",
+            "caption": meta["caption"], "alt": meta["alt"], "uses": ["report"],
+            "variant": "compact", "full_size": meta["full_size"],
+            "viewbox": render_charts.COMPACT_VIEWBOX, "min_render_mm": render_charts.COMPACT_MIN_MM,
+            "min_font_units": render_charts.COMPACT_MIN_FONT, "elements": "work-log set",
             "source_keys": meta["source_keys"]})
     diagrams = [{"id": i, "path": p, "format": "svg", "caption": c, "alt": a, "role": role,
                  "status": "present" if (root / p).is_file() else "pending"}
@@ -698,7 +776,7 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
     logo_id, logo_path, note_path, logo_caption = LOGO
     logo_file = root / logo_path
     asset = {"id": logo_id, "path": logo_path, "format": "jpg", "caption": logo_caption,
-             "alt": "ZHAW logo", "source_note": note_path,
+             "alt": "ZHAW logo: the blue lowercase letters zh above aw", "source_note": note_path,
              "sha256": sha256_file(logo_file) if logo_file.is_file() else None,
              "status": "present" if logo_file.is_file() else "pending"}
     cast = root / CAST_REL
@@ -709,7 +787,7 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
         "title": {"author": "Jose Luis Barahona", "course": "CAS Applied Machine Learning (ZHAW)",
                   "date": None, "date_placeholder": DATE_PLACEHOLDER, "headline": HEADLINE},
         "summary": SUMMARY_REL, "figures": figures, "diagrams": diagrams,
-        "screenshots": screenshots, "assets": [asset],
+        "screenshots": screenshots, "assets": [asset], "user_text": user_text_entry(root),
         "recording": {"cast": CAST_REL, "player_template": PLAYER_REL,
                       "built_player": "report/demo.html", "status": status,
                       "note": "kept for interested viewers; not part of the talk"}}
@@ -719,16 +797,32 @@ def check_manifest(manifest: Mapping[str, Any], root: Path) -> list[str]:
     problems: list[str] = []
     if manifest.get("title", {}).get("date") is not None:
         problems.append("manifest title.date must stay null (the user fills it in)")
+    ids = {e["id"] for e in manifest["figures"]}
+    for entry in manifest["figures"]:
+        if entry.get("variant") == "compact" and entry.get("full_size") not in ids:
+            problems.append(f"figures {entry['id']}: full_size {entry.get('full_size')!r} is not a figure")
+        if entry.get("variant") == "full" and entry.get("full_size") is not None:
+            problems.append(f"figures {entry['id']}: a full-size figure has no full_size")
+    for chart_id, _ in ((m["full_size"], m) for m in render_charts.COMPACT_META):
+        if not any(e["id"] == f"{chart_id}-compact" for e in manifest["figures"]):
+            problems.append(f"figures: no compact variant of {chart_id}")
     entries = ([("figures", e) for e in manifest["figures"]]
                + [("diagrams", e) for e in manifest["diagrams"]]
                + [("screenshots", e) for e in manifest["screenshots"]]
                + [("assets", e) for e in manifest["assets"]])
     for kind, entry in entries:
+        if not str(entry.get("alt", "")).strip():
+            problems.append(f"{kind} {entry['id']}: alt text is required")
         present = (root / entry["path"]).is_file()
         if not present and entry.get("status") != "pending":
             problems.append(f"{kind} {entry['id']}: {entry['path']} is missing and not pending")
         if present and entry.get("status") == "pending":
             problems.append(f"{kind} {entry['id']}: file exists but is marked pending")
+    user_text = manifest.get("user_text")
+    if not user_text or not (root / user_text.get("path", "")).is_file():
+        problems.append("manifest user_text: the user-text file is missing")
+    elif not str(user_text.get("alt", "")).strip():
+        problems.append("manifest user_text: alt text is required")
     for entry in manifest["assets"]:
         note = root / entry.get("source_note", "")
         if entry["status"] == "present":

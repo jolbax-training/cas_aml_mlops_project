@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -26,6 +27,12 @@ CHARTS_DIR = REPO_ROOT / "presentation" / "charts"
 W, H = 960, 540
 VIEWBOX = f"0 0 {W} {H}"
 MIN_FONT = 20
+# Compact variants for half an A4 text column: at 78 mm wide one unit is 78/480 = 0.1625 mm, so
+# 17 units is 2.76 mm = 7.8 pt, above the 7.5 pt floor (7.5 pt needs 16.3 units at that width).
+CW, CH = 480, 270
+COMPACT_VIEWBOX = f"0 0 {CW} {CH}"
+COMPACT_MIN_FONT = 17
+COMPACT_MIN_MM = 78
 INK, MUTED, GRID = "#1a1a1a", "#4d4d4d", "#c8c8c8"
 BASE_FILL = "#1f4e8c"
 REV_FILL, REV_STROKE = "#f7c999", "#a33f00"
@@ -63,10 +70,10 @@ def hatch(x: int, y: int, w: int, h: int, step: int = 8) -> str:
     return f'<path d="{"".join(parts)}" fill="none" stroke="{REV_STROKE}" stroke-width="2"/>'
 
 
-def bar(x: int, y: int, w: int, h: int, variant: str) -> str:
+def bar(x: int, y: int, w: int, h: int, variant: str, step: int = 8) -> str:
     """One bar: solid for baseline (and single series), hatched and outlined for revised."""
     if variant == "revised":
-        return rect(x, y, w, h, REV_FILL, REV_STROKE) + hatch(x, y, w, h)
+        return rect(x, y, w, h, REV_FILL, REV_STROKE) + hatch(x, y, w, h, step)
     return rect(x, y, w, h, SINGLE_FILL if variant == "single" else BASE_FILL)
 
 
@@ -84,13 +91,13 @@ def legend(summary: Mapping[str, Any], y: int = 62) -> str:
     return "".join(parts)
 
 
-def svg_doc(cid: str, title: str, desc: str, body: str) -> str:
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{VIEWBOX}" width="{W}" height="{H}" '
+def svg_doc(cid: str, title: str, desc: str, body: str, w: int = W, h: int = H) -> str:
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
             f'role="img" aria-labelledby="{cid}-title {cid}-desc">\n'
             f'<title id="{cid}-title">{esc(title)}</title>\n'
             f'<desc id="{cid}-desc">{esc(desc)}</desc>\n'
             '<style>text{font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}</style>\n'
-            f'<rect x="0" y="0" width="{W}" height="{H}" fill="#ffffff"/>\n'
+            f'<rect x="0" y="0" width="{w}" height="{h}" fill="#ffffff"/>\n'
             f'{body}\n</svg>\n')
 
 
@@ -386,6 +393,204 @@ def chart_engineering_changes(s: Mapping[str, Any]) -> tuple[str, str, str]:
     return title, f"{count} archived changes by date. " + describe(rows), body
 
 
+# --- compact variants (half an A4 text column) ---------------------------------------------------
+
+def vshort(s: Mapping[str, Any], variant: str) -> str:
+    match = re.search(r"_(v\d+)$", s["provenance"]["runs"][variant]["prompt"]["version"])
+    return f"{variant.capitalize()} {match.group(1)}" if match else variant.capitalize()
+
+
+def climit(s: Mapping[str, Any]) -> str:
+    return f"Not a measured improvement ({s['comparison']['baseline']['primary']['of']} trials each)."
+
+
+def cheading(title: str) -> str:
+    return text(8, 20, title, size=19, weight="bold")
+
+
+def clegend(s: Mapping[str, Any], y: int = 44) -> str:
+    return "".join(bar(x, y - 13, 22, 14, v, 6) + text(x + 30, y, vshort(s, v), size=COMPACT_MIN_FONT)
+                   for x, v in ((8, "baseline"), (200, "revised")))
+
+
+def cfoot(note: str) -> str:
+    """At most two lines of at most 48 characters, ending near the bottom edge."""
+    lines, line = [], ""
+    for word in note.split():
+        if line and len(line) + 1 + len(word) > 48:
+            lines.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    lines.append(line)
+    if len(lines) > 2:
+        raise ValueError(f"compact note too long: {note!r}")
+    return "".join(text(8, 262 - 22 * (len(lines) - 1 - i), part, size=COMPACT_MIN_FONT, fill=MUTED)
+                   for i, part in enumerate(lines))
+
+
+def cratio(r: Mapping[str, Any]) -> str:
+    return f"{r['count']}/{r['of']} " + ("n/a" if r["rate"] is None else f"{r['rate'] * 100:.0f}%")
+
+
+def cbars(rows: Sequence[tuple[str, Sequence[tuple[str, float, str]]]], *, per_row_scale: bool,
+          label_w: int, x_end: int, top: int = 56, bottom: int = 216) -> str:
+    row_h = min(56, (bottom - top) // max(len(rows), 1))
+    overall = max((v for _, bars in rows for _, v, _ in bars), default=1) or 1
+    x0, parts = 8 + label_w, []
+    for r, (label, bars) in enumerate(rows):
+        bar_h = min(14, (row_h - 4) // len(bars) - 3) if len(bars) > 1 else min(18, row_h - 6)
+        group = len(bars) * (bar_h + 3)
+        y0 = top + r * row_h + (row_h - group) // 2
+        parts.append(text(8, y0 + group // 2 + 6, label, size=COMPACT_MIN_FONT))
+        peak = (max(v for _, v, _ in bars) or 1) if per_row_scale else overall
+        for i, (variant, value, label_text) in enumerate(bars):
+            by = y0 + i * (bar_h + 3)
+            width = int(round(value / peak * (x_end - x0))) if peak else 0
+            parts.append(bar(x0, by, width, bar_h, variant, 6))
+            parts.append(text(x0 + width + 6, by + bar_h - 1 if bar_h < 16 else by + bar_h - 3, label_text,
+                              size=COMPACT_MIN_FONT))
+    parts.append(f'<path d="M{x0} {top - 4}V{top + len(rows) * row_h}" stroke="{GRID}" stroke-width="2" fill="none"/>')
+    return "".join(parts)
+
+
+def ctable(columns: Sequence[tuple[str, int, str]], rows: Sequence[tuple[str, Sequence[str]]],
+           top: int = 72) -> str:
+    parts = [text(x, top, h, size=COMPACT_MIN_FONT, anchor=a, weight="bold") for h, x, a in columns]
+    parts.append(f'<path d="M8 {top + 6}H472" stroke="{INK}" stroke-width="2" fill="none"/>')
+    for r, (variant, cells) in enumerate(rows):
+        y = top + 28 + r * 24
+        parts.append(bar(8, y - 13, 20, 14, variant, 6))
+        for (_, x, anchor), cell in zip(columns, cells):
+            parts.append(text(x, y, cell, size=COMPACT_MIN_FONT, anchor=anchor))
+        if r == 2:
+            parts.append(f'<path d="M8 {y + 6}H472" stroke="{GRID}" stroke-width="2" fill="none"/>')
+    return "".join(parts)
+
+
+def c_outcome_overview(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    c = s["comparison"]
+    rows = variants_rows(s, [(label, lambda v, k=k: (c[v][k]["rate"], cratio(c[v][k])))
+                             for label, k in (("Successful trials", "primary"), ("Hidden checks", "hidden_checks"),
+                                              ("Edge cases", "edge_cases"))])
+    title = "Outcomes: baseline vs revised"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=165, x_end=335) \
+        + cfoot("Bar = share of planned. " + climit(s))
+    return title, "Share of planned items passed. " + describe(rows), body
+
+
+def c_outcome_by_category(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    c = s["comparison"]
+    cats = sorted(c["baseline"]["categories"])
+    rows = variants_rows(s, [(cat, lambda v, cat=cat: (c[v]["categories"][cat]["rate"],
+                                                       cratio(c[v]["categories"][cat]))) for cat in cats])
+    title = "Successful trials per category"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=172, x_end=350, top=54, bottom=240) \
+        + cfoot(climit(s))
+    return title, "Successful trials per category. " + describe(rows), body
+
+
+def c_failure_labels(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    c = s["comparison"]
+    labels = sorted(set(c["baseline"]["failure_labels"]) | set(c["revised"]["failure_labels"]))
+    rows = variants_rows(s, [(lab, lambda v, lab=lab: (c[v]["failure_labels"].get(lab, 0),
+                                                        str(c[v]["failure_labels"].get(lab, 0)))) for lab in labels])
+    title = "Failure labels per variant"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=135, x_end=330) \
+        + cfoot("Failed trials: " + ", ".join(f"{sum(c[v]['failure_labels'].values())} {v}" for v in VARIANTS) + ".")
+    return title, "Trials per failure label. " + describe(rows), body
+
+
+def c_story(s: Mapping[str, Any], task: str, header: str, last: Callable[[Mapping[str, Any]], str],
+            note: str) -> tuple[str, str, str]:
+    columns = [("Trial", 36, "start"), ("Result", 112, "start"), ("Calls", 285, "end"),
+               ("Tools", 335, "end"), (header, 345, "start")]
+    rows, desc = [], []
+    for variant in VARIANTS:
+        for t in s["stories"][task][variant]:
+            result = "pass" if t["success"] else (", ".join(t["labels"]) or "fail")
+            rows.append((variant, [f"{variant[:4]}-{t['trial_id'].rsplit('-', 1)[1]}", result,
+                                   str(t["model_calls"]), str(t["tool_attempts"]), last(t)]))
+            desc.append(f"{variant} {t['trial_id']}: {result}, {t['model_calls']} calls, "
+                        f"{t['tool_attempts']} tool attempts, {last(t)}")
+    title = story_title(s, task, "")
+    title = title.replace(" ()", "")
+    return title, "; ".join(desc) + ".", cheading(title) + clegend(s) + ctable(columns, rows) + cfoot(note)
+
+
+FORM_SHORT = {"prose before code": "prose", "fenced reply": "fence", "bare function": "bare"}
+
+
+def c_story_lists(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    return c_story(s, "lists_02", "Form", lambda t: FORM_SHORT.get(t["final_form"], t["final_form"]),
+                   "Form: final message. " + climit(s))
+
+
+def c_story_strings(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    return c_story(s, "strings_01", "Failed", lambda t: ", ".join(c["id"] for c in t["failed_checks"]) or "-",
+                   "Failed = hidden check. " + climit(s))
+
+
+def c_efficiency_calls(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    e = s["efficiency"]
+    rows = variants_rows(s, [("Model calls", lambda v: (e[v]["model_calls"], str(e[v]["model_calls"]))),
+                             ("Tool attempts", lambda v: (e[v]["tool_attempts"], str(e[v]["tool_attempts"]))),
+                             ("Revisions", lambda v: (e[v]["revisions"], str(e[v]["revisions"])))])
+    n = s["comparison"]["baseline"]["primary"]["of"]
+    title = "Calls, tool attempts, revisions"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=130, x_end=400) \
+        + cfoot(f"Counts over {n} trials per variant.")
+    return title, f"Counts over {n} trials per variant. " + describe(rows), body
+
+
+def c_efficiency_latency(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    e = s["efficiency"]
+    rows = variants_rows(s, [
+        ("Total", lambda v: (e[v]["model_latency_ms"]["total"], seconds(e[v]["model_latency_ms"]["total"]))),
+        ("Per trial", lambda v: (e[v]["model_latency_ms"]["mean_per_trial"],
+                                 seconds(e[v]["model_latency_ms"]["mean_per_trial"])))])
+    title = "Model latency"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=True, label_w=95, x_end=380) \
+        + cfoot("Measured once per variant; not attributed to the prompt.")
+    return title, "Model latency, rows scaled separately. " + describe(rows) + \
+        " Measured once per variant, not attributed to the prompt.", body
+
+
+def c_cost(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    e = s["efficiency"]
+    rows = variants_rows(s, [
+        ("Charged", lambda v: (e[v]["cost"]["charged_chf"], f"{e[v]['cost']['charged_chf']:.5f}")),
+        ("Reserved", lambda v: (e[v]["cost"]["reserved_before_send_chf"],
+                                f"{e[v]['cost']['reserved_before_send_chf']:.5f}"))])
+    title = "Charged vs reserved (CHF)"
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=True, label_w=95, x_end=380) \
+        + cfoot("Rows scaled separately; not attributed to the prompt.")
+    return title, "Charged and reserved cost in CHF, rows scaled separately. " + describe(rows) + \
+        " Measured once per variant, not attributed to the prompt.", body
+
+
+def c_tests(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    eng = s["engineering"]
+    latest = next(r for r in reversed(eng["ci"]["runs"]) if r.get("offline_tests"))
+    rows = [(label, [("single", n, fmt_int(n))]) for label, n in (
+        ("Offline, collected", eng["tests"]["offline_collected"]),
+        ("Sandbox, collected", eng["tests"]["sandbox_collected"]),
+        ("CI offline", latest["offline_tests"]), ("CI podman", latest["podman_tests"]))]
+    title = "Tests: collected and in CI"
+    body = cheading(title) + cbars(rows, per_row_scale=False, label_w=175, x_end=400, top=40) \
+        + cfoot(f"Collected at {eng['tests']['commit'][:7]}; CI counts as recorded in the documents.")
+    return title, "Test counts. " + describe(rows), body
+
+
+def c_changes(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    arch = s["engineering"]["changes_archived"]
+    rows = [(d, [("single", n, str(n))]) for d, n in sorted(arch["by_date"].items())]
+    title = f"Changes archived: {arch['count']}"
+    body = cheading(title) + cbars(rows, per_row_scale=False, label_w=105, x_end=400, top=40) \
+        + cfoot("Archived OpenSpec changes by archive date.")
+    return title, f"{arch['count']} archived changes by date. " + describe(rows), body
+
+
 CHART_META: list[dict[str, Any]] = []
 
 
@@ -444,11 +649,27 @@ _meta("engineering-changes", chart_engineering_changes, "OpenSpec changes archiv
       "Bars with the number of changes archived per date.", ["engineering.changes_archived"])
 
 
+COMPACT_FN: dict[str, Callable[[Mapping[str, Any]], tuple[str, str, str]]] = {
+    "outcome-overview": c_outcome_overview, "outcome-by-category": c_outcome_by_category,
+    "failure-labels": c_failure_labels, "story-lists-02": c_story_lists,
+    "story-strings-01": c_story_strings, "efficiency-calls": c_efficiency_calls,
+    "efficiency-latency": c_efficiency_latency, "cost-charged-reserved": c_cost,
+    "engineering-tests": c_tests, "engineering-changes": c_changes}
+COMPACT_META: list[dict[str, Any]] = [
+    {"id": f"{meta['id']}-compact", "full_size": meta["id"], "fn": COMPACT_FN[meta["id"]],
+     "caption": meta["caption"] + " Compact variant for half a text column.",
+     "alt": meta["alt"], "source_keys": meta["source_keys"]}
+    for meta in CHART_META if meta["id"] in COMPACT_FN]
+
+
 def render_all(summary: Mapping[str, Any]) -> dict[str, str]:
     out = {}
     for meta in CHART_META:
         title, desc, body = meta["fn"](summary)
         out[f"{meta['id']}.svg"] = svg_doc(meta["id"], title, desc, body)
+    for meta in COMPACT_META:
+        title, desc, body = meta["fn"](summary)
+        out[f"{meta['id']}.svg"] = svg_doc(meta["id"], title, desc, body, CW, CH)
     return out
 
 
@@ -487,7 +708,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     for name, content in render_all(summary).items():
         (out / name).write_text(content, encoding="utf-8")
-    print(f"wrote {len(CHART_META)} charts to {out}")
+    print(f"wrote {len(CHART_META) + len(COMPACT_META)} charts to {out}")
     return 0
 
 

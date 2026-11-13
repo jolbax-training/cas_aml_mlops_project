@@ -182,3 +182,43 @@ Source: docs/project_spec.md (CI section).
 #### Scenario: Tests run on a clean runner
 - **WHEN** `pytest -q` runs without `run_bundles/`
 - **THEN** the presentation-evidence tests run and pass using fixtures
+
+### Requirement: Compact half-width chart variants
+The project SHALL provide compact variants of the key charts for the report, each with its own identifier and a manifest field naming its full-size chart. A compact chart MUST use a fixed 480x270 viewBox and text of at least 17 units so that, rendered at no less than 78 mm wide, no printed text is below 7.5 pt.
+
+Source: user decision D1 (round 2); planned change `add-presentation-report`.
+
+#### Scenario: Compact chart is legible at half a column
+- **WHEN** a compact chart is parsed
+- **THEN** every font size is at least 17 units and every text lies inside the viewBox
+
+#### Scenario: Compact chart is linked to its full-size chart
+- **WHEN** the manifest is loaded
+- **THEN** every compact entry names an existing full-size figure and all four chart sets have a compact chart
+
+### Requirement: Quoted protocol facts
+The summary SHALL carry the experiment-design and protocol facts (tasks, trials per task, planned trials, the CHF 15 ceiling, the CHF 10 checkpoint, the ledger total, and the isolation-probe categories), each derived from a verbatim quote of a committed document by a declared extraction and verified by the check. No ledger file is read.
+
+Source: decision D2 (round 2).
+
+#### Scenario: A protocol fact edited without its quote
+- **WHEN** a protocol value is changed while its quote is unchanged
+- **THEN** the check exits non-zero and names the value
+
+### Requirement: Shared user-text file
+The project SHALL provide `presentation/user_text.toml` with empty, marked slots for motivation and takeaways, each with a short `deck` and a long `report` key, and a comment stating that the user writes them. Tools MUST NOT write the file, and the manifest MUST list it.
+
+Source: decision D3 (round 2); the user's rule that interpretation is their own.
+
+#### Scenario: Slots left empty
+- **WHEN** the file is read by a consumer
+- **THEN** each unfilled slot is empty and reported as empty in the manifest, so consumers can show a placeholder
+
+### Requirement: Alt text for every manifest entry
+Every manifest entry, including assets such as the logo, MUST carry non-empty alt text, and the manifest check MUST fail when one is missing.
+
+Source: accessibility rules of the accepted decisions.
+
+#### Scenario: Logo without alt text
+- **WHEN** the logo entry has no alt text
+- **THEN** the manifest check fails

@@ -7,8 +7,9 @@ The 15-minute presentation and the 4-page printable report show the same evidenc
 | Path | What it is | In Git |
 | --- | --- | --- |
 | `presentation/evidence/summary.json` | Reviewed evidence summary with provenance (run IDs, bundle digests, source quotes) | committed |
-| `presentation/charts/<id>.svg` | 13 plain SVG charts generated from the summary | committed |
-| `presentation/manifest.json` | The consumer interface: figures, diagrams, screenshots, logo, recording, title | committed |
+| `presentation/charts/<id>.svg`, `<id>-compact.svg` | 13 full-size plain SVG charts and 10 compact half-width variants, generated from the summary | committed |
+| `presentation/manifest.json` | The consumer interface: figures, diagrams, screenshots, logo, recording, user text, title | committed |
+| `presentation/user_text.toml` | The user's own words (motivation, takeaways), empty slots; tools never write it | committed (written by the user) |
 | `presentation/assets/zhaw_rgb.jpg` and `.source.txt` | ZHAW logo and its source note (URL, date, SHA-256) | committed |
 | `presentation/screenshots/*.png` | MLflow UI and local report screenshots (coordinator-captured) | committed once captured |
 | `presentation/recording/demo.cast`, `player.html`, `review.txt` | asciicast v2 recording, hand-written player template, user approval marker | committed (`review.txt` only after the user approves) |
@@ -46,12 +47,18 @@ Read `presentation/manifest.json` (`schema_version` 1). All paths are repository
 
 - `title`: `author` "Jose Luis Barahona", `course` "CAS Applied Machine Learning (ZHAW)", `headline`, `date` (always `null`) and `date_placeholder` (`[DATE: fill in]`). The user fills the date in; no tool chooses one.
 - `figures[]`: `id`, `path`, `format` (`svg`), `caption`, `alt`, `uses`, `viewbox` (`0 0 960 540`), `min_render_mm` (160), `min_font_units` (20), `elements` (`work-log set`), `source_keys` (summary keys behind the figure). Ids: `outcome-overview`, `outcome-by-category`, `outcome-by-task`, `failure-labels`, `story-lists-02`, `story-strings-01`, `efficiency-calls`, `efficiency-tokens`, `efficiency-latency`, `cost-charged-reserved`, `engineering-tests`, `engineering-ci`, `engineering-changes`. Charts use only `svg, title, desc, defs, marker, path, g, rect, text, tspan, style`, so they pass the work-log builder's SVG validator; the second variant is drawn with computed hatch paths. At the smallest intended render (a 160 mm column) every text is at least 9 pt.
+- Compact variants: ten figures have a second entry `<id>-compact` with `variant: "compact"`, `full_size: "<id>"`, `viewbox` `0 0 480 270`, `min_render_mm` 78, `min_font_units` 17 and `uses: ["report"]` (full-size entries have `variant: "full"`, `full_size: null`). They are for half an A4 text column: at 78 mm wide one unit is 78/480 = 0.1625 mm, so 17 units print at 7.8 pt, above the 7.5 pt floor. Render them no narrower than 78 mm. Compact charts exist for `outcome-overview`, `outcome-by-category`, `failure-labels`, `story-lists-02`, `story-strings-01`, `efficiency-calls`, `efficiency-latency`, `cost-charged-reserved`, `engineering-tests`, `engineering-changes`; the other figures (`outcome-by-task`, `efficiency-tokens`, `engineering-ci`) are meant as compact numeric tables read from the summary.
 - `diagrams[]`: the existing `docs/*.drawio.svg` figures and `docs/work_log_architecture.svg`, referenced by path (not copied), with `role`, `caption`, `alt`.
 - `screenshots[]`: `id`, `path`, `caption`, `alt`, `shows`, `must_display`, `owner` (`coordinator`) and `status` (`present` or `pending`).
-- `assets[]`: the logo with `sha256` and `source_note`.
+- `assets[]`: the logo with `alt`, `sha256` and `source_note`. Every entry of every list must carry non-empty `alt` text, and `check` fails otherwise.
+- `user_text`: `path` (`presentation/user_text.toml`), `owner` (`user`), `slots` (`motivation` and `takeaways`, each with `deck` and `report`, reported as `empty` or `filled`). Render an empty slot as a visible placeholder; do not create a user-text file of your own and never fill a slot.
 - `recording`: `cast`, `player_template`, `built_player` (`report/demo.html`) and `status` (`pending`, `unreviewed`, `approved`). The recording is for interested viewers and is not part of the talk.
 
-Ids and `schema_version` do not change without a version bump. Quote numbers from `summary.json`, never retype them; each chart caption already carries the limits.
+Ids and `schema_version` do not change without a version bump. The compact variants, `variant`/`full_size`, `user_text`, asset `alt` and the summary's `protocol` section are purely additive, so `schema_version` stays 1. Quote numbers from `summary.json`, never retype them; each chart caption already carries the limits.
+
+## Protocol facts
+
+`summary.json` has a `protocol` section so the deck and the report keep no quote tables of their own: `tasks`, `trials_per_task`, `planned_trials_per_variant`, `planned_trials_total`, `checkpoint_chf`, `ceiling_chf`, `ledger_total_chf`, `probes_passed` and `probe_categories`. Each is read from a verbatim quote of a committed document (`prompt_comparison.md`, `progress.md`, `threat_model.md`) by a declared extraction, checked like every other quote; the ledger file is not read. `probe_categories` are the five protected-asset categories of the threat model, whose probes carry the isolation evidence.
 
 ## Screenshots (captured by the coordinator)
 

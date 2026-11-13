@@ -277,3 +277,140 @@ def test_staleness_is_a_read_only_report(tmp_path, capsys, monkeypatch):
 def test_collect_refuses_without_bundles_argument(capsys):
     with pytest.raises(SystemExit):
         pe.main(["collect"])
+
+
+# --- round 2: protocol facts, user text, alt text ---------------------------------------------------
+
+def test_protocol_facts_are_quoted_and_provenanced(summary):
+    protocol = summary["protocol"]
+    assert (protocol["tasks"], protocol["trials_per_task"]) == (10, 3)
+    assert (protocol["planned_trials_per_variant"], protocol["planned_trials_total"]) == (30, 60)
+    assert (protocol["ceiling_chf"], protocol["checkpoint_chf"]) == (15, 10)
+    assert protocol["ledger_total_chf"] == "0.0068475273497" and protocol["probes_passed"] == 67
+    assert len(protocol["probe_categories"]) == 5 and "Podman control" in protocol["probe_categories"]
+    fields = {d["field"] for d in summary["documents"]}
+    for name in ("protocol.tasks", "protocol.ceiling_chf", "protocol.checkpoint_chf",
+                 "protocol.ledger_total_chf", "protocol.probe_category.0", "protocol.planned_total"):
+        assert name in fields
+    assert pe.assemble_doc_sections(summary["documents"])["protocol"] == protocol
+
+
+def test_a_protocol_value_edited_without_its_quote_fails(tmp_path):
+    root = copy_repo(tmp_path)
+
+    def change(data):
+        data["protocol"]["ceiling_chf"] = 20
+        next(d for d in data["documents"] if d["field"] == "protocol.ceiling_chf")["value"] = 20
+    rewrite_summary(root, change)
+    problems = pe.check_all(root)
+    assert any("protocol.ceiling_chf" in p for p in problems)
+
+
+def test_a_protocol_quote_edited_in_the_document_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / "docs" / "progress.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("CHF 15 ceiling blocks", "CHF 20 ceiling blocks"),
+                    encoding="utf-8")
+    assert any("protocol.ceiling_chf" in p for p in pe.check_all(root))
+
+
+def test_protocol_must_agree_with_the_comparison(summary):
+    broken = json.loads(json.dumps(summary))
+    broken["protocol"]["tasks"] = 9
+    assert any("protocol.tasks" in p for p in pe.cross_check(broken))
+
+
+def test_word_numbers_are_read_for_the_protocol():
+    assert pe.extract_value("ten tasks x three trials", None, r"(\w+) tasks x (\w+) trials", 2, "wordint") == 3
+    with pytest.raises(pe.EvidenceError):
+        pe.extract_value("many tasks x few trials", None, r"(\w+) tasks", 1, "wordint")
+
+
+def test_user_text_file_has_empty_marked_slots():
+    import tomllib
+    text = (REPO / pe.USER_TEXT_REL).read_text(encoding="utf-8")
+    assert "THE USER WRITES" in text and "No tool" in text
+    data = tomllib.loads(text)
+    assert set(data) == {"motivation", "takeaways"}
+    for slot in data.values():
+        assert set(slot) == {"deck", "report"} and slot == {"deck": "", "report": ""}
+
+
+def test_manifest_lists_the_user_text_and_reports_empty_slots():
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    entry = manifest["user_text"]
+    assert entry["path"] == "presentation/user_text.toml" and entry["owner"] == "user"
+    assert entry["slots"] == {"motivation": {"deck": "empty", "report": "empty"},
+                              "takeaways": {"deck": "empty", "report": "empty"}}
+    assert (REPO / entry["path"]).is_file()
+
+
+def test_a_filled_slot_is_reported_filled_and_the_file_is_never_written(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / pe.USER_TEXT_REL
+    path.write_text(path.read_text(encoding="utf-8").replace('[takeaways]\ndeck = ""',
+                                                            '[takeaways]\ndeck = "my words"'), encoding="utf-8")
+    before = path.read_bytes()
+    entry = pe.user_text_entry(root)
+    assert entry["slots"]["takeaways"]["deck"] == "filled" and entry["slots"]["motivation"]["deck"] == "empty"
+    pe.build_manifest(root)
+    assert path.read_bytes() == before
+
+
+def test_a_missing_user_text_file_fails_the_manifest_check(tmp_path):
+    root = copy_repo(tmp_path)
+    manifest = json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    (root / pe.USER_TEXT_REL).unlink()
+    assert any("user_text" in p for p in pe.check_manifest(manifest, root))
+
+
+def test_no_script_writes_the_user_text_file():
+    for name in ("presentation_evidence", "render_charts", "record_demo"):
+        source = (SCRIPTS / f"{name}.py").read_text(encoding="utf-8")
+        for match in re.finditer(r"USER_TEXT_REL|user_text\.toml", source):
+            line = source[source.rfind("\n", 0, match.start()) + 1:source.find("\n", match.end())]
+            assert not re.search(r"write_text|write_bytes|open\(.*[\"']w|\.touch\(|unlink", line), line
+
+
+def test_collect_and_manifest_leave_the_user_text_file_untouched(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / pe.USER_TEXT_REL
+    before = path.read_bytes()
+    assert pe.main(["--root", str(root), "manifest"]) == 0
+    assert path.read_bytes() == before
+
+
+def test_every_manifest_entry_has_alt_text_including_the_logo(tmp_path):
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    for kind in ("figures", "diagrams", "screenshots", "assets"):
+        for entry in manifest[kind]:
+            assert entry["alt"].strip(), (kind, entry["id"])
+    assert "ZHAW" in manifest["assets"][0]["alt"]
+    root = copy_repo(tmp_path)
+    broken = json.loads(json.dumps(manifest))
+    broken["assets"][0]["alt"] = " "
+    assert any("alt text is required" in p and "zhaw-logo" in p for p in pe.check_manifest(broken, root))
+    broken = json.loads(json.dumps(manifest))
+    del broken["figures"][0]["alt"]
+    assert any("alt text is required" in p for p in pe.check_manifest(broken, root))
+
+
+def test_compact_entries_must_link_to_a_full_figure(tmp_path):
+    root = copy_repo(tmp_path)
+    manifest = json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    compact = next(f for f in manifest["figures"] if f["variant"] == "compact")
+    compact["full_size"] = "nope"
+    assert any("full_size" in p for p in pe.check_manifest(manifest, root))
+
+
+def test_version_one_interface_is_extended_additively():
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == 1 and pe.SCHEMA_VERSION == 1
+    old_ids = {"outcome-overview", "outcome-by-category", "outcome-by-task", "failure-labels",
+               "story-lists-02", "story-strings-01", "efficiency-calls", "efficiency-tokens",
+               "efficiency-latency", "cost-charged-reserved", "engineering-tests", "engineering-ci",
+               "engineering-changes"}
+    full = {f["id"]: f for f in manifest["figures"] if f["variant"] == "full"}
+    assert set(full) == old_ids
+    for entry in full.values():
+        assert entry["path"] == f"presentation/charts/{entry['id']}.svg" and entry["viewbox"] == "0 0 960 540"
