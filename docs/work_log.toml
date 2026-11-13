@@ -147,6 +147,13 @@ label = "current"
 status = "implemented"
 
 [[section]]
+id = "presentation-report"
+title = "Four-page printable report"
+path = "docs/presentation_report.md"
+label = "current"
+status = "incomplete"
+
+[[section]]
 id = "guide"
 title = "Evaluation-design guide"
 path = "docs/evaluation_design_guide.md"

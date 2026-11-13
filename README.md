@@ -188,6 +188,10 @@ Outcomes are either candidate-attributable (`returned`, `exception`, `timeout`, 
 
 Details: [presentation deck](docs/presentation_deck.md).
 
+## Four-page report
+
+`scripts/build_report.py build` writes the four-page printable report `report/presentation_report.html` (ignored by Git) from `presentation/report/template.html`, the evidence summary and manifest, and the shared `presentation/user_text.toml`; `check` validates it offline and `measure` checks the printed fit with Chrome or Chromium. Your own text and the date stay visible placeholders until you fill them. Details, the print recipe and how "exactly four pages" is checked are in [docs/presentation_report.md](docs/presentation_report.md).
+
 ## Local HTML work log
 
 `scripts/build_work_log.py` builds the single offline entry point `report/index.html` (ignored by Git) from the Markdown files listed in `docs/work_log.toml`. It needs only `uv sync --python 3.12`; it uses no network, model API, Podman, MLflow, or JavaScript, and never runs candidate code.

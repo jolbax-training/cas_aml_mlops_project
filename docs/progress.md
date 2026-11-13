@@ -55,6 +55,15 @@ Offline implementation on the worktree branch; results below are the output of t
 - **Round 3 review fixes:** the trust-boundary diagram no longer calls the result signed: the supervisor writes one bounded, unsigned response to stdout that the launcher parses, and only the supervisor checks the executor's signature (`worker.py` `parse_report`); the arrow now ends at the Launcher. The overlap test also models arrow paths and heads as thin shapes and allows text only inside drawn boxes, and flow labels are asserted exactly.
 - **Left open:** screenshots (coordinator, task 3.3), browser review of the charts (2.3), opening the player page in a browser (4.2), recording approval (user, 4.3), GitHub push and Actions run for the three new CI steps (coordinator, 5.3a).
 
+## 2026-11-13 — Four-page report (`add-presentation-report`, offline part)
+
+Implemented on the worktree branch after `add-presentation-evidence` merged; results below are the output of the commands named.
+
+- **Built:** `.venv/bin/python scripts/build_report.py build` wrote `report/presentation_report.html` (four A4 pages, script-free, self-contained); `check` passes offline. Placeholders remain by design: the date, the `report` keys of `motivation` and `takeaways` in `presentation/user_text.toml`, and any pending screenshot.
+- **Not measured:** headless Chrome did not return in this session's sandbox (the `--dump-dom` call timed out), so no printed page count or per-page fill exists yet. The static height budgets are marked `UNMEASURED`; task 4.2 (`build_report.py measure`) and 4.3 (calibration) are the coordinator's, and the CI step is added only after calibration.
+- **Diagrams:** `check` warns that the draw.io architecture and run-flow diagrams print far below 7.5 pt at page width; they are reused by reference with their text twins, see `docs/presentation_report.md`.
+- **Offline tests:** `tests/test_presentation_report.py`.
+
 ## 2026-11-06 — Demo rehearsal and completion accounting (`prepare-reproducible-demo`, tasks 2.2, 2.3, 3.1, 3.2, 3.3)
 
 **Rehearsal (task 2.2).** 2026-11-06, 10:03–10:10 UTC, worktree `demo-rehearsal` from `main` `7c43664`, macOS 27.0 arm64 laptop. Versions: uv 0.9.3, Python 3.12.12, Podman 6.1.4 (VM running), pinned image `python@sha256:950206c3…` (id `8630ab77c5ad`), MLflow client 3.17.2 and server image v3.17.2, OpenSpec CLI 1.14.2. Every command below ran under `env -i HOME=$HOME PATH=/opt/podman/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin[:$HOME/.local/bin]` (inspection with `PATH=/usr/bin:/bin`, so no Podman); inside that prefix `env | grep -c OPENROUTER` printed 0. No key was read and no paid or API call was made.
