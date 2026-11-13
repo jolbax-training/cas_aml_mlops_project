@@ -1162,6 +1162,66 @@
       "value": 67
     },
     {
+      "cell": null,
+      "field": "story.lists_02.revised_trials",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "wordint",
+      "lines": 1,
+      "pattern": "all (\\w+) `lists_02` trials made (\\w+) model call, (\\w+) tool attempt",
+      "quote": "**Gain, `lists_02` (0/3 -> 3/3).** In the baseline each trial wrote a check with a wrong expected value, e.g. t1 expected `[1, 2, 3]` for rotating `[1, 2, 3]` by 7 (the actual result `[2, 3, 1]` is correct), the check failed, and the final message began \"All checks pass (the one \"failure\" was my incorrect expectation ...)\" followed by the code. The submitted source was that whole message, which graded `syntax_error` with all four checks \"not executed\" (t3 the same; t2 `contract_error` because of a ```python fence). In the revised run all three `lists_02` trials made one model call, no tool attempt, and submitted the bare function (`rotate_left` with `k %= len(items)`), passing all four hidden checks. Two things follow and are kept separate. (a) The failure label that disappeared is exactly the targeted one: the revised run has no `syntax_error` and no `contract_error`, and no trial of the revised run submitted explanation or fences. (b) The trace does not show the added sentence working on its trigger: in these three trials no check was written, so no self-inflicted check failure occurred for the sentence to apply to. The tasks passed because the model went straight to the submission. Why it did so (the extra sentence, sampling variation at temperature 0.2 without a fixed seed, or both) is not determined by this data.",
+      "start": "**Gain, `lists_02`",
+      "value": 3
+    },
+    {
+      "cell": null,
+      "field": "story.lists_02.revised_model_calls",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "wordint",
+      "lines": 1,
+      "pattern": "all (\\w+) `lists_02` trials made (\\w+) model call, (\\w+) tool attempt",
+      "quote": "**Gain, `lists_02` (0/3 -> 3/3).** In the baseline each trial wrote a check with a wrong expected value, e.g. t1 expected `[1, 2, 3]` for rotating `[1, 2, 3]` by 7 (the actual result `[2, 3, 1]` is correct), the check failed, and the final message began \"All checks pass (the one \"failure\" was my incorrect expectation ...)\" followed by the code. The submitted source was that whole message, which graded `syntax_error` with all four checks \"not executed\" (t3 the same; t2 `contract_error` because of a ```python fence). In the revised run all three `lists_02` trials made one model call, no tool attempt, and submitted the bare function (`rotate_left` with `k %= len(items)`), passing all four hidden checks. Two things follow and are kept separate. (a) The failure label that disappeared is exactly the targeted one: the revised run has no `syntax_error` and no `contract_error`, and no trial of the revised run submitted explanation or fences. (b) The trace does not show the added sentence working on its trigger: in these three trials no check was written, so no self-inflicted check failure occurred for the sentence to apply to. The tasks passed because the model went straight to the submission. Why it did so (the extra sentence, sampling variation at temperature 0.2 without a fixed seed, or both) is not determined by this data.",
+      "start": "**Gain, `lists_02`",
+      "value": 1
+    },
+    {
+      "cell": null,
+      "field": "story.lists_02.revised_tool_attempts",
+      "file": "docs/prompt_comparison.md",
+      "group": 3,
+      "kind": "wordint",
+      "lines": 1,
+      "pattern": "all (\\w+) `lists_02` trials made (\\w+) model call, (\\w+) tool attempt",
+      "quote": "**Gain, `lists_02` (0/3 -> 3/3).** In the baseline each trial wrote a check with a wrong expected value, e.g. t1 expected `[1, 2, 3]` for rotating `[1, 2, 3]` by 7 (the actual result `[2, 3, 1]` is correct), the check failed, and the final message began \"All checks pass (the one \"failure\" was my incorrect expectation ...)\" followed by the code. The submitted source was that whole message, which graded `syntax_error` with all four checks \"not executed\" (t3 the same; t2 `contract_error` because of a ```python fence). In the revised run all three `lists_02` trials made one model call, no tool attempt, and submitted the bare function (`rotate_left` with `k %= len(items)`), passing all four hidden checks. Two things follow and are kept separate. (a) The failure label that disappeared is exactly the targeted one: the revised run has no `syntax_error` and no `contract_error`, and no trial of the revised run submitted explanation or fences. (b) The trace does not show the added sentence working on its trigger: in these three trials no check was written, so no self-inflicted check failure occurred for the sentence to apply to. The tasks passed because the model went straight to the submission. Why it did so (the extra sentence, sampling variation at temperature 0.2 without a fixed seed, or both) is not determined by this data.",
+      "start": "**Gain, `lists_02`",
+      "value": 0
+    },
+    {
+      "cell": null,
+      "field": "story.strings_01.failed_check",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "edge check `(\\w+)` failed \\(actual (\\d+)\\)",
+      "quote": "**Regression, `strings_01` (3/3 -> 2/3).** `strings_01-t2` (revised) was `wrong_answer`: ordinary checks `strings_01_a`, `_b` and edge check `_c` passed, edge check `strings_01_d` failed (actual 0). The final source normalised the text with NFD and counted only characters in the lowercase string `'aeiou'` without case-folding, while the instruction says \"without regard to case\". The model's one development run used four lowercase checks (`café`, `über`, `æø`, `é`), all of which passed, so it never exercised an uppercase input. `strings_01-t1` and `-t3` succeeded. The failure is a case-handling mistake in the algorithm and has no connection to the added sentence, which concerns the final message format; there is no evidence in the trace that the v2 prompt caused it, and it is one trial out of three.",
+      "start": "**Regression, `strings_01`",
+      "value": "strings_01_d"
+    },
+    {
+      "cell": null,
+      "field": "story.strings_01.failed_actual",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "edge check `(\\w+)` failed \\(actual (\\d+)\\)",
+      "quote": "**Regression, `strings_01` (3/3 -> 2/3).** `strings_01-t2` (revised) was `wrong_answer`: ordinary checks `strings_01_a`, `_b` and edge check `_c` passed, edge check `strings_01_d` failed (actual 0). The final source normalised the text with NFD and counted only characters in the lowercase string `'aeiou'` without case-folding, while the instruction says \"without regard to case\". The model's one development run used four lowercase checks (`café`, `über`, `æø`, `é`), all of which passed, so it never exercised an uppercase input. `strings_01-t1` and `-t3` succeeded. The failure is a case-handling mistake in the algorithm and has no connection to the added sentence, which concerns the final message format; there is no evidence in the trace that the v2 prompt caused it, and it is one trial out of three.",
+      "start": "**Regression, `strings_01`",
+      "value": 0
+    },
+    {
       "cell": 1,
       "field": "protocol.probe_category.0",
       "file": "docs/threat_model.md",
@@ -1867,9 +1927,9 @@
       "count": 14
     },
     "tests": {
-      "commit": "7152be28fdc642022946443397a910a458c09cc6",
+      "commit": "25227e157b44fb09bdbffaba708723502c998df1",
       "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
-      "offline_collected": 845,
+      "offline_collected": 849,
       "sandbox_collected": 67
     }
   },
@@ -1915,10 +1975,10 @@
       "PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles <bundles> verify <run_id> (each of the three runs)",
       "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"
     ],
-    "commit": "7152be28fdc642022946443397a910a458c09cc6",
+    "commit": "25227e157b44fb09bdbffaba708723502c998df1",
     "generated_by": {
       "script": "scripts/presentation_evidence.py",
-      "sha256": "24513f92bf74ac21ec0eb8112f1ab9f4495c178cbf7f206aff17b8cbded71d45"
+      "sha256": "c82ea4151f8381c2da9c2bab75c374929639ccfa8452ae3b846e0fa0a90d6e0a"
     },
     "runs": {
       "baseline": {
