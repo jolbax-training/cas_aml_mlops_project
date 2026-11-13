@@ -286,7 +286,8 @@ def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
             "probes_passed": v["protocol.probes_passed"],
             "probe_categories": [v[f"protocol.probe_category.{i}"] for i in range(len(PROBE_ASSET_ROWS))],
             "source": "quoted from committed documents (see documents); the ledger is never read"},
-        "ci_runs": sorted(runs.values(), key=lambda r: int(r["run"]))  # presentation order only,
+        # presentation order only: the latest run comes from the marker
+        "ci_runs": sorted(runs.values(), key=lambda r: int(r["run"])),
         "ci_latest": latest,
         "mlflow_runs": {variant: v[f"mlflow_run.{variant}"] for variant in VARIANTS},
         "ledger_quotes": {variant: v[f"ledger_chf.{variant}"] for variant in VARIANTS},

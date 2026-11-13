@@ -500,4 +500,4 @@ def test_the_latest_run_does_not_depend_on_list_order_or_id_size():
     sections = pe.assemble_doc_sections(pe.build_documents(REPO))
     runs = sections["ci_runs"]
     assert [int(r["run"]) for r in runs] == sorted(int(r["run"]) for r in runs)  # display order only
-    assert sections["ci_latest"] == next(r["run"] for r in runs if r["commit"] == "e00236d")
+    assert sections["ci_latest"] == next(r["run"] for r in runs if r.get("commit") == "e00236d")
