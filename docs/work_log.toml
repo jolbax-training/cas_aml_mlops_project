@@ -133,6 +133,13 @@ label = "reviewed"
 status = "implemented"
 
 [[section]]
+id = "presentation-evidence"
+title = "Presentation evidence (figures, manifest, recording)"
+path = "docs/presentation_evidence.md"
+label = "current"
+status = "implemented"
+
+[[section]]
 id = "guide"
 title = "Evaluation-design guide"
 path = "docs/evaluation_design_guide.md"

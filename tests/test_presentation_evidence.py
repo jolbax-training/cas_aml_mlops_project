@@ -1,0 +1,279 @@
+import builtins
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+import pytest
+
+from presentation_support import FIXTURE, REPO, SCRIPTS, copy_repo, load_script
+
+pe = load_script("presentation_evidence")
+
+
+@pytest.fixture(scope="module")
+def summary():
+    return pe.load_summary(REPO)
+
+
+def rewrite_summary(root, change):
+    path = root / pe.SUMMARY_REL
+    data = json.loads(path.read_text(encoding="utf-8"))
+    change(data)
+    path.write_text(pe.canonical(data), encoding="utf-8")
+
+
+def test_committed_evidence_passes_the_offline_check():
+    assert pe.check_all(REPO) == []
+
+
+def test_offline_check_command_exits_zero(capsys):
+    assert pe.main(["check"]) == 0
+    assert "passed (offline)" in capsys.readouterr().out
+
+
+def test_bundle_sections_are_assembled_from_the_fixture(summary):
+    live = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fresh = pe.assemble(live, REPO, script_sha=summary["provenance"]["generated_by"]["sha256"])
+    for key in pe.BUNDLE_SECTIONS:
+        assert fresh[key] == summary[key]
+    assert fresh["provenance"]["runs"] == summary["provenance"]["runs"]
+
+
+def test_summary_holds_no_absolute_path_and_relative_bundles(summary):
+    text = (REPO / pe.SUMMARY_REL).read_text(encoding="utf-8")
+    assert "/Users/" not in text and str(pathlib.Path.home()) not in text
+    for variant in pe.VARIANTS:
+        assert summary["provenance"]["runs"][variant]["bundle"].startswith("run_bundles/")
+
+
+def test_summary_carries_all_limits_and_the_non_claim(summary):
+    assert len(summary["limits"]["items"]) == 7
+    assert "not a claim of improvement" in summary["limits"]["non_claim"]
+    assert "not a measured improvement" in summary["limits"]["statement"]
+
+
+def test_every_document_value_is_derived_from_its_quote(summary):
+    for entry in summary["documents"]:
+        assert entry["value"] == pe.extract_value(entry["quote"], entry["cell"], entry["pattern"],
+                                                  entry["group"], entry["kind"])
+
+
+def test_extract_value_kinds_and_errors():
+    row = "| Model latency | 470,969 ms (15,699 ms) | 0.0027 |"
+    assert pe.extract_value(row, 2, r"^([\d,]+) ms \(([\d,]+) ms\)$", 2, "int") == 15699
+    assert pe.extract_value(row, 3, r"^([\d.]+)$", 1, "float") == 0.0027
+    assert pe.extract_value(row, 1, r"^(\w+)", 1, "str") == "Model"
+    with pytest.raises(pe.EvidenceError):
+        pe.extract_value(row, 9, r"x", 1, "str")
+    with pytest.raises(pe.EvidenceError):
+        pe.extract_value(row, 1, r"^(\d+)$", 1, "int")
+
+
+def test_find_quote_needs_exactly_one_line(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "a.md").write_text("| A | 1 |\n| A | 2 |\n| B | 3 |\n", encoding="utf-8")
+    assert pe.find_quote(tmp_path, "docs/a.md", "| B", 1) == "| B | 3 |"
+    with pytest.raises(pe.EvidenceError):
+        pe.find_quote(tmp_path, "docs/a.md", "| A", 1)
+    with pytest.raises(pe.EvidenceError):
+        pe.find_quote(tmp_path, "docs/a.md", "| Z", 1)
+
+
+def test_final_form_is_read_from_recorded_labels_only():
+    assert pe.final_form({"labels": ["syntax_error"], "contract_issue_code": "syntax_error"}) == "prose before code"
+    assert pe.final_form({"labels": ["contract_error"], "contract_issue_code": "contract_error"}) == "fenced reply"
+    assert pe.final_form({"labels": ["wrong_answer"], "contract_issue_code": None}) == "bare function"
+    assert pe.final_form({"labels": [], "contract_issue_code": None}) == "bare function"
+
+
+def test_story_trial_reads_recorded_fields():
+    record = {"trial_id": "t-1", "model_calls": 2, "tool_attempts": 1,
+              "contract_issue": {"code": "contract_error"},
+              "candidate_history": [{"result": {"ok": True, "checks": [{"passed": False}]}}],
+              "grades": {"success": False, "labels": ["contract_error"],
+                         "checks": [{"id": "c1", "actual": 3, "passed": False},
+                                    {"id": "c2", "actual": 4, "passed": True}]}}
+    trial = pe.story_trial(record)
+    assert trial["dev_check_failed"] is True and trial["failed_checks"] == [{"id": "c1", "actual": 3}]
+    assert trial["contract_issue_code"] == "contract_error" and trial["success"] is False
+
+
+# --- tampering: each edit must fail the offline check ------------------------------------------
+
+def test_a_value_edited_while_its_quote_stays_intact_fails(tmp_path):
+    root = copy_repo(tmp_path)
+
+    def change(data):
+        entry = next(d for d in data["documents"] if d["field"] == "mlflow_run.baseline")
+        entry["value"] = "0" * 32
+    rewrite_summary(root, change)
+    problems = pe.check_all(root)
+    assert any("mlflow_run.baseline" in p and "quote" in p for p in problems)
+
+
+def test_a_document_line_edited_fails_the_quote_check(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / "docs" / "prompt_comparison.md"
+    path.write_text(path.read_text(encoding="utf-8").replace("| 27/30 (90.0%) |", "| 26/30 (86.7%) |"),
+                    encoding="utf-8")
+    problems = pe.check_all(root)
+    assert any("primary.baseline" in p for p in problems)
+
+
+def test_a_summary_number_edited_fails_the_headline_cross_check(tmp_path):
+    root = copy_repo(tmp_path)
+
+    def change(data):
+        data["comparison"]["baseline"]["primary"]["count"] = 28
+        data["comparison"]["baseline"]["per_task"]["lists_02"]["succeeded"] = 1
+    rewrite_summary(root, change)
+    problems = pe.check_all(root)
+    assert any("primary.baseline" in p and "summary has 28" in p for p in problems)
+
+
+def test_impossible_counts_fail_the_arithmetic(tmp_path, summary):
+    broken = json.loads(json.dumps(summary))
+    broken["comparison"]["revised"]["hidden_checks"]["count"] = 121
+    broken["efficiency"]["revised"]["tokens"]["total_tokens"] += 1
+    problems = pe.check_arithmetic(broken)
+    assert any("impossible" in p for p in problems) and any("token" in p for p in problems)
+
+
+def test_structure_problems_are_named(summary):
+    broken = json.loads(json.dumps(summary))
+    del broken["comparison"]["baseline"]["primary"]
+    broken["provenance"]["runs"]["revised"]["bundle"] = "/abs/path"
+    problems = pe.validate_structure(broken)
+    assert any("primary" in p for p in problems) and any("relative" in p for p in problems)
+
+
+def test_a_stale_chart_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    chart = root / pe.CHARTS_REL / "outcome-overview.svg"
+    chart.write_text(chart.read_text(encoding="utf-8").replace("27/30", "28/30"), encoding="utf-8")
+    assert any("outcome-overview.svg" in p for p in pe.check_all(root))
+
+
+def test_a_stale_manifest_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    path = root / pe.MANIFEST_REL
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["title"]["author"] = "Someone Else"
+    path.write_text(pe.canonical(data), encoding="utf-8")
+    assert any("manifest" in p for p in pe.check_all(root))
+
+
+def test_manifest_date_stays_empty_with_a_visible_placeholder():
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert manifest["title"]["date"] is None
+    assert manifest["title"]["date_placeholder"] == "[DATE: fill in]"
+    assert manifest["title"]["author"] == "Jose Luis Barahona"
+    assert manifest["title"]["course"] == "CAS Applied Machine Learning (ZHAW)"
+    manifest["title"]["date"] = "2026-11-20"
+    assert any("date" in p for p in pe.check_manifest(manifest, REPO))
+
+
+def test_manifest_paths_resolve_or_are_pending():
+    manifest = json.loads((REPO / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert pe.check_manifest(manifest, REPO) == []
+    for kind in ("figures", "diagrams", "screenshots", "assets"):
+        for entry in manifest[kind]:
+            assert (REPO / entry["path"]).is_file() or entry["status"] == "pending"
+            assert not entry["path"].startswith("/")
+    for entry in manifest["screenshots"]:
+        assert entry["owner"] == "coordinator"
+    assert [d["path"] for d in manifest["diagrams"]][:4] == [
+        "docs/architecture_logical.drawio.svg", "docs/architecture_physical.drawio.svg",
+        "docs/run_flow_activity.drawio.svg", "docs/run_flow_sequence.drawio.svg"]
+
+
+def test_a_missing_file_that_is_not_pending_fails(tmp_path):
+    root = copy_repo(tmp_path)
+    (root / "presentation" / "charts" / "failure-labels.svg").unlink()
+    manifest = json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert any("failure-labels" in p and "missing" in p for p in pe.check_manifest(manifest, root))
+
+
+def test_logo_digest_and_source_note(tmp_path):
+    root = copy_repo(tmp_path)
+    manifest = json.loads((root / pe.MANIFEST_REL).read_text(encoding="utf-8"))
+    assert pe.check_manifest(manifest, root) == []
+    note = (root / "presentation/assets/zhaw_rgb.jpg.source.txt").read_text(encoding="utf-8")
+    assert "https://www.zhaw.ch/storage/engineering/ueber-uns/medien/zhaw_rgb.jpg" in note
+    assert manifest["assets"][0]["sha256"] in note
+    (root / "presentation/assets/zhaw_rgb.jpg").write_bytes(b"changed")
+    assert any("digest" in p for p in pe.check_manifest(manifest, root))
+
+
+def test_forbidden_text_is_rejected():
+    assert pe.scan_text("x", "see /Users/someone/file")
+    assert pe.scan_text("x", "Authorization: Bearer abcdefghijklmnop")
+    assert pe.scan_text("x", "sk-abcdefghijklmnopqrstu")
+    assert pe.scan_text("x", "~/.codegen_eval/spend_ledger.jsonl")
+    assert pe.scan_text("x", "clean text") == []
+
+
+def test_committed_presentation_files_are_free_of_paths_and_secrets():
+    suffixes = {".svg", ".json", ".cast", ".html", ".txt", ".md"}
+    for path in sorted((REPO / "presentation").rglob("*")):
+        if path.is_file() and path.suffix in suffixes:
+            text = path.read_text(encoding="utf-8")
+            assert pe.scan_text(str(path), text, (str(REPO), str(pathlib.Path.home()))) == []
+
+
+# --- ledger and import discipline ---------------------------------------------------------------
+
+def test_scripts_never_import_or_name_the_ledger():
+    for name in ("presentation_evidence", "render_charts", "record_demo"):
+        source = (SCRIPTS / f"{name}.py").read_text(encoding="utf-8")
+        assert not re.search(r"^\s*(from|import)\s+codegen_eval(\.| import )ledger", source, re.M)
+        assert "codegen_eval.ledger" not in source.replace("import codegen_eval.ledger", "")
+        assert "Ledger(" not in source and "spend_ledger" not in source.split("FORBIDDEN_TEXT")[0]
+
+
+def test_importing_the_script_does_not_load_evaluator_code(tmp_path):
+    code = ("import sys; sys.path.insert(0, %r); import presentation_evidence, render_charts, record_demo; "
+            "assert not [m for m in sys.modules if m.startswith('codegen_eval')], 'evaluator code loaded'"
+            % str(SCRIPTS))
+    result = subprocess.run([sys.executable, "-I", "-c", code], cwd=tmp_path, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_guard_ledger_points_at_a_path_that_does_not_exist(monkeypatch):
+    monkeypatch.delenv(pe.LEDGER_ENV, raising=False)
+    path = pe.guard_ledger()
+    assert pathlib.Path(path).name == "absent.jsonl" and not pathlib.Path(path).exists()
+    assert pe.os.environ[pe.LEDGER_ENV] == path
+
+
+def test_assemble_and_check_never_open_the_real_ledger(monkeypatch):
+    seen = []
+    real_open, real_path_open = builtins.open, pathlib.Path.open
+
+    def watch(name):
+        if ".codegen_eval" in str(name):
+            seen.append(str(name))
+            raise AssertionError("the ledger must not be opened")
+
+    monkeypatch.setattr(builtins, "open", lambda f, *a, **k: (watch(f), real_open(f, *a, **k))[1])
+    monkeypatch.setattr(pathlib.Path, "open", lambda self, *a, **k: (watch(self), real_path_open(self, *a, **k))[1])
+    live = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    pe.assemble(live, REPO)
+    assert pe.check_all(REPO) == []
+    assert seen == []
+
+
+def test_staleness_is_a_read_only_report(tmp_path, capsys, monkeypatch):
+    root = copy_repo(tmp_path)
+    before = (root / pe.SUMMARY_REL).read_text(encoding="utf-8")
+    monkeypatch.setattr(pe, "_collect_count", lambda root, marker: 1)
+    assert pe.staleness(root) == 0
+    assert "older than the repository" in capsys.readouterr().out
+    assert (root / pe.SUMMARY_REL).read_text(encoding="utf-8") == before
+
+
+def test_collect_refuses_without_bundles_argument(capsys):
+    with pytest.raises(SystemExit):
+        pe.main(["collect"])

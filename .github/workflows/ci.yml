@@ -56,6 +56,12 @@ jobs:
         run: .venv/bin/python scripts/freeze_benchmark.py --check
       - name: Work-log sources check
         run: .venv/bin/python scripts/build_work_log.py --check
+      - name: Presentation evidence check (summary, documents, charts, manifest)
+        run: .venv/bin/python scripts/presentation_evidence.py check
+      - name: Presentation charts check
+        run: .venv/bin/python scripts/render_charts.py --check
+      - name: Demo recording check
+        run: .venv/bin/python scripts/record_demo.py check
 
   podman:
     name: podman

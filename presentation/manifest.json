@@ -1,0 +1,428 @@
+{
+  "assets": [
+    {
+      "alt": "ZHAW logo",
+      "caption": "ZHAW logo for the title slide.",
+      "format": "jpg",
+      "id": "zhaw-logo",
+      "path": "presentation/assets/zhaw_rgb.jpg",
+      "sha256": "bd181c824bd8ff3a50d02436f1bdc0db775c50797e41c555c4f457a8edd8e311",
+      "source_note": "presentation/assets/zhaw_rgb.jpg.source.txt",
+      "status": "present"
+    }
+  ],
+  "diagrams": [
+    {
+      "alt": "Boxes for the agent controller, sandbox, grader, bundles and tracking, with arrows for data flow.",
+      "caption": "Logical architecture: components, data flow, trust boundary.",
+      "format": "svg",
+      "id": "diagram-architecture-logical",
+      "path": "docs/architecture_logical.drawio.svg",
+      "role": "architecture",
+      "status": "present"
+    },
+    {
+      "alt": "Deployment view of the host, the candidate containers and the local MLflow service.",
+      "caption": "Physical architecture: laptop, Podman containers and trust boundaries.",
+      "format": "svg",
+      "id": "diagram-architecture-physical",
+      "path": "docs/architecture_physical.drawio.svg",
+      "role": "architecture",
+      "status": "present"
+    },
+    {
+      "alt": "Activity diagram of one evaluation run from schedule to bundle.",
+      "caption": "Run flow as an activity diagram.",
+      "format": "svg",
+      "id": "diagram-run-flow-activity",
+      "path": "docs/run_flow_activity.drawio.svg",
+      "role": "run-flow",
+      "status": "present"
+    },
+    {
+      "alt": "Sequence diagram of the controller, model, tool and grader messages.",
+      "caption": "Run flow as a sequence diagram.",
+      "format": "svg",
+      "id": "diagram-run-flow-sequence",
+      "path": "docs/run_flow_sequence.drawio.svg",
+      "role": "run-flow",
+      "status": "present"
+    },
+    {
+      "alt": "Figure of implemented, built-offline and pending components.",
+      "caption": "Goal architecture: bounded agent, hidden grading, local evidence.",
+      "format": "svg",
+      "id": "diagram-work-log-architecture",
+      "path": "docs/work_log_architecture.svg",
+      "role": "architecture",
+      "status": "present"
+    }
+  ],
+  "figures": [
+    {
+      "alt": "Paired bars with counts for successful trials, hidden checks and edge cases.",
+      "caption": "Successful trials, hidden checks and edge cases for the baseline and the revised prompt. A comparison of two prompts on ten tasks with one model, not a measured improvement.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "outcome-overview",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/outcome-overview.svg",
+      "source_keys": [
+        "comparison.baseline.primary",
+        "comparison.revised.primary",
+        "comparison.baseline.hidden_checks",
+        "comparison.revised.hidden_checks",
+        "comparison.baseline.edge_cases",
+        "comparison.revised.edge_cases"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with counts for five task categories.",
+      "caption": "Successful trials per category for both prompts.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "outcome-by-category",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/outcome-by-category.svg",
+      "source_keys": [
+        "comparison.baseline.categories",
+        "comparison.revised.categories"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Filled squares per task for each prompt, with the gained and regressed task marked.",
+      "caption": "Successful trials per task for both prompts; the gained and the regressed task are marked.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "outcome-by-task",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/outcome-by-task.svg",
+      "source_keys": [
+        "comparison.baseline.per_task",
+        "comparison.revised.per_task",
+        "comparison.delta"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with the number of trials per failure label.",
+      "caption": "Grade labels of failed trials per prompt.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "failure-labels",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/failure-labels.svg",
+      "source_keys": [
+        "comparison.baseline.failure_labels",
+        "comparison.revised.failure_labels"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Table of the lists_02 trials with result, model calls, tool attempts and final message form.",
+      "caption": "lists_02 trials: the baseline trials ended with explanation or fences after a wrong self-written check; the revised trials made one call and no tool attempt. The trace does not show the added sentence working on its trigger.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "story-lists-02",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/story-lists-02.svg",
+      "source_keys": [
+        "stories.lists_02"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Table of the strings_01 trials with result, calls, tool attempts and the failed hidden check.",
+      "caption": "strings_01 trials: one revised trial gave a wrong answer on the edge check strings_01_d.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "story-strings-01",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/story-strings-01.svg",
+      "source_keys": [
+        "stories.strings_01"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with counts.",
+      "caption": "Model calls, tool attempts and revisions per prompt.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "efficiency-calls",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/efficiency-calls.svg",
+      "source_keys": [
+        "efficiency.baseline",
+        "efficiency.revised"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with token counts.",
+      "caption": "Prompt and completion tokens per prompt.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "efficiency-tokens",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/efficiency-tokens.svg",
+      "source_keys": [
+        "efficiency.baseline.tokens",
+        "efficiency.revised.tokens"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with seconds.",
+      "caption": "Model latency per prompt. Measured once per variant at different times against a remote provider; not attributed to the prompt.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "efficiency-latency",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/efficiency-latency.svg",
+      "source_keys": [
+        "efficiency.baseline.model_latency_ms",
+        "efficiency.revised.model_latency_ms"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Paired bars with CHF values on separate scales.",
+      "caption": "Charged and reserved-before-send cost in CHF per prompt. Measured once per variant; not attributed to the prompt.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "cost-charged-reserved",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/cost-charged-reserved.svg",
+      "source_keys": [
+        "efficiency.baseline.cost",
+        "efficiency.revised.cost"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Bars with test counts.",
+      "caption": "Collected test counts at the recorded commit and the CI counts recorded in the evidence documents.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "engineering-tests",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/engineering-tests.svg",
+      "source_keys": [
+        "engineering.tests",
+        "engineering.ci"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Table of CI runs with offline and podman outcomes.",
+      "caption": "CI runs recorded in the evidence documents, including failed runs kept as history.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "engineering-ci",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/engineering-ci.svg",
+      "source_keys": [
+        "engineering.ci.runs"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Bars with the number of changes archived per date.",
+      "caption": "OpenSpec changes archived, by date.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "engineering-changes",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/engineering-changes.svg",
+      "source_keys": [
+        "engineering.changes_archived"
+      ],
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    }
+  ],
+  "recording": {
+    "built_player": "report/demo.html",
+    "cast": "presentation/recording/demo.cast",
+    "note": "kept for interested viewers; not part of the talk",
+    "player_template": "presentation/recording/player.html",
+    "status": "unreviewed"
+  },
+  "schema_version": 1,
+  "screenshots": [
+    {
+      "alt": "Screenshot: Experiment codegen-eval-runs, runs table.",
+      "caption": "MLflow experiment codegen-eval-runs with the two comparison runs.",
+      "format": "png",
+      "id": "shot-mlflow-experiment-runs",
+      "must_display": "both comparison runs by name and ID, success_rate, tags",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-experiment-runs.png",
+      "shows": "Experiment codegen-eval-runs, runs table",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: Baseline run overview (parameters, metrics, tags).",
+      "caption": "MLflow overview of the baseline run.",
+      "format": "png",
+      "id": "shot-mlflow-run-baseline",
+      "must_display": "run 930a188254d34d279a88a7613ea55518 and the bundle digest tag",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-run-baseline.png",
+      "shows": "Baseline run overview (parameters, metrics, tags)",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: Revised run overview.",
+      "caption": "MLflow overview of the revised run.",
+      "format": "png",
+      "id": "shot-mlflow-run-revised",
+      "must_display": "run bcddf5c9561c43129504555b020a7557",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-run-revised.png",
+      "shows": "Revised run overview",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: Two-run comparison view.",
+      "caption": "MLflow comparison of the two runs side by side.",
+      "format": "png",
+      "id": "shot-mlflow-compare",
+      "must_display": "both runs side by side with success_rate",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-compare.png",
+      "shows": "Two-run comparison view",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: A lists_02 baseline trace (explanation after a failed check).",
+      "caption": "MLflow trace of a baseline lists_02 trial.",
+      "format": "png",
+      "id": "shot-mlflow-trace-lists02-baseline",
+      "must_display": "AGENT, CHAT_MODEL and TOOL spans",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-trace-lists02-baseline.png",
+      "shows": "A lists_02 baseline trace (explanation after a failed check)",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: A lists_02 revised trace.",
+      "caption": "MLflow trace of a revised lists_02 trial.",
+      "format": "png",
+      "id": "shot-mlflow-trace-lists02-revised",
+      "must_display": "one model call and the final submission",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-trace-lists02-revised.png",
+      "shows": "A lists_02 revised trace",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: strings_01-t2 of the revised run.",
+      "caption": "MLflow trace of strings_01-t2 of the revised run.",
+      "format": "png",
+      "id": "shot-mlflow-trace-strings01-t2-revised",
+      "must_display": "the final source",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/mlflow-trace-strings01-t2-revised.png",
+      "shows": "strings_01-t2 of the revised run",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: report/index.html architecture figure.",
+      "caption": "The local HTML work log opened from disk, architecture figure.",
+      "format": "png",
+      "id": "shot-report-local-architecture",
+      "must_display": "implemented and planned legend",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/report-local-architecture.png",
+      "shows": "report/index.html architecture figure",
+      "status": "pending"
+    },
+    {
+      "alt": "Screenshot: report/index.html results section.",
+      "caption": "The local HTML work log, results and comparison section.",
+      "format": "png",
+      "id": "shot-report-local-results",
+      "must_display": "counts and limits",
+      "owner": "coordinator",
+      "path": "presentation/screenshots/report-local-results.png",
+      "shows": "report/index.html results section",
+      "status": "pending"
+    }
+  ],
+  "summary": "presentation/evidence/summary.json",
+  "title": {
+    "author": "Jose Luis Barahona",
+    "course": "CAS Applied Machine Learning (ZHAW)",
+    "date": null,
+    "date_placeholder": "[DATE: fill in]",
+    "headline": "A trustworthy, reproducible, budget-safe evaluation pipeline for a coding agent"
+  }
+}

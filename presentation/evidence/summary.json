@@ -1,0 +1,2011 @@
+{
+  "comparison": {
+    "baseline": {
+      "categories": {
+        "dictionaries": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "lists": {
+          "count": 3,
+          "of": 6,
+          "rate": 0.5
+        },
+        "numeric_logic": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "parsing_formatting": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "strings": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        }
+      },
+      "edge_cases": {
+        "count": 54,
+        "of": 60,
+        "rate": 0.9
+      },
+      "failure_labels": {
+        "contract_error": 1,
+        "syntax_error": 2
+      },
+      "headline_eligible": true,
+      "hidden_checks": {
+        "count": 108,
+        "executed": 108,
+        "of": 120,
+        "rate": 0.9
+      },
+      "per_task": {
+        "dictionaries_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "dictionaries_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_02": {
+          "succeeded": 0,
+          "trials": 3
+        },
+        "numeric_logic_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_02": {
+          "succeeded": 3,
+          "trials": 3
+        }
+      },
+      "primary": {
+        "count": 27,
+        "of": 30,
+        "rate": 0.9
+      },
+      "tasks_passing_at_least_one_trial": {
+        "count": 9,
+        "of": 10,
+        "rate": 0.9
+      },
+      "tasks_passing_every_trial": {
+        "count": 9,
+        "of": 10,
+        "rate": 0.9
+      },
+      "trials_per_task": [
+        3
+      ]
+    },
+    "caveats": [
+      "evaluator_revision differs (4f96e17ca2ab59a8172b7f2dea1412831671cf53 vs afb19fc510b3613cf721816f8d426ab2047d2f93); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added",
+      "evaluator_source_sha256 differs (4567eb9f1dc4e7647b51c5a7a3b91d5420e25ecd1629bf0f875f2af369d5d6f6 vs 763ce0091e6af9a85e571512da331dd677d8c1a62559d414089191ce5fe44d4c); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added"
+    ],
+    "delta": {
+      "gained_tasks": [
+        "lists_02"
+      ],
+      "primary_rate": 0.06666666666666665,
+      "primary_successes": 2,
+      "regressed_tasks": [
+        "strings_01"
+      ],
+      "unchanged_tasks": [
+        "dictionaries_01",
+        "dictionaries_02",
+        "lists_01",
+        "numeric_logic_01",
+        "numeric_logic_02",
+        "parsing_formatting_01",
+        "parsing_formatting_02",
+        "strings_02"
+      ]
+    },
+    "experiment_id": "prompt_comparison_v1",
+    "headline_comparison": true,
+    "revised": {
+      "categories": {
+        "dictionaries": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "lists": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "numeric_logic": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "parsing_formatting": {
+          "count": 6,
+          "of": 6,
+          "rate": 1.0
+        },
+        "strings": {
+          "count": 5,
+          "of": 6,
+          "rate": 0.8333333333333334
+        }
+      },
+      "edge_cases": {
+        "count": 59,
+        "of": 60,
+        "rate": 0.9833333333333333
+      },
+      "failure_labels": {
+        "wrong_answer": 1
+      },
+      "headline_eligible": true,
+      "hidden_checks": {
+        "count": 119,
+        "executed": 120,
+        "of": 120,
+        "rate": 0.9916666666666667
+      },
+      "per_task": {
+        "dictionaries_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "dictionaries_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_01": {
+          "succeeded": 2,
+          "trials": 3
+        },
+        "strings_02": {
+          "succeeded": 3,
+          "trials": 3
+        }
+      },
+      "primary": {
+        "count": 29,
+        "of": 30,
+        "rate": 0.9666666666666667
+      },
+      "tasks_passing_at_least_one_trial": {
+        "count": 10,
+        "of": 10,
+        "rate": 1.0
+      },
+      "tasks_passing_every_trial": {
+        "count": 9,
+        "of": 10,
+        "rate": 0.9
+      },
+      "trials_per_task": [
+        3
+      ]
+    }
+  },
+  "documents": [
+    {
+      "cell": 2,
+      "field": "primary.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/30",
+      "quote": "| Successful task trials / 30 (primary) | 27/30 (90.0%) | 29/30 (96.7%) | +2 trials (+6.7 points) |",
+      "start": "| Successful task trials / 30 (primary)",
+      "value": 27
+    },
+    {
+      "cell": 3,
+      "field": "primary.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/30",
+      "quote": "| Successful task trials / 30 (primary) | 27/30 (90.0%) | 29/30 (96.7%) | +2 trials (+6.7 points) |",
+      "start": "| Successful task trials / 30 (primary)",
+      "value": 29
+    },
+    {
+      "cell": 2,
+      "field": "hidden_checks.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/120",
+      "quote": "| Hidden checks passed / 120 | 108/120 (90.0%) | 119/120 (99.2%) | +11 |",
+      "start": "| Hidden checks passed / 120",
+      "value": 108
+    },
+    {
+      "cell": 3,
+      "field": "hidden_checks.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/120",
+      "quote": "| Hidden checks passed / 120 | 108/120 (90.0%) | 119/120 (99.2%) | +11 |",
+      "start": "| Hidden checks passed / 120",
+      "value": 119
+    },
+    {
+      "cell": 2,
+      "field": "edge_cases.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/60",
+      "quote": "| Edge cases passed / 60 | 54/60 (90.0%) | 59/60 (98.3%) | +5 |",
+      "start": "| Edge cases passed / 60",
+      "value": 54
+    },
+    {
+      "cell": 3,
+      "field": "edge_cases.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/60",
+      "quote": "| Edge cases passed / 60 | 54/60 (90.0%) | 59/60 (98.3%) | +5 |",
+      "start": "| Edge cases passed / 60",
+      "value": 59
+    },
+    {
+      "cell": 2,
+      "field": "tasks_any.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/10",
+      "quote": "| Tasks passing at least one trial / 10 | 9/10 (90.0%) | 10/10 (100.0%) | +1 task |",
+      "start": "| Tasks passing at least one trial / 10",
+      "value": 9
+    },
+    {
+      "cell": 3,
+      "field": "tasks_any.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/10",
+      "quote": "| Tasks passing at least one trial / 10 | 9/10 (90.0%) | 10/10 (100.0%) | +1 task |",
+      "start": "| Tasks passing at least one trial / 10",
+      "value": 10
+    },
+    {
+      "cell": 2,
+      "field": "tasks_all.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/10",
+      "quote": "| Tasks passing every trial / 10 | 9/10 (90.0%) | 9/10 (90.0%) | 0 |",
+      "start": "| Tasks passing every trial / 10",
+      "value": 9
+    },
+    {
+      "cell": 3,
+      "field": "tasks_all.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)/10",
+      "quote": "| Tasks passing every trial / 10 | 9/10 (90.0%) | 9/10 (90.0%) | 0 |",
+      "start": "| Tasks passing every trial / 10",
+      "value": 9
+    },
+    {
+      "cell": 2,
+      "field": "model_calls.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Model calls (= physical attempts; 0 transport retries in both) | 65 | 60 |",
+      "start": "| Model calls (",
+      "value": 65
+    },
+    {
+      "cell": 3,
+      "field": "model_calls.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Model calls (= physical attempts; 0 transport retries in both) | 65 | 60 |",
+      "start": "| Model calls (",
+      "value": 60
+    },
+    {
+      "cell": 2,
+      "field": "tool_attempts.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Tool attempts | 35 | 30 |",
+      "start": "| Tool attempts |",
+      "value": 35
+    },
+    {
+      "cell": 3,
+      "field": "tool_attempts.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Tool attempts | 35 | 30 |",
+      "start": "| Tool attempts |",
+      "value": 30
+    },
+    {
+      "cell": 2,
+      "field": "revisions.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Revisions | 1 | 0 |",
+      "start": "| Revisions |",
+      "value": 1
+    },
+    {
+      "cell": 3,
+      "field": "revisions.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^(\\d+)$",
+      "quote": "| Revisions | 1 | 0 |",
+      "start": "| Revisions |",
+      "value": 0
+    },
+    {
+      "cell": 2,
+      "field": "tokens.prompt_tokens.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 49947
+    },
+    {
+      "cell": 3,
+      "field": "tokens.prompt_tokens.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 47820
+    },
+    {
+      "cell": 2,
+      "field": "tokens.completion_tokens.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 9664
+    },
+    {
+      "cell": 3,
+      "field": "tokens.completion_tokens.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 9865
+    },
+    {
+      "cell": 2,
+      "field": "tokens.total_tokens.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 3,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 59611
+    },
+    {
+      "cell": 3,
+      "field": "tokens.total_tokens.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 3,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) / ([\\d,]+) / ([\\d,]+)$",
+      "quote": "| Prompt / completion / total tokens | 49,947 / 9,664 / 59,611 | 47,820 / 9,865 / 57,685 |",
+      "start": "| Prompt / completion / total tokens |",
+      "value": 57685
+    },
+    {
+      "cell": 2,
+      "field": "latency_total_ms.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Model latency, total (mean per trial) | 470,969 ms (15,699 ms) | 650,239 ms (21,675 ms) |",
+      "start": "| Model latency, total (mean per trial) |",
+      "value": 470969
+    },
+    {
+      "cell": 3,
+      "field": "latency_total_ms.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Model latency, total (mean per trial) | 470,969 ms (15,699 ms) | 650,239 ms (21,675 ms) |",
+      "start": "| Model latency, total (mean per trial) |",
+      "value": 650239
+    },
+    {
+      "cell": 2,
+      "field": "latency_mean_ms.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Model latency, total (mean per trial) | 470,969 ms (15,699 ms) | 650,239 ms (21,675 ms) |",
+      "start": "| Model latency, total (mean per trial) |",
+      "value": 15699
+    },
+    {
+      "cell": 3,
+      "field": "latency_mean_ms.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Model latency, total (mean per trial) | 470,969 ms (15,699 ms) | 650,239 ms (21,675 ms) |",
+      "start": "| Model latency, total (mean per trial) |",
+      "value": 21675
+    },
+    {
+      "cell": 2,
+      "field": "wall_total_ms.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Trial wall clock, total (mean per trial) | 574,000 ms (19,133 ms) | 750,000 ms (25,000 ms) |",
+      "start": "| Trial wall clock, total (mean per trial) |",
+      "value": 574000
+    },
+    {
+      "cell": 3,
+      "field": "wall_total_ms.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "^([\\d,]+) ms \\(([\\d,]+) ms\\)$",
+      "quote": "| Trial wall clock, total (mean per trial) | 574,000 ms (19,133 ms) | 750,000 ms (25,000 ms) |",
+      "start": "| Trial wall clock, total (mean per trial) |",
+      "value": 750000
+    },
+    {
+      "cell": 2,
+      "field": "cost_usd.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Reported cost (USD) | 0.00335852 | 0.003624001 |",
+      "start": "| Reported cost (USD) |",
+      "value": 0.00335852
+    },
+    {
+      "cell": 3,
+      "field": "cost_usd.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Reported cost (USD) | 0.00335852 | 0.003624001 |",
+      "start": "| Reported cost (USD) |",
+      "value": 0.003624001
+    },
+    {
+      "cell": 2,
+      "field": "cost_charged_chf.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Charged (CHF) | 0.00275 | 0.00297 |",
+      "start": "| Charged (CHF) |",
+      "value": 0.00275
+    },
+    {
+      "cell": 3,
+      "field": "cost_charged_chf.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Charged (CHF) | 0.00275 | 0.00297 |",
+      "start": "| Charged (CHF) |",
+      "value": 0.00297
+    },
+    {
+      "cell": 2,
+      "field": "cost_reserved_chf.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Reserved before send (CHF) | 0.0532805 | 0.049182 |",
+      "start": "| Reserved before send (CHF) |",
+      "value": 0.0532805
+    },
+    {
+      "cell": 3,
+      "field": "cost_reserved_chf.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "float",
+      "lines": 1,
+      "pattern": "^([\\d.]+)$",
+      "quote": "| Reserved before send (CHF) | 0.0532805 | 0.049182 |",
+      "start": "| Reserved before send (CHF) |",
+      "value": 0.049182
+    },
+    {
+      "cell": 2,
+      "field": "failure_label.syntax_error.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "`syntax_error` (\\d+)",
+      "quote": "| Failure labels | `syntax_error` 2, `contract_error` 1 | `wrong_answer` 1 | |",
+      "start": "| Failure labels |",
+      "value": 2
+    },
+    {
+      "cell": 2,
+      "field": "failure_label.contract_error.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "`contract_error` (\\d+)",
+      "quote": "| Failure labels | `syntax_error` 2, `contract_error` 1 | `wrong_answer` 1 | |",
+      "start": "| Failure labels |",
+      "value": 1
+    },
+    {
+      "cell": 3,
+      "field": "failure_label.wrong_answer.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "`wrong_answer` (\\d+)",
+      "quote": "| Failure labels | `syntax_error` 2, `contract_error` 1 | `wrong_answer` 1 | |",
+      "start": "| Failure labels |",
+      "value": 1
+    },
+    {
+      "cell": null,
+      "field": "category.dictionaries.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "dictionaries (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.dictionaries.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "dictionaries (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.lists.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "lists (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 3
+    },
+    {
+      "cell": null,
+      "field": "category.lists.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "lists (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.numeric_logic.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "numeric_logic (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.numeric_logic.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "numeric_logic (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.parsing_formatting.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "parsing_formatting (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.parsing_formatting.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "parsing_formatting (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.strings.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "strings (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 6
+    },
+    {
+      "cell": null,
+      "field": "category.strings.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 2,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "strings (\\d)/6(?: \\([\\d.]+%\\))? and (\\d)/6",
+      "quote": "Categories (successful trials of six): dictionaries 6/6 and 6/6; lists 3/6 (50.0%) and 6/6 (100.0%); numeric_logic 6/6 and 6/6; parsing_formatting 6/6 and 6/6; strings 6/6 and 5/6 (83.3%).",
+      "start": "Categories (successful trials of six):",
+      "value": 5
+    },
+    {
+      "cell": null,
+      "field": "task.gained",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "gained `(\\w+)`",
+      "quote": "Per task: gained `lists_02` (0/3 -> 3/3); regressed `strings_01` (3/3 -> 2/3); unchanged and 3/3 in both runs: `dictionaries_01`, `dictionaries_02`, `lists_01`, `numeric_logic_01`, `numeric_logic_02`, `parsing_formatting_01`, `parsing_formatting_02`, `strings_02` (eight tasks).",
+      "start": "Per task: gained",
+      "value": "lists_02"
+    },
+    {
+      "cell": null,
+      "field": "task.regressed",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "regressed `(\\w+)`",
+      "quote": "Per task: gained `lists_02` (0/3 -> 3/3); regressed `strings_01` (3/3 -> 2/3); unchanged and 3/3 in both runs: `dictionaries_01`, `dictionaries_02`, `lists_01`, `numeric_logic_01`, `numeric_logic_02`, `parsing_formatting_01`, `parsing_formatting_02`, `strings_02` (eight tasks).",
+      "start": "Per task: gained",
+      "value": "strings_01"
+    },
+    {
+      "cell": 2,
+      "field": "bundle_digest.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([0-9a-f]{64})`",
+      "quote": "| Bundle digest (sha256 of `manifest.json`) | `1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1` | `210fb4bbba433c87ffd4e4918cc1c3f39e8d504e0a443f203b674b52f091ea39` |",
+      "start": "| Bundle digest (sha256 of `manifest.json`)",
+      "value": "1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1"
+    },
+    {
+      "cell": 3,
+      "field": "bundle_digest.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([0-9a-f]{64})`",
+      "quote": "| Bundle digest (sha256 of `manifest.json`) | `1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1` | `210fb4bbba433c87ffd4e4918cc1c3f39e8d504e0a443f203b674b52f091ea39` |",
+      "start": "| Bundle digest (sha256 of `manifest.json`)",
+      "value": "210fb4bbba433c87ffd4e4918cc1c3f39e8d504e0a443f203b674b52f091ea39"
+    },
+    {
+      "cell": 2,
+      "field": "run_id.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([^`]+)`",
+      "quote": "| Run ID | `20261103T053309Z-280182` | `20261103T095324Z-d25905` |",
+      "start": "| Run ID |",
+      "value": "20261103T053309Z-280182"
+    },
+    {
+      "cell": 3,
+      "field": "run_id.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([^`]+)`",
+      "quote": "| Run ID | `20261103T053309Z-280182` | `20261103T095324Z-d25905` |",
+      "start": "| Run ID |",
+      "value": "20261103T095324Z-d25905"
+    },
+    {
+      "cell": 2,
+      "field": "prompt.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`(baseline_agent_v\\d)`",
+      "quote": "| Prompt | `baseline_agent_v1`, sha256 `bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51` | `baseline_agent_v2`, sha256 `f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b` |",
+      "start": "| Prompt |",
+      "value": "baseline_agent_v1"
+    },
+    {
+      "cell": 3,
+      "field": "prompt.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`(baseline_agent_v\\d)`",
+      "quote": "| Prompt | `baseline_agent_v1`, sha256 `bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51` | `baseline_agent_v2`, sha256 `f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b` |",
+      "start": "| Prompt |",
+      "value": "baseline_agent_v2"
+    },
+    {
+      "cell": 2,
+      "field": "mlflow_run.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([0-9a-f]{32})`",
+      "quote": "| MLflow run (http://127.0.0.1:5001, experiment 1) | `930a188254d34d279a88a7613ea55518` | `bcddf5c9561c43129504555b020a7557` |",
+      "start": "| MLflow run (",
+      "value": "930a188254d34d279a88a7613ea55518"
+    },
+    {
+      "cell": 3,
+      "field": "mlflow_run.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`([0-9a-f]{32})`",
+      "quote": "| MLflow run (http://127.0.0.1:5001, experiment 1) | `930a188254d34d279a88a7613ea55518` | `bcddf5c9561c43129504555b020a7557` |",
+      "start": "| MLflow run (",
+      "value": "bcddf5c9561c43129504555b020a7557"
+    },
+    {
+      "cell": 2,
+      "field": "planned_trials.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) of \\d+ planned",
+      "quote": "| Completeness (`trace_inspect verify`) | COMPLETE, 30 of 30 planned trials with intact records | COMPLETE, 30 of 30 planned trials with intact records |",
+      "start": "| Completeness (`trace_inspect verify`)",
+      "value": 30
+    },
+    {
+      "cell": 3,
+      "field": "planned_trials.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) of \\d+ planned",
+      "quote": "| Completeness (`trace_inspect verify`) | COMPLETE, 30 of 30 planned trials with intact records | COMPLETE, 30 of 30 planned trials with intact records |",
+      "start": "| Completeness (`trace_inspect verify`)",
+      "value": 30
+    },
+    {
+      "cell": 2,
+      "field": "ledger_chf.baseline",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Ledger (CHF) | 0.001123954886 -> 0.003876933730 | 0.003876933730 -> 0.0068475273497 |",
+      "start": "| Ledger (CHF) |",
+      "value": "0.001123954886 -> 0.003876933730"
+    },
+    {
+      "cell": 3,
+      "field": "ledger_chf.revised",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^(.+)$",
+      "quote": "| Ledger (CHF) | 0.001123954886 -> 0.003876933730 | 0.003876933730 -> 0.0068475273497 |",
+      "start": "| Ledger (CHF) |",
+      "value": "0.003876933730 -> 0.0068475273497"
+    },
+    {
+      "cell": null,
+      "field": "limit.0",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Small n.** Three trials per task and 30 trials per variant do not establish precise reliability. The +2 difference (27 -> 29) is two trials; with these counts, a different draw of the same runs could shift or reverse it, and no confidence interval or significance claim is made.",
+      "start": "- **Small n.",
+      "value": "Small n."
+    },
+    {
+      "cell": null,
+      "field": "limit.1",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Benchmark-informed tuning.** The one prompt change was written after reading the baseline failures on these same ten tasks, so any gain is limited to these tasks and may reflect fitting to the observed failure rather than a general improvement.",
+      "start": "- **Benchmark-informed tuning.",
+      "value": "Benchmark-informed tuning."
+    },
+    {
+      "cell": null,
+      "field": "limit.2",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Single model and provider.** One model (`z-ai/glm-5.3-flash`) through one provider tag (`open-inference/fp4`, fallbacks off); nothing here transfers to other models.",
+      "start": "- **Single model and provider.",
+      "value": "Single model and provider."
+    },
+    {
+      "cell": null,
+      "field": "limit.3",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Fixed sampling, no repeated runs.** Temperature 0.2, top_p 1.0, no seed; each variant was run once, so run-to-run variation of the whole schedule is unmeasured. Order was fixed (`task_major`, baseline first and revised later), so drift of the provider over the hours between the runs is not separable from the prompt.",
+      "start": "- **Fixed sampling, no repeated runs.",
+      "value": "Fixed sampling, no repeated runs."
+    },
+    {
+      "cell": null,
+      "field": "limit.4",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Provider precision not returned.** The provider returned no precision or quantization field on any attempt (see [smoke_evidence.md](smoke_evidence.md)); precision is pinned only by the provider tag, and a fixed model identifier does not guarantee immutable upstream weights.",
+      "start": "- **Provider precision not returned.",
+      "value": "Provider precision not returned."
+    },
+    {
+      "cell": null,
+      "field": "limit.5",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Evaluator revision differs.** The two runs record different evaluator revisions and source hashes; `compare` reports the evaluator code and prompt files as otherwise identical, and the difference is the added prompt file.",
+      "start": "- **Evaluator revision differs.",
+      "value": "Evaluator revision differs."
+    },
+    {
+      "cell": null,
+      "field": "limit.6",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "^- \\*\\*(.+?)\\*\\*",
+      "quote": "- **Benchmark reviewed by models only**, no human review (see [benchmark_review.md](benchmark_review.md)).",
+      "start": "- **Benchmark reviewed by models only",
+      "value": "Benchmark reviewed by models only"
+    },
+    {
+      "cell": null,
+      "field": "non_claim",
+      "file": "docs/prompt_comparison.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "(not a claim of improvement)",
+      "quote": "3. With 30 trials per variant, a +2 difference (27 -> 29) cannot establish a reliable overall improvement. The decision is a reasoned keep on the targeted fix, not a claim of improvement.",
+      "start": "3. With 30 trials per variant",
+      "value": "not a claim of improvement"
+    },
+    {
+      "cell": null,
+      "field": "ci.r1.run",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "run (\\d+),",
+      "quote": "- **First GitHub run (run 41124321745, `ci/add-deterministic-ci`, commit 868410f):** `offline` passed; `podman` passed image pull and limits verification but failed at the sandbox tests (cause not yet known; job logs unreadable to the coordinator). Response: failed tests now become `::error` annotations and Podman details `::notice` annotations; Podman steps run as root instead of through a `sudo` shim (hypothesis, unverified on a runner: the sandbox's `process.kill()` on a root-owned `sudo` raises EPERM for timeout/flood checks). Not a CI success; no result is claimed until a rerun.",
+      "start": "- **First GitHub run (run 41124321745",
+      "value": "41124321745"
+    },
+    {
+      "cell": null,
+      "field": "ci.r1.commit",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "commit (\\w+)\\)",
+      "quote": "- **First GitHub run (run 41124321745, `ci/add-deterministic-ci`, commit 868410f):** `offline` passed; `podman` passed image pull and limits verification but failed at the sandbox tests (cause not yet known; job logs unreadable to the coordinator). Response: failed tests now become `::error` annotations and Podman details `::notice` annotations; Podman steps run as root instead of through a `sudo` shim (hypothesis, unverified on a runner: the sandbox's `process.kill()` on a root-owned `sudo` raises EPERM for timeout/flood checks). Not a CI success; no result is claimed until a rerun.",
+      "start": "- **First GitHub run (run 41124321745",
+      "value": "868410f"
+    },
+    {
+      "cell": null,
+      "field": "ci.r1.offline",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`offline` (\\w+);",
+      "quote": "- **First GitHub run (run 41124321745, `ci/add-deterministic-ci`, commit 868410f):** `offline` passed; `podman` passed image pull and limits verification but failed at the sandbox tests (cause not yet known; job logs unreadable to the coordinator). Response: failed tests now become `::error` annotations and Podman details `::notice` annotations; Podman steps run as root instead of through a `sudo` shim (hypothesis, unverified on a runner: the sandbox's `process.kill()` on a root-owned `sudo` raises EPERM for timeout/flood checks). Not a CI success; no result is claimed until a rerun.",
+      "start": "- **First GitHub run (run 41124321745",
+      "value": "passed"
+    },
+    {
+      "cell": 1,
+      "field": "ci.r2.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| [41124321745](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41124321745) | `868410f` | `podman` failed in the sandbox tests |",
+      "start": "| [41124321745]",
+      "value": "41124321745"
+    },
+    {
+      "cell": 2,
+      "field": "ci.r2.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`(\\w+)`",
+      "quote": "| [41124321745](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41124321745) | `868410f` | `podman` failed in the sandbox tests |",
+      "start": "| [41124321745]",
+      "value": "868410f"
+    },
+    {
+      "cell": 3,
+      "field": "ci.r2.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`podman` (failed)",
+      "quote": "| [41124321745](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41124321745) | `868410f` | `podman` failed in the sandbox tests |",
+      "start": "| [41124321745]",
+      "value": "failed"
+    },
+    {
+      "cell": 1,
+      "field": "ci.r3.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |",
+      "start": "| [41126346781]",
+      "value": "41126346781"
+    },
+    {
+      "cell": 2,
+      "field": "ci.r3.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`(\\w+)`",
+      "quote": "| [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |",
+      "start": "| [41126346781]",
+      "value": "b71134c"
+    },
+    {
+      "cell": 3,
+      "field": "ci.r3.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "`podman`: \\d+ of \\d+ (failed)",
+      "quote": "| [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |",
+      "start": "| [41126346781]",
+      "value": "failed"
+    },
+    {
+      "cell": 3,
+      "field": "ci.r3.podman_failed",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) of \\d+ failed",
+      "quote": "| [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |",
+      "start": "| [41126346781]",
+      "value": 14
+    },
+    {
+      "cell": 3,
+      "field": "ci.r3.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "\\d+ of (\\d+) failed",
+      "quote": "| [41126346781](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41126346781) | `b71134c` | `podman`: 14 of 63 failed (in-container signals denied, container cleanup) |",
+      "start": "| [41126346781]",
+      "value": 63
+    },
+    {
+      "cell": null,
+      "field": "ci.r4.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| Run | [41128433037](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128433037) |\n| Branch / commit | `ci/add-deterministic-ci` / `ef1186e` |\n| `offline` | success |\n| `podman` | success: 63 tests, 0 skipped, 0 failures, 0 errors; 0 leftover containers |",
+      "start": "| Run | [41128433037]",
+      "value": "41128433037"
+    },
+    {
+      "cell": null,
+      "field": "ci.r4.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "/ `(\\w+)`",
+      "quote": "| Run | [41128433037](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128433037) |\n| Branch / commit | `ci/add-deterministic-ci` / `ef1186e` |\n| `offline` | success |\n| `podman` | success: 63 tests, 0 skipped, 0 failures, 0 errors; 0 leftover containers |",
+      "start": "| Run | [41128433037]",
+      "value": "ef1186e"
+    },
+    {
+      "cell": null,
+      "field": "ci.r4.offline",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "`offline` \\| (\\w+) \\|",
+      "quote": "| Run | [41128433037](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128433037) |\n| Branch / commit | `ci/add-deterministic-ci` / `ef1186e` |\n| `offline` | success |\n| `podman` | success: 63 tests, 0 skipped, 0 failures, 0 errors; 0 leftover containers |",
+      "start": "| Run | [41128433037]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r4.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "`podman` \\| (\\w+):",
+      "quote": "| Run | [41128433037](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128433037) |\n| Branch / commit | `ci/add-deterministic-ci` / `ef1186e` |\n| `offline` | success |\n| `podman` | success: 63 tests, 0 skipped, 0 failures, 0 errors; 0 leftover containers |",
+      "start": "| Run | [41128433037]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r4.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 4,
+      "pattern": "(\\d+) tests",
+      "quote": "| Run | [41128433037](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128433037) |\n| Branch / commit | `ci/add-deterministic-ci` / `ef1186e` |\n| `offline` | success |\n| `podman` | success: 63 tests, 0 skipped, 0 failures, 0 errors; 0 leftover containers |",
+      "start": "| Run | [41128433037]",
+      "value": 63
+    },
+    {
+      "cell": 1,
+      "field": "ci.r5.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |",
+      "start": "| [41128978798]",
+      "value": "41128978798"
+    },
+    {
+      "cell": 2,
+      "field": "ci.r5.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "/ `(\\w+)`$",
+      "quote": "| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |",
+      "start": "| [41128978798]",
+      "value": "bf0a259"
+    },
+    {
+      "cell": 4,
+      "field": "ci.r5.offline",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "(failed|success)",
+      "quote": "| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |",
+      "start": "| [41128978798]",
+      "value": "failed"
+    },
+    {
+      "cell": 5,
+      "field": "ci.r5.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "(failed|success)",
+      "quote": "| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |",
+      "start": "| [41128978798]",
+      "value": "success"
+    },
+    {
+      "cell": 5,
+      "field": "ci.r5.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) tests",
+      "quote": "| [41128978798](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128978798) | `ci/demo-broken-offline` / `bf0a259` | expectation in `tests/test_evaluate.py::test_ordinary_failure_remains_visible_alongside_passing_cases` | **failed** at the `pytest -q` step | success (63 tests, 0 failures) |",
+      "start": "| [41128978798]",
+      "value": 63
+    },
+    {
+      "cell": 1,
+      "field": "ci.r6.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": "41128979150"
+    },
+    {
+      "cell": 2,
+      "field": "ci.r6.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "/ `(\\w+)`$",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": "3bf42da"
+    },
+    {
+      "cell": 4,
+      "field": "ci.r6.offline",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "(failed|success)",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": "success"
+    },
+    {
+      "cell": 5,
+      "field": "ci.r6.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "\\*\\*(failed)\\*\\*",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": "failed"
+    },
+    {
+      "cell": 5,
+      "field": "ci.r6.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "of (\\d+)",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": 63
+    },
+    {
+      "cell": 5,
+      "field": "ci.r6.podman_failed",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "(\\d+) of",
+      "quote": "| [41128979150](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41128979150) | `ci/demo-broken-podman` / `3bf42da` | `exception` row of `SANDBOX_FIXTURES` in `tests/test_grading.py` expects `wrong_answer` | success | **failed**: 1 of 63, `tests.test_grading::test_sandbox_fixture_accounting[exception]` (actual `exception`, expected `wrong_answer`) |",
+      "start": "| [41128979150]",
+      "value": 1
+    },
+    {
+      "cell": null,
+      "field": "ci.r7.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |\n| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |\n| `offline` | success |\n| `podman` | success: 64 tests, 0 skipped, 0 failures |",
+      "start": "| Run | [41131517803]",
+      "value": "41131517803"
+    },
+    {
+      "cell": null,
+      "field": "ci.r7.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "/ `(\\w+)`",
+      "quote": "| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |\n| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |\n| `offline` | success |\n| `podman` | success: 64 tests, 0 skipped, 0 failures |",
+      "start": "| Run | [41131517803]",
+      "value": "15c9eb9"
+    },
+    {
+      "cell": null,
+      "field": "ci.r7.offline",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "`offline` \\| (\\w+) \\|",
+      "quote": "| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |\n| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |\n| `offline` | success |\n| `podman` | success: 64 tests, 0 skipped, 0 failures |",
+      "start": "| Run | [41131517803]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r7.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 4,
+      "pattern": "`podman` \\| (\\w+):",
+      "quote": "| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |\n| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |\n| `offline` | success |\n| `podman` | success: 64 tests, 0 skipped, 0 failures |",
+      "start": "| Run | [41131517803]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r7.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 4,
+      "pattern": "(\\d+) tests",
+      "quote": "| Run | [41131517803](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/41131517803) |\n| Branch / commit | `barahjos/add-deterministic-ci` / `15c9eb9` (rebased onto `main`) |\n| `offline` | success |\n| `podman` | success: 64 tests, 0 skipped, 0 failures |",
+      "start": "| Run | [41131517803]",
+      "value": 64
+    },
+    {
+      "cell": null,
+      "field": "ci.r8.run",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "CI run (\\d+) success",
+      "quote": "- **Observed tests (2026-11-03, local macOS, this branch):** `.venv/bin/pytest -q` 758 passed, 67 skipped; sandbox group 67 passed, 758 deselected; `build_work_log.py --check` and `openspec validate add-openrouter-client-and-budget-ledger --strict` pass. Coordinator on `main` 81302b6: 758 passed, 67 skipped; sandbox 67 passed; CI run 41581787430 success (offline 825 tests, podman 64, 0 failures).",
+      "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
+      "value": "41581787430"
+    },
+    {
+      "cell": null,
+      "field": "ci.r8.offline",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "CI run \\d+ (success)",
+      "quote": "- **Observed tests (2026-11-03, local macOS, this branch):** `.venv/bin/pytest -q` 758 passed, 67 skipped; sandbox group 67 passed, 758 deselected; `build_work_log.py --check` and `openspec validate add-openrouter-client-and-budget-ledger --strict` pass. Coordinator on `main` 81302b6: 758 passed, 67 skipped; sandbox 67 passed; CI run 41581787430 success (offline 825 tests, podman 64, 0 failures).",
+      "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r8.offline_tests",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "\\(offline (\\d+) tests",
+      "quote": "- **Observed tests (2026-11-03, local macOS, this branch):** `.venv/bin/pytest -q` 758 passed, 67 skipped; sandbox group 67 passed, 758 deselected; `build_work_log.py --check` and `openspec validate add-openrouter-client-and-budget-ledger --strict` pass. Coordinator on `main` 81302b6: 758 passed, 67 skipped; sandbox 67 passed; CI run 41581787430 success (offline 825 tests, podman 64, 0 failures).",
+      "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
+      "value": 825
+    },
+    {
+      "cell": null,
+      "field": "ci.r8.podman",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 1,
+      "pattern": "CI run \\d+ (success)",
+      "quote": "- **Observed tests (2026-11-03, local macOS, this branch):** `.venv/bin/pytest -q` 758 passed, 67 skipped; sandbox group 67 passed, 758 deselected; `build_work_log.py --check` and `openspec validate add-openrouter-client-and-budget-ledger --strict` pass. Coordinator on `main` 81302b6: 758 passed, 67 skipped; sandbox 67 passed; CI run 41581787430 success (offline 825 tests, podman 64, 0 failures).",
+      "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r8.podman_tests",
+      "file": "docs/progress.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 1,
+      "pattern": "podman (\\d+),",
+      "quote": "- **Observed tests (2026-11-03, local macOS, this branch):** `.venv/bin/pytest -q` 758 passed, 67 skipped; sandbox group 67 passed, 758 deselected; `build_work_log.py --check` and `openspec validate add-openrouter-client-and-budget-ledger --strict` pass. Coordinator on `main` 81302b6: 758 passed, 67 skipped; sandbox 67 passed; CI run 41581787430 success (offline 825 tests, podman 64, 0 failures).",
+      "start": "- **Observed tests (2026-11-03, local macOS, this branch)",
+      "value": 64
+    }
+  ],
+  "efficiency": {
+    "baseline": {
+      "attempts": {
+        "physical": 65,
+        "retries": 0,
+        "without_reported_cost": 0
+      },
+      "cost": {
+        "charged_chf": 0.0027529788439999998,
+        "reported_usd": 0.00335852,
+        "reserved_before_send_chf": 0.0532805
+      },
+      "model_calls": 65,
+      "model_latency_ms": {
+        "mean_per_trial": 15698.966666666667,
+        "total": 470969,
+        "trials_measured": 30
+      },
+      "recovery": {
+        "of_which_final_success": 1,
+        "trials_with_failed_development_check": 4
+      },
+      "revisions": 1,
+      "tokens": {
+        "completion_tokens": 9664,
+        "prompt_tokens": 49947,
+        "total_tokens": 59611
+      },
+      "tool_attempts": 35,
+      "trial_wall_clock_ms": {
+        "mean_per_trial": 19133.333333333332,
+        "total": 574000.0,
+        "trials_measured": 30
+      }
+    },
+    "revised": {
+      "attempts": {
+        "physical": 60,
+        "retries": 0,
+        "without_reported_cost": 0
+      },
+      "cost": {
+        "charged_chf": 0.0029705936197,
+        "reported_usd": 0.003624001,
+        "reserved_before_send_chf": 0.049182000000000003
+      },
+      "model_calls": 60,
+      "model_latency_ms": {
+        "mean_per_trial": 21674.633333333335,
+        "total": 650239,
+        "trials_measured": 30
+      },
+      "recovery": {
+        "of_which_final_success": 0,
+        "trials_with_failed_development_check": 0
+      },
+      "revisions": 0,
+      "tokens": {
+        "completion_tokens": 9865,
+        "prompt_tokens": 47820,
+        "total_tokens": 57685
+      },
+      "tool_attempts": 30,
+      "trial_wall_clock_ms": {
+        "mean_per_trial": 25000.0,
+        "total": 750000.0,
+        "trials_measured": 30
+      }
+    }
+  },
+  "engineering": {
+    "changes_archived": {
+      "by_date": {
+        "2026-10-30": 5,
+        "2026-11-01": 2,
+        "2026-11-02": 1,
+        "2026-11-03": 2,
+        "2026-11-06": 5
+      },
+      "count": 15,
+      "items": [
+        {
+          "date": "2026-10-30",
+          "name": "add-bounded-agent-loop"
+        },
+        {
+          "date": "2026-10-30",
+          "name": "add-evaluation-design-guide"
+        },
+        {
+          "date": "2026-10-30",
+          "name": "add-reviewed-benchmark-and-graders"
+        },
+        {
+          "date": "2026-10-30",
+          "name": "add-run-bundles-and-grading-replay"
+        },
+        {
+          "date": "2026-10-30",
+          "name": "harden-candidate-execution"
+        },
+        {
+          "date": "2026-11-01",
+          "name": "add-architecture-diagrams"
+        },
+        {
+          "date": "2026-11-01",
+          "name": "add-orchestration-workflow-skill"
+        },
+        {
+          "date": "2026-11-02",
+          "name": "add-run-flow-diagrams"
+        },
+        {
+          "date": "2026-11-03",
+          "name": "add-openrouter-client-and-budget-ledger"
+        },
+        {
+          "date": "2026-11-03",
+          "name": "run-prompt-comparison"
+        },
+        {
+          "date": "2026-11-06",
+          "name": "add-deterministic-ci"
+        },
+        {
+          "date": "2026-11-06",
+          "name": "add-local-html-work-log"
+        },
+        {
+          "date": "2026-11-06",
+          "name": "add-local-mlflow-tracking"
+        },
+        {
+          "date": "2026-11-06",
+          "name": "clarify-orchestration-notices"
+        },
+        {
+          "date": "2026-11-06",
+          "name": "prepare-reproducible-demo"
+        }
+      ]
+    },
+    "ci": {
+      "runs": [
+        {
+          "commit": "868410f",
+          "offline": "passed",
+          "podman": "failed",
+          "run": "41124321745"
+        },
+        {
+          "commit": "b71134c",
+          "podman": "failed",
+          "podman_failed": 14,
+          "podman_tests": 63,
+          "run": "41126346781"
+        },
+        {
+          "commit": "ef1186e",
+          "offline": "success",
+          "podman": "success",
+          "podman_tests": 63,
+          "run": "41128433037"
+        },
+        {
+          "commit": "bf0a259",
+          "offline": "failed",
+          "podman": "success",
+          "podman_tests": 63,
+          "run": "41128978798"
+        },
+        {
+          "commit": "3bf42da",
+          "offline": "success",
+          "podman": "failed",
+          "podman_failed": 1,
+          "podman_tests": 63,
+          "run": "41128979150"
+        },
+        {
+          "commit": "15c9eb9",
+          "offline": "success",
+          "podman": "success",
+          "podman_tests": 64,
+          "run": "41131517803"
+        },
+        {
+          "offline": "success",
+          "offline_tests": 825,
+          "podman": "success",
+          "podman_tests": 64,
+          "run": "41581787430"
+        }
+      ],
+      "source": "committed documents (see documents)"
+    },
+    "specs": {
+      "count": 14
+    },
+    "tests": {
+      "commit": "5e6d44e9b7d2ffc6019856c8495938a0d6a983b3",
+      "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
+      "offline_collected": 767,
+      "sandbox_collected": 67
+    }
+  },
+  "ledger_quotes": {
+    "baseline": "0.001123954886 -> 0.003876933730",
+    "revised": "0.003876933730 -> 0.0068475273497",
+    "source": "quoted from docs/prompt_comparison.md; the ledger is never read"
+  },
+  "limits": {
+    "items": [
+      "Small n.",
+      "Benchmark-informed tuning.",
+      "Single model and provider.",
+      "Fixed sampling, no repeated runs.",
+      "Provider precision not returned.",
+      "Evaluator revision differs.",
+      "Benchmark reviewed by models only"
+    ],
+    "non_claim": "not a claim of improvement",
+    "statement": "A comparison of two prompts on ten tasks with one model; the decision is a reasoned keep, not a measured improvement or breakthrough."
+  },
+  "provenance": {
+    "commands": [
+      "PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli compare --baseline 20261103T053309Z-280182 --revised 20261103T095324Z-d25905 --bundles <bundles> --json",
+      "PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles <bundles> verify <run_id> (each of the three runs)",
+      "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"
+    ],
+    "commit": "5e6d44e9b7d2ffc6019856c8495938a0d6a983b3",
+    "generated_by": {
+      "script": "scripts/presentation_evidence.py",
+      "sha256": "7969ef010ed0393680deaa8321516068343c063c0c27b09c6ffcb63a73769309"
+    },
+    "runs": {
+      "baseline": {
+        "bundle": "run_bundles/20261103T053309Z-280182",
+        "bundle_digest": "1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1",
+        "completeness": {
+          "complete": true,
+          "planned": 30,
+          "recorded": 30
+        },
+        "mlflow_run_id": "930a188254d34d279a88a7613ea55518",
+        "prompt": {
+          "sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+          "version": "baseline_agent_v1"
+        },
+        "run_id": "20261103T053309Z-280182"
+      },
+      "revised": {
+        "bundle": "run_bundles/20261103T095324Z-d25905",
+        "bundle_digest": "210fb4bbba433c87ffd4e4918cc1c3f39e8d504e0a443f203b674b52f091ea39",
+        "completeness": {
+          "complete": true,
+          "planned": 30,
+          "recorded": 30
+        },
+        "mlflow_run_id": "bcddf5c9561c43129504555b020a7557",
+        "prompt": {
+          "sha256": "f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b",
+          "version": "baseline_agent_v2"
+        },
+        "run_id": "20261103T095324Z-d25905"
+      },
+      "smoke_forced_pass": {
+        "bundle": "run_bundles/20261103T050806Z-30949f",
+        "bundle_digest": "e09cb5b047a22048d25649170da81562b27a45e20250d83b1b7654ff83a5283c",
+        "run_id": "20261103T050806Z-30949f"
+      }
+    }
+  },
+  "schema_version": 1,
+  "smoke": {
+    "bundle_digest": "e09cb5b047a22048d25649170da81562b27a45e20250d83b1b7654ff83a5283c",
+    "mode": "exercise_final_only",
+    "model_calls": 4,
+    "run_id": "20261103T050806Z-30949f",
+    "source": {
+      "command": "trace_inspect show <run_id> on the retained bundle",
+      "file": "docs/smoke_evidence.md"
+    },
+    "status": "complete",
+    "task_id": "strings_01",
+    "tool_attempts": 3
+  },
+  "stories": {
+    "lists_02": {
+      "baseline": [
+        {
+          "contract_issue_code": "syntax_error",
+          "dev_check_failed": true,
+          "failed_checks": [
+            {
+              "actual": null,
+              "id": "lists_02_a"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_b"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_c"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_d"
+            }
+          ],
+          "final_form": "prose before code",
+          "labels": [
+            "syntax_error"
+          ],
+          "model_calls": 2,
+          "success": false,
+          "tool_attempts": 1,
+          "trial_id": "lists_02-t1"
+        },
+        {
+          "contract_issue_code": "contract_error",
+          "dev_check_failed": true,
+          "failed_checks": [
+            {
+              "actual": null,
+              "id": "lists_02_a"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_b"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_c"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_d"
+            }
+          ],
+          "final_form": "fenced reply",
+          "labels": [
+            "contract_error"
+          ],
+          "model_calls": 2,
+          "success": false,
+          "tool_attempts": 1,
+          "trial_id": "lists_02-t2"
+        },
+        {
+          "contract_issue_code": "syntax_error",
+          "dev_check_failed": true,
+          "failed_checks": [
+            {
+              "actual": null,
+              "id": "lists_02_a"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_b"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_c"
+            },
+            {
+              "actual": null,
+              "id": "lists_02_d"
+            }
+          ],
+          "final_form": "prose before code",
+          "labels": [
+            "syntax_error"
+          ],
+          "model_calls": 2,
+          "success": false,
+          "tool_attempts": 1,
+          "trial_id": "lists_02-t3"
+        }
+      ],
+      "revised": [
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 1,
+          "success": true,
+          "tool_attempts": 0,
+          "trial_id": "lists_02-t1"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 1,
+          "success": true,
+          "tool_attempts": 0,
+          "trial_id": "lists_02-t2"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 1,
+          "success": true,
+          "tool_attempts": 0,
+          "trial_id": "lists_02-t3"
+        }
+      ]
+    },
+    "strings_01": {
+      "baseline": [
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 2,
+          "success": true,
+          "tool_attempts": 1,
+          "trial_id": "strings_01-t1"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": true,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 3,
+          "success": true,
+          "tool_attempts": 2,
+          "trial_id": "strings_01-t2"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 2,
+          "success": true,
+          "tool_attempts": 1,
+          "trial_id": "strings_01-t3"
+        }
+      ],
+      "revised": [
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 2,
+          "success": true,
+          "tool_attempts": 1,
+          "trial_id": "strings_01-t1"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [
+            {
+              "actual": 0,
+              "id": "strings_01_d"
+            }
+          ],
+          "final_form": "bare function",
+          "labels": [
+            "wrong_answer"
+          ],
+          "model_calls": 2,
+          "success": false,
+          "tool_attempts": 1,
+          "trial_id": "strings_01-t2"
+        },
+        {
+          "contract_issue_code": null,
+          "dev_check_failed": false,
+          "failed_checks": [],
+          "final_form": "bare function",
+          "labels": [],
+          "model_calls": 2,
+          "success": true,
+          "tool_attempts": 1,
+          "trial_id": "strings_01-t3"
+        }
+      ]
+    }
+  }
+}

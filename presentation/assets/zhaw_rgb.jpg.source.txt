@@ -1,0 +1,4 @@
+ZHAW logo for the title slide of the course presentation (ZHAW's mark; used for this coursework).
+Source URL: https://www.zhaw.ch/storage/engineering/ueber-uns/medien/zhaw_rgb.jpg
+Downloaded: 2026-11-13 with a single curl; nothing fetches it again at build or viewing time.
+SHA-256: bd181c824bd8ff3a50d02436f1bdc0db775c50797e41c555c4f457a8edd8e311

@@ -1,0 +1,572 @@
+{
+ "commit": "5e6d44e9b7d2ffc6019856c8495938a0d6a983b3",
+ "compare": {
+  "caveats": [
+   "evaluator_revision differs (4f96e17ca2ab59a8172b7f2dea1412831671cf53 vs afb19fc510b3613cf721816f8d426ab2047d2f93); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added",
+   "evaluator_source_sha256 differs (4567eb9f1dc4e7647b51c5a7a3b91d5420e25ecd1629bf0f875f2af369d5d6f6 vs 763ce0091e6af9a85e571512da331dd677d8c1a62559d414089191ce5fe44d4c); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added"
+  ],
+  "delta": {
+   "gained_tasks": [
+    "lists_02"
+   ],
+   "primary_rate": 0.06666666666666665,
+   "primary_successes": 2,
+   "regressed_tasks": [
+    "strings_01"
+   ],
+   "unchanged_tasks": [
+    "dictionaries_01",
+    "dictionaries_02",
+    "lists_01",
+    "numeric_logic_01",
+    "numeric_logic_02",
+    "parsing_formatting_01",
+    "parsing_formatting_02",
+    "strings_02"
+   ]
+  },
+  "experiment_id": "prompt_comparison_v1",
+  "headline_comparison": true,
+  "reasons_not_headline": [],
+  "runs": {
+   "baseline": {
+    "bundle": "run_bundles/20261103T053309Z-280182",
+    "classification": {
+     "classes": [],
+     "complete": true,
+     "infrastructure_statuses": []
+    },
+    "metrics": {
+     "attempts": {
+      "physical": 65,
+      "retries": 0,
+      "without_reported_cost": 0
+     },
+     "categories": {
+      "dictionaries": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "lists": {
+       "count": 3,
+       "of": 6,
+       "rate": 0.5
+      },
+      "numeric_logic": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "parsing_formatting": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "strings": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      }
+     },
+     "cost": {
+      "charged_chf": 0.0027529788439999998,
+      "reported_usd": 0.00335852,
+      "reserved_before_send_chf": 0.0532805
+     },
+     "edge_cases": {
+      "count": 54,
+      "of": 60,
+      "rate": 0.9
+     },
+     "failure_labels": {
+      "contract_error": 1,
+      "syntax_error": 2
+     },
+     "headline_eligible": true,
+     "hidden_checks": {
+      "count": 108,
+      "executed": 108,
+      "of": 120,
+      "rate": 0.9
+     },
+     "model_calls": 65,
+     "model_latency_ms": {
+      "mean_per_trial": 15698.966666666667,
+      "total": 470969,
+      "trials_measured": 30
+     },
+     "per_task": {
+      "dictionaries_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "dictionaries_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "lists_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "lists_02": {
+       "succeeded": 0,
+       "trials": 3
+      },
+      "numeric_logic_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "numeric_logic_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "parsing_formatting_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "parsing_formatting_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "strings_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "strings_02": {
+       "succeeded": 3,
+       "trials": 3
+      }
+     },
+     "primary": {
+      "count": 27,
+      "of": 30,
+      "rate": 0.9
+     },
+     "recovery": {
+      "of_which_final_success": 1,
+      "trials_with_failed_development_check": 4
+     },
+     "revisions": 1,
+     "tasks_passing_at_least_one_trial": {
+      "count": 9,
+      "of": 10,
+      "rate": 0.9
+     },
+     "tasks_passing_every_trial": {
+      "count": 9,
+      "of": 10,
+      "rate": 0.9
+     },
+     "tokens": {
+      "completion_tokens": 9664,
+      "prompt_tokens": 49947,
+      "total_tokens": 59611
+     },
+     "tool_attempts": 35,
+     "trial_wall_clock_ms": {
+      "mean_per_trial": 19133.333333333332,
+      "total": 574000.0,
+      "trials_measured": 30
+     },
+     "trials_incomplete": 0,
+     "trials_measured": 30,
+     "trials_per_task": [
+      3
+     ],
+     "trials_ungraded": 0
+    },
+    "prompt": {
+     "sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+     "version": "baseline_agent_v1"
+    },
+    "run_id": "20261103T053309Z-280182",
+    "schedule_complete": true,
+    "schedule_problems": []
+   },
+   "revised": {
+    "bundle": "run_bundles/20261103T095324Z-d25905",
+    "classification": {
+     "classes": [],
+     "complete": true,
+     "infrastructure_statuses": []
+    },
+    "metrics": {
+     "attempts": {
+      "physical": 60,
+      "retries": 0,
+      "without_reported_cost": 0
+     },
+     "categories": {
+      "dictionaries": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "lists": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "numeric_logic": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "parsing_formatting": {
+       "count": 6,
+       "of": 6,
+       "rate": 1.0
+      },
+      "strings": {
+       "count": 5,
+       "of": 6,
+       "rate": 0.8333333333333334
+      }
+     },
+     "cost": {
+      "charged_chf": 0.0029705936197,
+      "reported_usd": 0.003624001,
+      "reserved_before_send_chf": 0.049182000000000003
+     },
+     "edge_cases": {
+      "count": 59,
+      "of": 60,
+      "rate": 0.9833333333333333
+     },
+     "failure_labels": {
+      "wrong_answer": 1
+     },
+     "headline_eligible": true,
+     "hidden_checks": {
+      "count": 119,
+      "executed": 120,
+      "of": 120,
+      "rate": 0.9916666666666667
+     },
+     "model_calls": 60,
+     "model_latency_ms": {
+      "mean_per_trial": 21674.633333333335,
+      "total": 650239,
+      "trials_measured": 30
+     },
+     "per_task": {
+      "dictionaries_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "dictionaries_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "lists_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "lists_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "numeric_logic_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "numeric_logic_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "parsing_formatting_01": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "parsing_formatting_02": {
+       "succeeded": 3,
+       "trials": 3
+      },
+      "strings_01": {
+       "succeeded": 2,
+       "trials": 3
+      },
+      "strings_02": {
+       "succeeded": 3,
+       "trials": 3
+      }
+     },
+     "primary": {
+      "count": 29,
+      "of": 30,
+      "rate": 0.9666666666666667
+     },
+     "recovery": {
+      "of_which_final_success": 0,
+      "trials_with_failed_development_check": 0
+     },
+     "revisions": 0,
+     "tasks_passing_at_least_one_trial": {
+      "count": 10,
+      "of": 10,
+      "rate": 1.0
+     },
+     "tasks_passing_every_trial": {
+      "count": 9,
+      "of": 10,
+      "rate": 0.9
+     },
+     "tokens": {
+      "completion_tokens": 9865,
+      "prompt_tokens": 47820,
+      "total_tokens": 57685
+     },
+     "tool_attempts": 30,
+     "trial_wall_clock_ms": {
+      "mean_per_trial": 25000.0,
+      "total": 750000.0,
+      "trials_measured": 30
+     },
+     "trials_incomplete": 0,
+     "trials_measured": 30,
+     "trials_per_task": [
+      3
+     ],
+     "trials_ungraded": 0
+    },
+    "prompt": {
+     "sha256": "f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b",
+     "version": "baseline_agent_v2"
+    },
+    "run_id": "20261103T095324Z-d25905",
+    "schedule_complete": true,
+    "schedule_problems": []
+   }
+  }
+ },
+ "runs": {
+  "baseline": {
+   "bundle_digest": "1a2e964fce29acca6f8ab223dab1a56e260b3624955575f6297f2d8b0a9aced1",
+   "complete": true,
+   "planned": 30,
+   "recorded": 30,
+   "run_id": "20261103T053309Z-280182"
+  },
+  "revised": {
+   "bundle_digest": "210fb4bbba433c87ffd4e4918cc1c3f39e8d504e0a443f203b674b52f091ea39",
+   "complete": true,
+   "planned": 30,
+   "recorded": 30,
+   "run_id": "20261103T095324Z-d25905"
+  }
+ },
+ "smoke": {
+  "bundle_digest": "e09cb5b047a22048d25649170da81562b27a45e20250d83b1b7654ff83a5283c",
+  "mode": "exercise_final_only",
+  "model_calls": 4,
+  "run_id": "20261103T050806Z-30949f",
+  "status": "complete",
+  "task_id": "strings_01",
+  "tool_attempts": 3
+ },
+ "story_trials": {
+  "lists_02": {
+   "baseline": [
+    {
+     "contract_issue_code": "syntax_error",
+     "dev_check_failed": true,
+     "failed_checks": [
+      {
+       "actual": null,
+       "id": "lists_02_a"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_b"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_c"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_d"
+      }
+     ],
+     "labels": [
+      "syntax_error"
+     ],
+     "model_calls": 2,
+     "success": false,
+     "tool_attempts": 1,
+     "trial_id": "lists_02-t1"
+    },
+    {
+     "contract_issue_code": "contract_error",
+     "dev_check_failed": true,
+     "failed_checks": [
+      {
+       "actual": null,
+       "id": "lists_02_a"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_b"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_c"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_d"
+      }
+     ],
+     "labels": [
+      "contract_error"
+     ],
+     "model_calls": 2,
+     "success": false,
+     "tool_attempts": 1,
+     "trial_id": "lists_02-t2"
+    },
+    {
+     "contract_issue_code": "syntax_error",
+     "dev_check_failed": true,
+     "failed_checks": [
+      {
+       "actual": null,
+       "id": "lists_02_a"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_b"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_c"
+      },
+      {
+       "actual": null,
+       "id": "lists_02_d"
+      }
+     ],
+     "labels": [
+      "syntax_error"
+     ],
+     "model_calls": 2,
+     "success": false,
+     "tool_attempts": 1,
+     "trial_id": "lists_02-t3"
+    }
+   ],
+   "revised": [
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 1,
+     "success": true,
+     "tool_attempts": 0,
+     "trial_id": "lists_02-t1"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 1,
+     "success": true,
+     "tool_attempts": 0,
+     "trial_id": "lists_02-t2"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 1,
+     "success": true,
+     "tool_attempts": 0,
+     "trial_id": "lists_02-t3"
+    }
+   ]
+  },
+  "strings_01": {
+   "baseline": [
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 2,
+     "success": true,
+     "tool_attempts": 1,
+     "trial_id": "strings_01-t1"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": true,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 3,
+     "success": true,
+     "tool_attempts": 2,
+     "trial_id": "strings_01-t2"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 2,
+     "success": true,
+     "tool_attempts": 1,
+     "trial_id": "strings_01-t3"
+    }
+   ],
+   "revised": [
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 2,
+     "success": true,
+     "tool_attempts": 1,
+     "trial_id": "strings_01-t1"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [
+      {
+       "actual": 0,
+       "id": "strings_01_d"
+      }
+     ],
+     "labels": [
+      "wrong_answer"
+     ],
+     "model_calls": 2,
+     "success": false,
+     "tool_attempts": 1,
+     "trial_id": "strings_01-t2"
+    },
+    {
+     "contract_issue_code": null,
+     "dev_check_failed": false,
+     "failed_checks": [],
+     "labels": [],
+     "model_calls": 2,
+     "success": true,
+     "tool_attempts": 1,
+     "trial_id": "strings_01-t3"
+    }
+   ]
+  }
+ },
+ "tests": {
+  "commit": "5e6d44e9b7d2ffc6019856c8495938a0d6a983b3",
+  "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
+  "offline_collected": 767,
+  "sandbox_collected": 67
+ }
+}

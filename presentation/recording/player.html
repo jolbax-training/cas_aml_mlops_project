@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo recording: credential-free path</title>
+<style>
+  :root { --bg: #ffffff; --ink: #1a1a1a; --muted: #4d4d4d; --screen-bg: #111418; --screen-ink: #e8e8e8; --line: #c8c8c8; --accent: #1f4e8c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161a; --ink: #ececec; --muted: #b5b5b5; --screen-bg: #000000; --line: #3a3d44; --accent: #8db6ee; }
+  }
+  body { margin: 0 auto; max-width: 62rem; padding: 1.5rem 16px 3rem; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
+  p.note { color: var(--muted); margin: .25rem 0 1rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 0 0 .75rem; }
+  button, select { font: inherit; padding: .35rem .8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  input[type=range] { flex: 1 1 14rem; min-width: 10rem; }
+  #screen, .transcript pre { margin: 0; padding: 1rem; overflow: auto; border-radius: 6px; background: var(--screen-bg); color: var(--screen-ink);
+         font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+  #screen { height: 30rem; }
+  details.transcript { margin-top: 1.25rem; }
+  details.transcript summary { cursor: pointer; font-weight: 600; }
+  .js-only { display: none; }
+  .js .js-only { display: block; }
+  .js .controls.js-only { display: flex; }
+  @media print {
+    .js-only, .js .js-only, .js .controls.js-only { display: none !important; }
+    details.transcript[open] > summary { display: none; }
+    .transcript pre { background: #fff; color: #000; border: 1px solid #000; }
+    :root { --bg: #fff; --ink: #000; }
+  }
+</style>
+</head>
+<body>
+<h1>Demo recording: credential-free path</h1>
+<p class="note">A scripted terminal recording of the credential-free part of the demo (no voice). It is kept for interested viewers and is not part of the talk. The bundle shown is a <em>fixture</em> bundle with scripted model responses: it demonstrates the tooling, not model quality. Grading replay regrades saved final candidates; it is not a fresh agent trial and calls no model.</p>
+<noscript><p class="note">Scripting is off, so the player is unavailable; the full transcript is below.</p></noscript>
+<div class="controls js-only" role="group" aria-label="Playback controls">
+  <button id="play" type="button">Play</button>
+  <button id="restart" type="button">Restart</button>
+  <label>Speed <select id="speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select></label>
+  <input id="seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="Position">
+  <span id="clock" aria-live="off">0.0 / 0.0 s</span>
+</div>
+<pre id="screen" class="js-only" role="log" aria-label="Terminal output" tabindex="0"></pre>
+<details class="transcript" open>
+  <summary>Full transcript (plain text)</summary>
+  <pre><!--TRANSCRIPT--></pre>
+</details>
+<script type="application/json" id="cast"><!--CAST--></script>
+<script>
+(function () {
+  document.documentElement.className += ' js';
+  var lines = document.getElementById('cast').textContent.trim().split('\n');
+  var events = lines.slice(1).filter(Boolean).map(function (l) { return JSON.parse(l); });
+  var total = events.length ? events[events.length - 1][0] : 0;
+  var screen = document.getElementById('screen'), seek = document.getElementById('seek'),
+      clock = document.getElementById('clock'), play = document.getElementById('play'),
+      speed = document.getElementById('speed');
+  var t = 0, last = 0, playing = false;
+  seek.max = String(total);
+  function textUpTo(limit) {
+    var out = '';
+    for (var i = 0; i < events.length && events[i][0] <= limit; i++) { out += events[i][2]; }
+    return out.replace(/\r\n/g, '\n');
+  }
+  function render() {
+    screen.textContent = textUpTo(t);
+    screen.scrollTop = screen.scrollHeight;
+    seek.value = String(t);
+    clock.textContent = t.toFixed(1) + ' / ' + total.toFixed(1) + ' s';
+  }
+  function setPlaying(on) {
+    playing = on;
+    play.textContent = on ? 'Pause' : 'Play';
+    if (on) { if (t >= total) { t = 0; } last = performance.now(); requestAnimationFrame(tick); }
+  }
+  function tick(now) {
+    if (!playing) { return; }
+    t = Math.min(total, t + (now - last) / 1000 * Number(speed.value));
+    last = now;
+    render();
+    if (t >= total) { setPlaying(false); return; }
+    requestAnimationFrame(tick);
+  }
+  play.addEventListener('click', function () { setPlaying(!playing); });
+  document.getElementById('restart').addEventListener('click', function () { t = 0; render(); setPlaying(true); });
+  seek.addEventListener('input', function () { t = Number(seek.value); render(); });
+  t = total; render();
+  document.querySelector('details.transcript').open = false;
+})();
+</script>
+</body>
+</html>

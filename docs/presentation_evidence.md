@@ -1,0 +1,82 @@
+# Presentation evidence: shared figures, manifest and recording
+
+The 15-minute presentation and the 4-page printable report show the same evidence. This page documents where that evidence lives, how it is regenerated and checked, and the interface the deck and the report consume. Every number comes from the retained bundles (read through the project's own comparison and bundle code) or from a committed document, with provenance; none is typed in. The prompt comparison (27/30 to 29/30 successful task trials) is a worked example with its limits, not a measured improvement.
+
+## Files
+
+| Path | What it is | In Git |
+| --- | --- | --- |
+| `presentation/evidence/summary.json` | Reviewed evidence summary with provenance (run IDs, bundle digests, source quotes) | committed |
+| `presentation/charts/<id>.svg` | 13 plain SVG charts generated from the summary | committed |
+| `presentation/manifest.json` | The consumer interface: figures, diagrams, screenshots, logo, recording, title | committed |
+| `presentation/assets/zhaw_rgb.jpg` and `.source.txt` | ZHAW logo and its source note (URL, date, SHA-256) | committed |
+| `presentation/screenshots/*.png` | MLflow UI and local report screenshots (coordinator-captured) | committed once captured |
+| `presentation/recording/demo.cast`, `player.html`, `review.txt` | asciicast v2 recording, hand-written player template, user approval marker | committed (`review.txt` only after the user approves) |
+| `report/demo.html` | The player with the cast embedded | generated, Git-ignored |
+| `scripts/presentation_evidence.py`, `render_charts.py`, `record_demo.py` | collector and checker, chart generator, recorder | committed |
+
+Raw bundles (`run_bundles/`), MLflow stores and the spending ledger are never committed and are never read by these scripts; ledger totals appear only as values quoted from `prompt_comparison.md`. Built HTML (the player page, the deck, the report) goes to the Git-ignored `report/`.
+
+## Regenerate and check
+
+```sh
+# primary checkout (has run_bundles/); the bundles directory is read-only input
+PYTHONPATH=src .venv/bin/python scripts/presentation_evidence.py collect --bundles run_bundles
+.venv/bin/python scripts/render_charts.py
+.venv/bin/python scripts/presentation_evidence.py manifest
+
+# anywhere, including CI: no bundles, no network, no Podman
+.venv/bin/python scripts/presentation_evidence.py check
+.venv/bin/python scripts/render_charts.py --check
+.venv/bin/python scripts/record_demo.py check
+
+# primary checkout only: also recompute the bundle-derived sections
+PYTHONPATH=src .venv/bin/python scripts/presentation_evidence.py check --bundles run_bundles
+# read-only: is the engineering snapshot (test and archive counts) older than the repository?
+.venv/bin/python scripts/presentation_evidence.py check --staleness
+```
+
+`check` fails when: the summary structure or arithmetic is wrong; a quoted document line changed; a document-derived value no longer equals what its quote gives; a bundle-derived headline number disagrees with the reviewed lines of `prompt_comparison.md`; a chart or the manifest differs from a fresh render; a listed file is missing and not marked pending; or any committed presentation file contains a home path, a key-like string or the ledger path. With `--bundles` it also requires the `comparison`, `efficiency`, `stories`, `smoke` sections and the run provenance to equal a recomputation from the bundles (`generated_by` and `commit` are reported, not compared). After editing a cited document, rerun `collect` and review the diff.
+
+The scripts import the evaluator package lazily, only for `collect` and `check --bundles`, after pointing `CODEGEN_EVAL_LEDGER` at a path that does not exist; the evaluator's comparison code loads the ledger module as a side effect of its imports, so the guarantee is that nothing here constructs a ledger or opens its file.
+
+## Interface for the deck and the report
+
+Read `presentation/manifest.json` (`schema_version` 1). All paths are repository-relative and resolve from the repository root; consumers copy or inline the files into `report/` at build time and never fetch anything.
+
+- `title`: `author` "Jose Luis Barahona", `course` "CAS Applied Machine Learning (ZHAW)", `headline`, `date` (always `null`) and `date_placeholder` (`[DATE: fill in]`). The user fills the date in; no tool chooses one.
+- `figures[]`: `id`, `path`, `format` (`svg`), `caption`, `alt`, `uses`, `viewbox` (`0 0 960 540`), `min_render_mm` (160), `min_font_units` (20), `elements` (`work-log set`), `source_keys` (summary keys behind the figure). Ids: `outcome-overview`, `outcome-by-category`, `outcome-by-task`, `failure-labels`, `story-lists-02`, `story-strings-01`, `efficiency-calls`, `efficiency-tokens`, `efficiency-latency`, `cost-charged-reserved`, `engineering-tests`, `engineering-ci`, `engineering-changes`. Charts use only `svg, title, desc, defs, marker, path, g, rect, text, tspan, style`, so they pass the work-log builder's SVG validator; the second variant is drawn with computed hatch paths. At the smallest intended render (a 160 mm column) every text is at least 9 pt.
+- `diagrams[]`: the existing `docs/*.drawio.svg` figures and `docs/work_log_architecture.svg`, referenced by path (not copied), with `role`, `caption`, `alt`.
+- `screenshots[]`: `id`, `path`, `caption`, `alt`, `shows`, `must_display`, `owner` (`coordinator`) and `status` (`present` or `pending`).
+- `assets[]`: the logo with `sha256` and `source_note`.
+- `recording`: `cast`, `player_template`, `built_player` (`report/demo.html`) and `status` (`pending`, `unreviewed`, `approved`). The recording is for interested viewers and is not part of the talk.
+
+Ids and `schema_version` do not change without a version bump. Quote numbers from `summary.json`, never retype them; each chart caption already carries the limits.
+
+## Screenshots (captured by the coordinator)
+
+MLflow on port 5001, not while the sandbox tests run; viewport-only 1440x900, light theme; each PNG is reviewed for local paths, hostnames and the `bundle/` artifact tree before it is marked present.
+
+| File in `presentation/screenshots/` | Shows |
+| --- | --- |
+| `mlflow-experiment-runs.png` | experiment `codegen-eval-runs`: both comparison runs, `success_rate`, tags |
+| `mlflow-run-baseline.png` | baseline run `930a188254d34d279a88a7613ea55518`: parameters, metrics, bundle digest tag |
+| `mlflow-run-revised.png` | revised run `bcddf5c9561c43129504555b020a7557` |
+| `mlflow-compare.png` | the two runs side by side with `success_rate` |
+| `mlflow-trace-lists02-baseline.png` | a baseline `lists_02` trace (explanation after a failed check) |
+| `mlflow-trace-lists02-revised.png` | a revised `lists_02` trace (one model call, final submission) |
+| `mlflow-trace-strings01-t2-revised.png` | `strings_01-t2` of the revised run with its final source |
+| `report-local-architecture.png` | `report/index.html` opened from disk, architecture figure |
+| `report-local-results.png` | the report's results and comparison section |
+
+## Recording
+
+`scripts/record_demo.py record` runs the credential-free commands of [the demo](demo.md) (credential check, fixture bundle, trace inspection, grading replay, work-log check) under `env -i`, exactly as written, and writes an asciicast v2 file with fixed synthetic timing and no voice. It needs Podman and refuses to start when `run_bundles/` is not empty, so run it in a fresh checkout or worktree. Output is scrubbed of the repository root, the home directory and temporary paths; a key-like string aborts the recording. The MLflow section is not recorded (screenshots cover it) and neither is the comparison, which needs the retained bundles. `build-player` embeds the cast in the hand-written `player.html` and writes `report/demo.html`; the full transcript is also present as plain text, so the page reads with scripting disabled. The recording shows a fixture bundle: it demonstrates the tooling, not model quality, and grading replay regrades saved final candidates.
+
+## Logo
+
+`presentation/assets/zhaw_rgb.jpg` was downloaded once with `curl` from `https://www.zhaw.ch/storage/engineering/ueber-uns/medien/zhaw_rgb.jpg`; the source note next to it records the URL, the date and the SHA-256, and `check` verifies the digest. Nothing fetches it at build or viewing time.
+
+## Tests
+
+`tests/test_presentation_evidence.py`, `tests/test_presentation_charts.py` and `tests/test_presentation_recording.py` run offline with no bundles, network, Podman or credentials. They use `tests/fixtures/presentation/live.json` (the collector's input, recorded once from the retained bundles) and the committed summary, documents and charts, and cover tampering, determinism, accessibility, font size and element set, the ledger discipline, the recorder with a fake runner, and the player.
