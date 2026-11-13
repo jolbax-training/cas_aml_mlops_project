@@ -1,6 +1,6 @@
 # Deterministic CI: fixtures only. No secrets, no model API, no paid calls.
 # Two independent check groups (job ids/names are the required-check names):
-#   offline - locked uv environment, tests, OpenSpec, benchmark freeze, work-log check
+#   offline - locked uv environment, tests, OpenSpec, benchmark freeze, work-log check, deck check
 #   podman  - real restricted Podman containers against the digest-pinned image
 name: CI
 
@@ -58,6 +58,8 @@ jobs:
         run: .venv/bin/python scripts/build_work_log.py --check
       - name: Presentation evidence check (summary, documents, charts, manifest)
         run: .venv/bin/python scripts/presentation_evidence.py check
+      - name: Presentation deck check (sources, timing, ids, numbers)
+        run: .venv/bin/python scripts/build_deck.py --check
       - name: Presentation charts check
         run: .venv/bin/python scripts/render_charts.py --check
       - name: Demo recording check

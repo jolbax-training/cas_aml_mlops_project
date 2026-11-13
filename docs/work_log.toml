@@ -140,6 +140,13 @@ label = "current"
 status = "implemented"
 
 [[section]]
+id = "presentation-deck"
+title = "Presentation deck (15-minute talk)"
+path = "docs/presentation_deck.md"
+label = "current"
+status = "implemented"
+
+[[section]]
 id = "guide"
 title = "Evaluation-design guide"
 path = "docs/evaluation_design_guide.md"

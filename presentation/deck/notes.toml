@@ -1,0 +1,62 @@
+# Factual speaker notes, one list per slide id. Facts only, with the document they come from;
+# numbers are references into presentation/evidence/summary.json. The user's interpretation does
+# not belong here: it goes into presentation/user_text.toml.
+
+title = [
+  "Introduce the headline: a trustworthy, reproducible, budget-safe evaluation pipeline for a coding agent.",
+  "The worked example is a comparison of two prompts; it is shown with its limits (docs/prompt_comparison.md).",
+]
+motivation = [
+  "Slot for the user's own words (presentation/user_text.toml, motivation, deck key). Nothing is drafted here.",
+]
+problem = [
+  "Four ways an agent score can mislead; each has a matching mechanism later in the talk.",
+  "Unsafe code: scoring runs untrusted model output (docs/threat_model.md). Cost: paid calls share one ledger (docs/model_access.md). Reproducibility: bundles and replay (docs/demo.md). Small samples: the experiment design and limits slides.",
+]
+approach = [
+  "Read the diagram left to right: the agent loop writes code and its own development checks, the trusted host grades the final submission on hidden checks, each check runs in a fresh container, results go to a run bundle, MLflow reads the bundle afterwards, CI runs the offline and Podman checks.",
+  "Source: docs/architecture_logical.md and docs/architecture_logical.drawio.svg.",
+]
+integrity = [
+  "Source: docs/threat_model.md. Container flags: no network, read-only root, all capabilities dropped, no-new-privileges, unprivileged user, no mounts, no Podman socket.",
+  "Only the candidate source, the function name and one check's arguments cross into the container; expected values stay on the host.",
+  "Isolation probes passed: {{summary:protocol.probes_passed}}. Protected assets covered: {{summary:protocol.probe_categories}}.",
+  "Residual limitations (in-process introspection, Podman or kernel escapes, CI runs with an AppArmor-unconfined profile) are listed in docs/threat_model.md.",
+]
+reproducibility = [
+  "Source: docs/demo.md and docs/comparison_evidence.md. Every run writes its bundle before anything else; the agent and evaluator never call MLflow.",
+  "Both comparison runs are complete: {{summary:provenance.runs.baseline.completeness.recorded}} of {{summary:provenance.runs.baseline.completeness.planned}} planned trials with intact records for the baseline; the revised run is checked the same way.",
+  "Bundle digests: baseline {{summary:provenance.runs.baseline.bundle_digest}}, revised {{summary:provenance.runs.revised.bundle_digest}}.",
+  "If the screenshot shows a pending box, the coordinator has not captured it yet; the trace it will show is a lists_02 baseline trace.",
+]
+budget = [
+  "Source: docs/model_access.md and docs/prompt_comparison.md. The ledger lives outside Git and is never read by the presentation tooling; the total is a quote from the comparison document.",
+  "Checkpoint CHF {{summary:protocol.checkpoint_chf}} continues, ceiling CHF {{summary:protocol.ceiling_chf}} stops. Ledger total quoted from the document: {{summary:protocol.ledger_total_chf}}.",
+  "The chart shows charged versus reserved-before-send cost per prompt on separate scales; cost was measured once per prompt and is not attributed to the prompt.",
+]
+design = [
+  "Source: docs/prompt_comparison.md and experiments/prompt_comparison_v1.json.",
+  "{{summary:protocol.tasks}} tasks in five categories, {{summary:protocol.trials_per_task}} trials per task, {{summary:protocol.planned_trials_total}} planned trials over both prompts.",
+  "The single change is one sentence of the system prompt, written after reading the baseline failures.",
+]
+results = [
+  "Source: docs/prompt_comparison.md, charts from presentation/charts.",
+  "Successful trials: baseline {{fmt:ratio:comparison.baseline.primary}}, revised {{fmt:ratio:comparison.revised.primary}}. Hidden checks: baseline {{fmt:ratio:comparison.baseline.hidden_checks}}, revised {{fmt:ratio:comparison.revised.hidden_checks}}.",
+  "Framing: {{summary:limits.statement}}",
+]
+traces = [
+  "Source: docs/prompt_comparison.md, trace-based explanations.",
+  "lists_02 gained: in the baseline the final message carried an explanation or a fence after a wrong self-written check; the revised trials made one call and ran no check.",
+  "strings_01 regressed: one revised trial returned a wrong answer on an uppercase edge case.",
+  "Why this is not proof: {{summary:limits.statement}}",
+]
+limits = [
+  "Seven documented limits (docs/prompt_comparison.md): {{summary:limits.items}}",
+  "Lessons: the MLflow int64 fix is recorded in docs/progress.md; the forced smoke is recorded in docs/smoke_evidence.md.",
+]
+takeaways = [
+  "Slot for the user's own words (presentation/user_text.toml, takeaways, deck key). Nothing is drafted here.",
+]
+questions = [
+  "Links: the printable report, the recorded demo player, the work log and the repository. A link marked not built has not been generated yet.",
+]

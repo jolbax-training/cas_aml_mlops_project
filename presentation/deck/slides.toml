@@ -1,0 +1,144 @@
+# The 13 slides of the 15-minute talk, in the approved order (scripts/build_deck.py enforces
+# the order, the titles and the minutes). Slide text may hold {{summary:<dotted.path>}} and
+# {{fmt:<int|pct1|ratio|chf4>:<dotted.path>}}: every number comes from
+# presentation/evidence/summary.json. The user's own words are NOT here: slides 2 and 12 read
+# presentation/user_text.toml. Edit the factual text here; edit the notes in notes.toml.
+#
+# layout: title | slot | text | single | split | pair | links
+# figures: manifest ids (figures, diagrams, screenshots); placed by the layout.
+
+[lint]
+# Literal numbers allowed in slide and notes text (everything else must be a reference).
+allow = [
+  { token = "13", reason = "slide count, fixed by the approved outline" },
+  { token = "15", reason = "talk length in minutes, fixed by the approved outline" },
+]
+
+[[slide]]
+id = "title"
+title = "Title"
+minutes = 0.5
+layout = "title"
+logo = "zhaw-logo"
+
+[[slide]]
+id = "motivation"
+title = "Motivation"
+minutes = 1.0
+layout = "slot"
+slot = "motivation"
+
+[[slide]]
+id = "problem"
+title = "Problem statement"
+minutes = 1.5
+layout = "text"
+subtitle = "Agent scores are hard to trust"
+bullets = [
+  "Unsafe candidate code: model-written code runs on the evaluator's machine",
+  "Flaky or hidden cost: a paid call can overrun a budget unnoticed",
+  "Irreproducible results: a score without its run, prompt and code is not evidence",
+  "Small-sample claims: a few trials can look like a trend",
+]
+
+[[slide]]
+id = "approach"
+title = "Approach overview"
+minutes = 1.5
+layout = "single"
+subtitle = "Agent loop, hidden grading, sandbox, bundles, MLflow, CI"
+figures = ["diagram-architecture-logical"]
+
+[[slide]]
+id = "integrity"
+title = "Scoring integrity"
+minutes = 1.5
+layout = "split"
+bullets = [
+  "Every check runs in a fresh Podman container: no network, no credentials, no repository files",
+  "Trust boundary: expected answers and scoring stay on the host; only source and one case's arguments go in",
+  "Hidden final grading: the agent never sees the checks it is graded on",
+  "Isolation probes ({{summary:protocol.probes_passed}} passed) cover: {{summary:protocol.probe_categories}}",
+]
+figures = ["diagram-architecture-physical"]
+
+[[slide]]
+id = "reproducibility"
+title = "Reproducibility"
+minutes = 1.5
+layout = "split"
+bullets = [
+  "A run writes its bundle first; MLflow is a secondary record",
+  "The bundle digest (sha256 of its manifest) pins the run's records",
+  "Grading replay re-grades saved candidates: no model, no credentials",
+  "Completeness check: {{summary:provenance.runs.baseline.completeness.recorded}} of {{summary:provenance.runs.baseline.completeness.planned}} planned trials recorded",
+  "MLflow traces show each model call and tool call",
+]
+figures = ["shot-mlflow-trace-lists02-baseline"]
+
+[[slide]]
+id = "budget"
+title = "Budget-safe paid calls"
+minutes = 1.0
+layout = "split"
+bullets = [
+  "One ledger for every paid call",
+  "Cost is reserved before a request is sent",
+  "CHF {{summary:protocol.checkpoint_chf}} checkpoint: continue; CHF {{summary:protocol.ceiling_chf}} reserved-cost ceiling: stop",
+  "Total spent after both runs: CHF {{fmt:chf4:protocol.ledger_total_chf}}",
+]
+figures = ["cost-charged-reserved"]
+
+[[slide]]
+id = "design"
+title = "Experiment design"
+minutes = 1.0
+layout = "text"
+bullets = [
+  "{{summary:protocol.tasks}} tasks x {{summary:protocol.trials_per_task}} trials = {{summary:protocol.planned_trials_per_variant}} trials per prompt",
+  "One model, one provider route, fixed sampling settings",
+  "One prompt sentence changed; benchmark, settings, limits and image frozen",
+  "Baseline first, revised later; each run once",
+]
+
+[[slide]]
+id = "results"
+title = "Results"
+minutes = 1.5
+layout = "pair"
+figures = ["outcome-overview", "outcome-by-category"]
+footnote = "Successful trials: baseline {{fmt:ratio:comparison.baseline.primary}}, revised {{fmt:ratio:comparison.revised.primary}}. Two prompts, ten tasks, one model: {{summary:limits.non_claim}}."
+
+[[slide]]
+id = "traces"
+title = "What the traces say"
+minutes = 1.5
+layout = "pair"
+figures = ["story-lists-02", "story-strings-01"]
+footnote = "Gained: {{summary:comparison.delta.gained_tasks.0}}. Regressed: {{summary:comparison.delta.regressed_tasks.0}}. Not proof: the revised lists_02 trials ran no check, so the added sentence was not seen on its trigger."
+
+[[slide]]
+id = "limits"
+title = "Limits and lessons"
+minutes = 1.0
+layout = "text"
+bullets = [
+  "Small sample: the gain is {{summary:comparison.delta.primary_successes}} trials out of {{summary:protocol.planned_trials_per_variant}}",
+  "Benchmark-informed tuning: the sentence was written after reading these tasks' failures",
+  "One model, one provider route; each prompt run once",
+  "Lesson: MLflow's server rejected integers outside int64 in tool-call arguments; they are now stored as decimal strings",
+  "Lesson: the smoke check had to force a final-only model call, a prompted call and not natural behaviour",
+]
+
+[[slide]]
+id = "takeaways"
+title = "Takeaways"
+minutes = 1.0
+layout = "slot"
+slot = "takeaways"
+
+[[slide]]
+id = "questions"
+title = "Questions"
+minutes = 0.5
+layout = "links"

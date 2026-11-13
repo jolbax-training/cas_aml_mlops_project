@@ -159,7 +159,7 @@ Outcomes are either candidate-attributable (`returned`, `exception`, `timeout`, 
 
 | Job (check name) | What it runs | Reproduce locally |
 | --- | --- | --- |
-| `offline` | `uv sync --locked --group tracking` (adds the MLflow client; `CODEGEN_EVAL_REQUIRE_TRACKING=1` makes a missing client fail instead of skip), `pytest -q` (Podman tests skip here by design), `scripts/ci_validate_openspec.sh` (strict validation of main specs and of every change that has delta specs; planning-only drafts without `specs/` are listed and skipped), `scripts/freeze_benchmark.py --check`, `scripts/build_work_log.py --check`, `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check`, `scripts/record_demo.py check` | the commands in [Setup](#setup) and [Verify](#verify-the-offline-evaluator), plus `scripts/ci_validate_openspec.sh` and the five `--check` scripts |
+| `offline` | `uv sync --locked --group tracking` (adds the MLflow client; `CODEGEN_EVAL_REQUIRE_TRACKING=1` makes a missing client fail instead of skip), `pytest -q` (Podman tests skip here by design), `scripts/ci_validate_openspec.sh` (strict validation of main specs and of every change that has delta specs; planning-only drafts without `specs/` are listed and skipped), `scripts/freeze_benchmark.py --check`, `scripts/build_work_log.py --check`, `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check`, `scripts/record_demo.py check`, `scripts/build_deck.py --check` | the commands in [Setup](#setup) and [Verify](#verify-the-offline-evaluator), plus `scripts/ci_validate_openspec.sh` and the six `--check` scripts |
 | `podman` | installs Podman and runs it rootful, `scripts/ci_pull_pinned_image.sh` (pull by digest with retries and verification), `scripts/ci_verify_podman_limits.sh` (fails fast unless memory/pids/cpu controllers exist and a probe container's cgroup shows the limits), `pytest -q -m "sandbox and not mlflow_service"` with `RUN_SANDBOX_TESTS=1` and a synthetic `CODEGEN_EVAL_TEST_SECRET` (the MLflow service tests need the separate MLflow image and are local-only; CI does not run them), `scripts/ci_annotate_junit.py` turns each failed test into an `::error` annotation (plus Podman environment and leftover-container notices) so a failure is diagnosable without reading job logs, then `scripts/ci_require_no_skips.py` fails the job on any skipped/errored test or an empty run | `scripts/ci_verify_podman_limits.sh` and `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox -rs` (needs a running Podman) |
 
 **Pinned environment:** runner `ubuntu-24.04` (GitHub-hosted, amd64; the image tag rolls weekly, so its Podman version, about 4.9 at the time of writing, is not pinned and is recorded from each run's log in `docs/progress.md`); uv `0.9.3`; Python `3.12` (patch release is whatever uv provides; `requires-python` is `>=3.12,<3.13`) with dependencies from `uv.lock` (`--locked` fails on drift); OpenSpec CLI `1.14.2` installed with `npm ci` from `.github/openspec/package-lock.json` (Node 22, scripts disabled; Node's own patch version floats). Candidate image: `python:3.12.14-slim-trixie` pinned per architecture by digest in `src/codegen_eval/sandbox.py`: `sha256:950206c3…` (arm64, laptop) and `sha256:44ff437b…` (amd64, runner). A digest names a single-platform manifest, so an arm64 digest cannot run on the amd64 runner. The CI pull configures `public.ecr.aws/docker/library` as a registry mirror for Docker Hub's official images (same digest, so identical content; a miss falls back to Docker Hub), retries four times, and fails unless the pulled digest equals the pin. Actions are pinned to commit SHAs: `actions/checkout` v4.2.2, `astral-sh/setup-uv` v6.8.0, `actions/setup-node` v4.4.0. Bump these deliberately and record the change in `docs/progress.md`.
@@ -175,6 +175,18 @@ Outcomes are either candidate-attributable (`returned`, `exception`, `timeout`, 
 ## Presentation evidence
 
 `presentation/` holds the evidence shared by the 15-minute presentation and the 4-page report: a reviewed summary with provenance (`presentation/evidence/summary.json`), 13 full-size and 10 compact plain SVG charts, a manifest that the deck and the report read, the ZHAW logo, and a scripted credential-free demo recording. Every number comes from the retained bundles or a committed document; `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check` and `scripts/record_demo.py check` verify it offline (they also run in CI), and `check --bundles run_bundles` verifies it against the bundles on the primary checkout. Commands, the manifest interface, the screenshot list and the Git boundaries are in [docs/presentation_evidence.md](docs/presentation_evidence.md).
+
+## Presentation deck
+
+`scripts/build_deck.py` builds the 15-minute talk, `report/deck.html` (Git-ignored, 13 slides, works from `file://`), plus `report/deck_notes.html` for the speaker notes. Sources are in `presentation/deck/`; the user's own text for the Motivation and Takeaways slides is in `presentation/user_text.toml`, which the build only reads. Build order: recording player, report, work log, then the deck.
+
+```sh
+.venv/bin/python scripts/build_deck.py            # build
+.venv/bin/python scripts/build_deck.py --check    # validate, write nothing (CI)
+.venv/bin/python scripts/build_deck.py --strict   # also fail on unfilled slots and pending screenshots
+```
+
+Details: [presentation deck](docs/presentation_deck.md).
 
 ## Local HTML work log
 

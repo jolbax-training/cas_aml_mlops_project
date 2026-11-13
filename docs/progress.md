@@ -30,6 +30,15 @@ Documentation and tests only; no `src/` change. Results below are the output of 
 - **Still open:** the student's own interpretation in `docs/prompt_comparison.md`; the visual check of the rebuilt figures in a browser (coordinator).
 - **Checks:** `tests/test_architecture_status.py` failed on the pre-edit files (run against an archive of the old tree) and passes now, and a regression test puts each original stale sentence back and expects the check to fail; `.venv/bin/pytest -q` 972 passed, 67 skipped at commit `99714b2` (code-review fix of this change); `scripts/build_work_log.py --check` passed (16 sources, 0 pending sections) and the report was rebuilt; `scripts/presentation_evidence.py check` passed; the opening figure and the four diagram sections of the rebuilt report contain the old label text only inside the status-vocabulary definitions. The Podman group was not run (no `src/` change).
 
+## 2026-11-13 — Presentation deck (`add-presentation-deck`)
+
+Offline implementation on the worktree branch; results below are the output of the commands named, not interpretation.
+
+- **Built:** `scripts/build_deck.py` writes `report/deck.html` and `report/deck_notes.html` (Git-ignored) from `presentation/deck/` (`slides.toml`, `notes.toml`, `deck.css`, `deck.js`), the evidence manifest and summary, and the user's `presentation/user_text.toml` (read only). 13 slides in the approved order, 15.0 minutes (checked by the build). Numbers are summary references; figures, diagrams, the logo and screenshots are placed by manifest id with manifest alt text; pending screenshots, empty user slots and the unset date are visible placeholders. Documented in [presentation_deck.md](presentation_deck.md).
+- **Checks:** `.venv/bin/pytest -q` 927 passed, 67 skipped (Podman group not run; 78 of the passed tests are `tests/test_build_deck.py`); `scripts/build_deck.py --check`, `scripts/presentation_evidence.py check`, `scripts/render_charts.py --check` and `scripts/build_work_log.py --check` passed; `--strict` fails by design while the two user slots are empty and the screenshot is pending.
+- **Seen in headless Chrome (1920x1080, slides 1, 5, 7, 9, 10, 11 only, by the worker):** no overflow on those slides; the `docs/` architecture diagrams are dense and their text is not legible at slide size from a distance; the slide 9 category chart has a note line that overlaps its last bar. Not claimed: full-deck legibility, print page count, keyboard use in the Orca browser (coordinator steps 3.2 and 3.3 of the change).
+- **Shared files edited (additive):** `README.md` (new section and the CI row), `.github/workflows/ci.yml` (one step and the header comment), `docs/work_log.toml` (one section).
+
 ## 2026-11-13 — Presentation evidence (`add-presentation-evidence`)
 
 Offline implementation on the worktree branch; results below are the output of the commands named, not interpretation.

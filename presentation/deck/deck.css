@@ -1,0 +1,101 @@
+/* Slide geometry: a slide is a 16:9 box; sizes are in cqw, so 1cqw is 19.2px on a 1920px slide.
+   Floors (checked by tests): slide text >= 20px, body text >= 28px.
+   Rules that hide or position slides one at a time live under html.js-deck only. */
+:root {
+  --ink: #111111;
+  --paper: #ffffff;
+  --muted: #3d3d3d;
+  --accent: #0b4f8a;
+  --warn-bg: #fff3c4;
+  --warn-ink: #1a1400;
+  --warn-edge: #8a5a00;
+  --chrome-bg: #000000;
+  --chrome-ink: #ffffff;
+}
+* { box-sizing: border-box; }
+html { background: var(--chrome-bg); }
+body { margin: 0; color: var(--ink); font-family: system-ui, sans-serif; }
+main { display: block; }
+
+.slide {
+  container-type: inline-size;
+  position: relative;
+  overflow: hidden;
+  width: min(100vw, 177.78vh);
+  aspect-ratio: 16 / 9;
+  margin: 0 auto 2vh;
+  padding: 3cqw 4cqw 2.5cqw;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+.slide h1 { margin: 0; font-size: 3.75cqw; line-height: 1.15; color: var(--accent); }
+.slide h2 { margin: 0 0 1.2cqw; font-size: 2.9cqw; line-height: 1.15; color: var(--accent); }
+.subtitle { margin: 0 0 1.2cqw; font-size: 1.6cqw; color: var(--muted); }
+.body, .body li { font-size: 1.875cqw; line-height: 1.3; }
+.body { margin: 0; padding-left: 2.4cqw; }
+.body li { margin-bottom: 1.1cqw; }
+.caption, figcaption { font-size: 1.25cqw; line-height: 1.25; color: var(--muted); margin: 0.4cqw 0 0; }
+.footnote { font-size: 1.25cqw; line-height: 1.25; color: var(--muted); margin: auto 0 0; padding-top: 0.8cqw; }
+.foot { font-size: 1.05cqw; color: var(--muted); }
+.stage { flex: 1; min-height: 0; display: flex; gap: 2cqw; align-items: flex-start; }
+.stage.single { justify-content: center; }
+.stage.split > .col-text { flex: 0 0 38cqw; }
+.stage.split > figure { flex: 0 0 55cqw; }
+.stage.pair > figure { flex: 0 0 47.9cqw; }
+.stage.single > figure { flex: 0 0 75cqw; }
+figure { margin: 0; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--muted); }
+.pending-box, .slot-box {
+  border: 0.25cqw dashed var(--warn-edge);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 1.875cqw;
+  line-height: 1.3;
+  padding: 1.6cqw;
+}
+.pending-box { aspect-ratio: 16 / 9; display: flex; flex-direction: column; justify-content: center; }
+.pending-box strong, .slot-box strong { display: block; font-size: 2.2cqw; margin-bottom: 0.6cqw; }
+.slot-text p { margin: 0 0 1.2cqw; font-size: 2.4cqw; line-height: 1.35; }
+.title-slide { justify-content: center; }
+.title-slide img.logo { width: 18cqw; height: auto; margin-bottom: 3cqw; border: 0; }
+.title-slide .who { margin: 2.4cqw 0 0; font-size: 2.2cqw; color: var(--ink); }
+.title-slide .date { display: inline-block; align-self: flex-start; margin-top: 1.4cqw; font-size: 2.2cqw; }
+.date.unset { background: var(--warn-bg); color: var(--warn-ink); border: 0.2cqw dashed var(--warn-edge); padding: 0.4cqw 1cqw; }
+.links { list-style: none; padding: 0; margin: 0; }
+.links li { font-size: 2.2cqw; margin-bottom: 1.4cqw; }
+.links a { color: var(--accent); }
+.links .missing { color: var(--muted); }
+a:focus-visible, button:focus-visible { outline: 0.3cqw solid var(--accent); outline-offset: 2px; }
+
+.notes, #counter, #hint { display: none; }
+
+/* One slide at a time, only when the script has marked the document. */
+html.js-deck body { height: 100vh; overflow: hidden; display: grid; place-items: center; }
+html.js-deck main { display: grid; place-items: center; }
+html.js-deck .slide { display: none; margin: 0; }
+html.js-deck .slide.current { display: flex; }
+html.js-deck #counter {
+  display: block; position: fixed; right: 12px; bottom: 8px;
+  font-size: 20px; color: var(--chrome-ink); background: var(--chrome-bg); padding: 2px 8px;
+}
+html.js-deck.show-notes .notes.current {
+  display: block; position: fixed; left: 0; right: 0; bottom: 0; max-height: 42vh; overflow: auto;
+  background: var(--chrome-bg); color: var(--chrome-ink); font-size: 22px; line-height: 1.35;
+  padding: 12px 24px 40px; border-top: 3px solid var(--chrome-ink);
+}
+.notes h2 { font-size: 22px; margin: 0 0 6px; color: var(--chrome-ink); }
+.notes p { margin: 0 0 6px; }
+
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  html, html.js-deck { background: var(--paper); }
+  html.js-deck body, html.js-deck main { display: block; height: auto; overflow: visible; }
+  .slide, html.js-deck .slide, html.js-deck .slide.current {
+    display: flex; width: 1920px; height: 1080px; margin: 0; aspect-ratio: auto;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .slide:not(:first-of-type), html.js-deck .slide:not(:first-of-type) { break-before: page; }
+  .notes, html.js-deck.show-notes .notes.current, html.js-deck #counter { display: none; }
+}
