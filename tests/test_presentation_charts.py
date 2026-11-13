@@ -244,7 +244,11 @@ def boxes(root):
             continue  # a region outline, not a filled shape
         x, y, w, h = (float(e.get(k)) for k in ("x", "y", "width", "height"))
         stroke = float(e.get("stroke-width", 0)) / 2 if e.get("stroke", "none") != "none" else 0
-        shapes.append((x - stroke, y - stroke, x + w + stroke, y + h + stroke, "rect"))
+        kind = "box" if e.get("rx") else "bar"  # a drawn box may hold its own labels; a bar may not
+        shapes.append((x - stroke, y - stroke, x + w + stroke, y + h + stroke, kind))
+    for e in root.iter():
+        if local(e.tag) == "path":
+            shapes.extend(path_shapes(e))
     for e in root.iter():
         if local(e.tag) != "text":
             continue
@@ -257,14 +261,49 @@ def boxes(root):
     return texts, shapes
 
 
+def path_shapes(element):
+    """Axis-aligned stroked segments as thin boxes and filled arrowheads as their bounding box.
+
+    Hatch strokes (diagonal, inside bars) are skipped: they are part of their bar.
+    """
+    d, fill, stroke = element.get("d", ""), element.get("fill", "none"), element.get("stroke", "none")
+    if stroke == charts.REV_STROKE:
+        return []
+    points, current, start = [], None, None
+    segments = []
+    for command, args in re.findall(r"([MLHVZ])([-\d.\s]*)", d):
+        n = [float(v) for v in args.split()]
+        if command == "M":
+            current = start = (n[0], n[1])
+            points.append(current)
+        elif command == "L":
+            nxt = (n[0], n[1])
+        elif command == "H":
+            nxt = (n[0], current[1])
+        elif command == "V":
+            nxt = (current[0], n[0])
+        else:
+            nxt = start
+        if command != "M":
+            segments.append((current, nxt))
+            points.append(nxt)
+            current = nxt
+    if fill != "none":
+        xs, ys = [p[0] for p in points], [p[1] for p in points]
+        return [(min(xs), min(ys), max(xs), max(ys), "head")]
+    half = float(element.get("stroke-width", 2)) / 2
+    return [(min(a[0], b[0]) - half, min(a[1], b[1]) - half, max(a[0], b[0]) + half, max(a[1], b[1]) + half, "line")
+            for a, b in segments if a[0] == b[0] or a[1] == b[1]]
+
+
 def overlaps(a, b, clearance=CLEARANCE):
     return (min(a[2], b[2]) - max(a[0], b[0]) > -clearance
             and min(a[3], b[3]) - max(a[1], b[1]) > -clearance)
 
 
 def inside(text_box, shape):
-    """A label wholly inside a filled box is intended; a partial overlap is a collision."""
-    return (text_box[0] >= shape[0] + CLEARANCE and text_box[1] >= shape[1] + CLEARANCE
+    """A label wholly inside a drawn box is intended (never inside a bar, line or arrowhead)."""
+    return shape[4] == "box" and (text_box[0] >= shape[0] + CLEARANCE and text_box[1] >= shape[1] + CLEARANCE
             and text_box[2] <= shape[2] - CLEARANCE and text_box[3] <= shape[3] - CLEARANCE)
 
 
@@ -275,6 +314,18 @@ def collisions(svg):
         found += [(a[4], b[4]) for b in texts[i + 1:] if overlaps(a, b)]
         found += [(a[4], shape) for shape in shapes if overlaps(a, shape) and not inside(a, shape)]
     return found
+
+
+def test_the_overlap_check_sees_arrows_and_bars():
+    arrow = '<path d="M100 100H200" stroke="#1a1a1a" stroke-width="3" fill="none"/>'
+    assert collisions(charts.svg_doc("a", "t", "d", arrow + charts.text(120, 106, "label")))
+    assert collisions(charts.svg_doc("b", "t", "d", arrow + charts.text(120, 140, "label"))) == []
+    head = '<path d="M200 100L186 93L186 107Z" fill="#1a1a1a" stroke="none"/>'
+    assert collisions(charts.svg_doc("c", "t", "d", head + charts.text(150, 104, "label")))
+    # a label inside a bar is a collision, inside a drawn box it is not
+    assert collisions(charts.svg_doc("d", "t", "d", charts.rect(40, 80, 200, 30, "#ccc") + charts.text(60, 102, "in bar")))
+    box = '<rect x="40" y="80" width="200" height="40" rx="8" fill="#eee" stroke="#000" stroke-width="3"/>'
+    assert collisions(charts.svg_doc("e", "t", "d", box + charts.text(60, 108, "in box"))) == []
 
 
 def test_the_overlap_check_detects_a_collision():
@@ -344,12 +395,12 @@ def test_every_box_and_flow_label_is_in_the_documented_mapping(rendered):
         texts = svg_texts(rendered[f"{cid}.svg"])
         bold = [t.text for t in texts if t.get("font-weight") == "bold" and t.get("font-size") != "26"]
         assert bold and set(bold) <= keys, (cid, set(bold) - keys)
-        words = {w for t in texts for w in (t.text or "").replace(",", " ").split()}
-        flows = {"pipeline": ("final submission", "grades", "record", "re-grade", "compare"),
-                 "trust": ("code + case", "signed report")}["pipeline" if "pipeline" in cid else "trust"]
+        spoken = [t.text for t in texts]
+        flows = {"pipeline": (["final", "submission"], ["grades"], ["record"], ["re-grade"], ["compare"]),
+                 "trust": (["code + one case"], ["bounded result"])}["pipeline" if "pipeline" in cid else "trust"]
         for flow in flows:
-            assert all(word in words for word in flow.split()), (cid, flow)
-    ci = [t.text for t in svg_texts(rendered["diagram-pipeline-overview.svg"])]
+            assert any(spoken[i:i + len(flow)] == flow for i in range(len(spoken))), (cid, flow)
+            ci = [t.text for t in svg_texts(rendered["diagram-pipeline-overview.svg"])]
     assert "CI: tests and probes on fixtures, no model API" in ci
 
 

@@ -464,7 +464,7 @@ def ctable(columns: Sequence[tuple[str, int, str]], rows: Sequence[tuple[str, Se
         for (_, x, anchor), cell in zip(columns, cells):
             parts.append(text(x, y, cell, size=COMPACT_MIN_FONT, anchor=anchor))
         if r == 2:
-            parts.append(f'<path d="M8 {y + 6}H472" stroke="{GRID}" stroke-width="2" fill="none"/>')
+            parts.append(f'<path d="M8 {y + 7}H472" stroke="{GRID}" stroke-width="2" fill="none"/>')
     return "".join(parts)
 
 
@@ -624,8 +624,8 @@ BOX_SOURCES: dict[str, list[str]] = {
     "Candidate function": [SRC + "worker.py", THREAT],
     "Supervisor": [SRC + "worker.py", THREAT],
     "Never inside": [THREAT, ARCH],
-    "code + case": [SRC + "sandbox.py", THREAT],
-    "signed report": [SRC + "worker.py", THREAT],
+    "code + one case": [SRC + "sandbox.py", SRC + "worker.py", THREAT],
+    "bounded result": [SRC + "worker.py", SRC + "sandbox.py", THREAT],
 }
 STATUS_WORDS = ("implemented", "pending", "partial", "live run", "planned")
 
@@ -677,7 +677,7 @@ def diagram_pipeline(s: Mapping[str, Any]) -> tuple[str, str, str]:
              harrow(585, 710, 135),
              elbow(815, 160, 195, 480, 230), text(660, 186, "grades", anchor="middle"),
              elbow(480, 320, 355, 165, 390), text(178, 380, "record"),
-             elbow(480, 320, 355, 480, 390), text(560, 345, "re-grade", anchor="start"),
+             elbow(480, 320, 355, 480, 390), text(492, 380, "re-grade"),
              elbow(480, 320, 355, 795, 390), text(782, 380, "compare", anchor="end"),
              f'<rect x="40" y="494" width="880" height="36" rx="8" fill="{HOST_FILL}" stroke="{MUTED}" '
              f'stroke-width="3" stroke-dasharray="8 6"/>',
@@ -700,21 +700,20 @@ def diagram_trust(s: Mapping[str, Any]) -> tuple[str, str, str]:
             dbox(60, 110, 300, 80, "Launcher", "one container per check", HOST_FILL, INK),
             dbox(60, 210, 300, 80, "Answers + scoring", "hidden, on the host", HOST_FILL, INK),
             dbox(60, 310, 300, 80, "Key + ledger", "host process only", HOST_FILL, INK),
-            dbox(600, 110, 300, 80, "Candidate function", "plus one case's input"),
-            dbox(600, 210, 300, 80, "Supervisor", "only writer of stdout"),
+            dbox(600, 110, 300, 80, "Supervisor", "checks the signed report"),
+            dbox(600, 210, 300, 80, "Candidate function", "plus one case's input"),
             f'<rect x="600" y="330" width="300" height="154" rx="8" fill="{NEVER_FILL}" '
             f'stroke="{NEVER_STROKE}" stroke-width="3" stroke-dasharray="8 6"/>',
             text(750, 362, "Never inside", anchor="middle", weight="bold"),
             text(750, 394, "answers, credentials", anchor="middle"),
             text(750, 424, "repository files, network", anchor="middle"),
             text(750, 454, "MLflow, Podman control", anchor="middle"),
-            harrow(360, 600, 150), text(490, 112, "code +", anchor="middle"),
-            text(490, 136, "one case", anchor="middle"),
-            harrow(600, 360, 250), text(490, 212, "signed", anchor="middle"),
-            text(490, 236, "report", anchor="middle")]
+            harrow(360, 600, 124), text(480, 114, "code + one case", anchor="middle"),
+            harrow(600, 360, 160), text(480, 188, "bounded result", anchor="middle")]
     desc = ("Trust boundary. On the trusted host, a launcher starts one container per check; hidden answers "
             "and scoring and the API key and ledger stay on the host. Into the per-check container go only the "
-            "candidate code and one case; out comes one signed report through the supervisor. Never inside the "
+            "candidate code and one case, received by the supervisor; out to the launcher comes one bounded result "
+            "written by the supervisor, which checked the executor's signed report inside the container. Never inside the "
             "container: answers, credentials, repository files, network, MLflow, Podman control.")
     return title, desc, "".join(body)
 
@@ -727,9 +726,10 @@ DIAGRAM_META: list[dict[str, Any]] = [
             "which feeds MLflow, grading replay and comparison; a CI band runs alongside."},
     {"id": "diagram-trust-boundary", "fn": diagram_trust, "role": "trust-boundary",
      "caption": "Trust boundary: the trusted host keeps answers, scoring, key and ledger; the per-check "
-                "container receives only code and one case and returns one signed report.",
+                "container receives only code and one case and returns one bounded result to the launcher.",
      "alt": "Two regions: the trusted host with a launcher, answers and scoring, and key and ledger, and a "
-            "per-check container with the candidate function, a supervisor and a list of what never goes inside."}]
+            "per-check container with a supervisor, the candidate function and a list of what never goes inside; "
+            "arrows show code and one case going in and one bounded result coming out to the launcher."}]
 
 
 CHART_META: list[dict[str, Any]] = []
