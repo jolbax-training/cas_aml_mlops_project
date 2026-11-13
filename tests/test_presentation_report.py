@@ -498,7 +498,20 @@ def test_lookup_last_and_short_format(real):
 def test_engineering_numbers_state_their_commit_and_run(real):
     inputs, text = real
     assert inputs.summary["engineering"]["tests"]["commit"][:7] in text
-    assert inputs.summary["engineering"]["ci"]["runs"][-1]["run"] in text
+    assert inputs.summary["engineering"]["ci"]["latest"] in text
+
+
+def test_the_ci_sentence_cites_the_marked_latest_run_not_the_last_list_item(real):
+    inputs, text = real
+    ci = inputs.summary["engineering"]["ci"]
+    assert f"latest CI run {ci['latest']}" in text
+    older = next(r["run"] for r in ci["runs"] if r["run"] != ci["latest"])
+    original = ci["latest"]
+    try:
+        ci["latest"] = older
+        assert f"latest CI run {older}" in report.build_html(inputs)
+    finally:
+        ci["latest"] = original
 
 
 def test_the_resources_table_caption_describes_the_whole_table(real):

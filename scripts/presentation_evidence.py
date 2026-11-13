@@ -265,6 +265,9 @@ def doc_values(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
 def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
     """Sections that are pure views of the quote table (so a stored copy cannot drift from it)."""
     v = doc_values(documents)
+    marked = [key for key, spec in CI_RUNS.items() if spec.get("latest")]
+    if len(marked) != 1:
+        raise EvidenceError(f"exactly one CI run must carry the latest marker, found {len(marked)}: {marked}")
     runs: dict[str, dict[str, Any]] = {}
     latest = None
     for key, spec in CI_RUNS.items():  # one run can be described by two documents; merge by run id
@@ -283,7 +286,7 @@ def assemble_doc_sections(documents: list[Mapping[str, Any]]) -> dict[str, Any]:
             "probes_passed": v["protocol.probes_passed"],
             "probe_categories": [v[f"protocol.probe_category.{i}"] for i in range(len(PROBE_ASSET_ROWS))],
             "source": "quoted from committed documents (see documents); the ledger is never read"},
-        "ci_runs": sorted(runs.values(), key=lambda r: r["run"]),
+        "ci_runs": sorted(runs.values(), key=lambda r: int(r["run"]))  # presentation order only,
         "ci_latest": latest,
         "mlflow_runs": {variant: v[f"mlflow_run.{variant}"] for variant in VARIANTS},
         "ledger_quotes": {variant: v[f"ledger_chf.{variant}"] for variant in VARIANTS},

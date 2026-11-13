@@ -53,7 +53,7 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 ## 8. Round 4 (final CI state)
 
 - [x] 8.1 Record the latest run on main in `docs/ci_evidence.md` ("Latest run on main") and add its quote-table entry with an explicit `latest` marker (decision 16).
-- [x] 8.2 Store `engineering.ci.latest`, make the engineering charts and the report's CI table use it, fail the offline check on a mismatch, and test it.
+- [x] 8.2 Store `engineering.ci.latest`, make the engineering charts and the report's test figure and CI sentence use it, require exactly one latest marker, fail the offline check on a mismatch, and test it.
 - [x] 8.3 Regenerate the summary (bundles read-only), charts and manifest at the new commit's tree through the scripts; rerun the deck and report checks (the report's static page estimates are unchanged).
 
 Left for others: 2.3 (coordinator: charts and diagrams opened in a browser and in print preview), 4.2 (coordinator: open `report/demo.html` in a browser with and without scripting) and 4.3 (the user: approve the recording transcript by adding `presentation/recording/review.txt`); 3.3 (screenshots) is the coordinator's and is ticked only when all nine files exist.

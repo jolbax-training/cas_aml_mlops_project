@@ -451,7 +451,7 @@ def test_the_latest_ci_run_is_marked_in_the_quote_table_not_typed():
     assert latest["commit"] == "e00236d" and latest["conclusion"] == "success"
     assert (latest["offline_tests"], latest["offline_skipped"]) == (1199, 67)
     assert (latest["podman_tests"], latest["podman_skipped"], latest["podman_failed"]) == (64, 0, 0)
-    assert sections["ci_runs"][-1]["run"] == sections["ci_latest"]
+    assert sections["ci_latest"] == latest["run"]
 
 
 def test_the_summary_records_the_latest_run_from_the_document(summary):
@@ -482,3 +482,22 @@ def test_the_engineering_charts_show_the_latest_run(summary):
         assert "1,199" in rendered[name] and "825" not in rendered[name].replace("offline_collected", "")
     assert "43461309299" in rendered["engineering-tests.svg"]
     assert "43461309299" in rendered["engineering-ci.svg"]
+
+
+def test_exactly_one_latest_marker_is_required(monkeypatch):
+    documents = pe.build_documents(REPO)
+    two = {**pe.CI_RUNS, "r8": {**pe.CI_RUNS["r8"], "latest": True}}
+    monkeypatch.setattr(pe, "CI_RUNS", two)
+    with pytest.raises(pe.EvidenceError, match="exactly one"):
+        pe.assemble_doc_sections(documents)
+    none = {key: {k: v for k, v in spec.items() if k != "latest"} for key, spec in pe.CI_RUNS.items()}
+    monkeypatch.setattr(pe, "CI_RUNS", none)
+    with pytest.raises(pe.EvidenceError, match="exactly one"):
+        pe.assemble_doc_sections(documents)
+
+
+def test_the_latest_run_does_not_depend_on_list_order_or_id_size():
+    sections = pe.assemble_doc_sections(pe.build_documents(REPO))
+    runs = sections["ci_runs"]
+    assert [int(r["run"]) for r in runs] == sorted(int(r["run"]) for r in runs)  # display order only
+    assert sections["ci_latest"] == next(r["run"] for r in runs if r["commit"] == "e00236d")

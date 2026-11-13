@@ -59,7 +59,7 @@ Ids and `schema_version` do not change without a version bump. The compact varia
 
 ## Latest CI run
 
-`docs/ci_evidence.md` section "Latest run on main" records the newest CI run. Its quote-table entry carries an explicit `latest` marker; `summary.json` stores `engineering.ci.latest` and the engineering charts and the report's CI table use that run (never the last row by position). `check` fails if the summary's latest run differs from the marker or the quoted section changes. Earlier runs stay in the table as history.
+`docs/ci_evidence.md` section "Latest run on main" records the newest CI run. Its quote-table entry carries an explicit `latest` marker; `summary.json` stores `engineering.ci.latest` and the engineering charts and the report's test figure and CI sentence use that run (never the last row by position; the report has no CI table, only the compact tests chart and one sentence). `check` fails if the summary's latest run differs from the marker or the quoted section changes. Earlier runs stay in the table as history.
 
 ## Protocol facts
 
