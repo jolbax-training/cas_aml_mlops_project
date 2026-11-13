@@ -281,32 +281,50 @@ def test_title_slide_has_the_approved_information(root):
         assert expected in text
 
 
+SHOT = "shot-mlflow-trace-lists02-baseline"
+
+
+def set_shot_status(root, status):
+    def change(manifest):
+        next(s for s in manifest["screenshots"] if s["id"] == SHOT)["status"] = status
+    edit_manifest(root, change)
+
+
+def test_present_screenshot_is_embedded_from_the_committed_file(root):
+    page, _, report = build(root)
+    assert "data:image/png;base64," in page and "SCREENSHOT PENDING" not in page
+    assert report.pending == []
+
+
 def test_pending_screenshot_is_a_visible_placeholder(root):
+    set_shot_status(root, "pending")
     page, _, report = build(root)
     assert "SCREENSHOT PENDING" in page
-    assert report.pending == ["shot-mlflow-trace-lists02-baseline"]
+    assert report.pending == [SHOT]
+    assert deck.main(["--root", str(root), "--strict"]) == 1
 
 
 def test_present_screenshot_without_file_fails(root):
-    def change(manifest):
-        next(s for s in manifest["screenshots"] if s["id"] == "shot-mlflow-trace-lists02-baseline")["status"] = "present"
-    edit_manifest(root, change)
+    (root / "presentation/screenshots/mlflow-trace-lists02-baseline.png").unlink()
     with pytest.raises(deck.DeckError, match="missing"):
         build(root)
 
 
-def test_present_screenshot_with_file_is_embedded(root):
-    png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000001e221bc330000000049454e44ae426082")
-    shots = root / "presentation/screenshots"
-    shots.mkdir()
-    (shots / "mlflow-trace-lists02-baseline.png").write_bytes(png)
+def test_slides_4_and_5_use_the_slide_legible_diagrams_not_the_docs_ones(root):
+    slides = {s["id"]: s for s in tomllib.loads(slides_path(root).read_text(encoding="utf-8"))["slide"]}
+    assert slides["approach"]["figures"] == ["diagram-pipeline-overview"]
+    assert slides["integrity"]["figures"] == ["diagram-trust-boundary"]
+    for slide in slides.values():
+        assert not any(item.startswith("diagram-architecture") for item in slide.get("figures", []))
+    _, _, report = build(root)
+    assert "diagram-pipeline-overview: 30.0px at layout single" in report.chart_fonts
+    assert "diagram-trust-boundary: 22.0px at layout split" in report.chart_fonts
 
-    def change(manifest):
-        next(s for s in manifest["screenshots"] if s["id"] == "shot-mlflow-trace-lists02-baseline")["status"] = "present"
-    edit_manifest(root, change)
-    page, _, report = build(root)
-    assert "data:image/png;base64," in page and "SCREENSHOT PENDING" not in page
-    assert report.pending == []
+
+def test_unknown_diagram_id_fails(root):
+    edit(slides_path(root), 'figures = ["diagram-trust-boundary"]', 'figures = ["diagram-no-such"]')
+    with pytest.raises(deck.DeckError, match="diagram-no-such"):
+        build(root)
 
 
 # --- charts and legibility ----------------------------------------------------

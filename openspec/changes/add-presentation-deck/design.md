@@ -42,8 +42,8 @@ Alternatives rejected: a Markdown deck (needs a converter and gives weak layout 
 | 1 | Title | 0.5 | logo `zhaw-logo`, manifest headline, author, course, date placeholder (null stays visible) |
 | 2 | Motivation | 1 | USER SLOT `motivation` |
 | 3 | Problem statement | 1.5 | four problems: unsafe candidate code, flaky or hidden cost, irreproducible results, small-sample claims |
-| 4 | Approach overview | 1.5 | diagram `architecture-logical` (agent loop, hidden grading, sandbox, bundles, MLflow, CI) |
-| 5 | Scoring integrity | 1.5 | Podman sandbox, trust boundary, hidden final grading (checks and expected answers stay on the trusted host), what the isolation probes cover (probe categories from the summary); diagram `architecture-physical` |
+| 4 | Approach overview | 1.5 | diagram `diagram-pipeline-overview` (agent loop, hidden grading, sandbox, bundles, MLflow, CI) |
+| 5 | Scoring integrity | 1.5 | Podman sandbox, trust boundary, hidden final grading (checks and expected answers stay on the trusted host), what the isolation probes cover (probe categories from the summary); diagram `diagram-trust-boundary` |
 | 6 | Reproducibility | 1.5 | bundles, digests, replay, completeness check; screenshot `mlflow-trace-lists02-baseline` (pending handled) |
 | 7 | Budget-safe paid calls | 1 | ledger, reserve-before-send, CHF 15 ceiling, total spent CHF 0.0068 (summary protocol facts, rounded by the documented `chf4` format of decision 4 with the full quoted value in the footnote); figure `cost-charged-reserved` |
 | 8 | Experiment design | 1 | 10 tasks x 3 trials, one model, one prompt sentence changed, all else frozen (tasks, trials per task and planned trials from the summary protocol facts) |
@@ -53,7 +53,7 @@ Alternatives rejected: a Markdown deck (needs a converter and gives weak layout 
 | 12 | Takeaways | 1 | USER SLOT `takeaways` |
 | 13 | Questions | 0.5 | links: report, recorded demo player, repository |
 
-Engineering statistics (tests, CI, archived changes) stay out of the deck, as approved; the three `engineering-*` figures are not used.
+Engineering statistics (tests, CI, archived changes) stay out of the deck, as approved; the three `engineering-*` figures are not used. Slide 6 shows its screenshot now that it is present; slide 10 keeps the two story charts (no screenshot there).
 
 ### 4. Numbers by reference
 
@@ -99,9 +99,9 @@ Additive edits listed for the coordinator to merge with the sibling change: `REA
 | --- | --- | --- |
 | 1 | `zhaw-logo` (asset, with `alt`), `title.*` | none |
 | 2, 12 | none | `presentation/user_text.toml`: `motivation.deck`, `takeaways.deck` |
-| 4 | `diagram-architecture-logical` | none |
-| 5 | `diagram-architecture-physical` | `protocol.probes_passed`, `protocol.probe_categories` |
-| 6 | `shot-mlflow-trace-lists02-baseline` (pending until captured) | `provenance.runs.baseline.completeness.{recorded,planned}` |
+| 4 | `diagram-pipeline-overview` | none |
+| 5 | `diagram-trust-boundary` | `protocol.probes_passed`, `protocol.probe_categories` |
+| 6 | `shot-mlflow-trace-lists02-baseline` (present on main; a pending status still renders a placeholder) | `provenance.runs.baseline.completeness.{recorded,planned}` |
 | 7 | `cost-charged-reserved` | `protocol.checkpoint_chf`, `protocol.ceiling_chf`, `protocol.ledger_total_chf` (via `chf4`) |
 | 8 | none | `protocol.tasks`, `protocol.trials_per_task`, `protocol.planned_trials_per_variant` |
 | 9 | `outcome-overview`, `outcome-by-category` | `comparison.{baseline,revised}.primary`, `limits.non_claim` |
@@ -109,7 +109,7 @@ Additive edits listed for the coordinator to merge with the sibling change: `REA
 | 11 | none | `comparison.delta.primary_successes`, `protocol.planned_trials_per_variant`, notes: `limits.items`, `limits.statement` |
 | 13 | manifest `recording.built_player` | none |
 
-All ids and keys exist on main; none had to be added to the evidence change. Layouts: `pair` for slides 9 and 10 (19.2 px effective chart text), `split` for 5 to 7 (22.0 px for the cost chart), `single` for 4. The two `docs/` diagrams are dense; their legibility at slide size is a coordinator check (task 3.2).
+All ids and keys exist on main; none had to be added to the evidence change. Layouts: `pair` for slides 9 and 10 (19.2 px effective chart text), `split` for 5 to 7 (22.0 px for the cost chart), `single` for 4. Slides 4 and 5 use the two slide-legible diagrams added by the evidence change (960x540, `min_font_units` 20, so their text is computed like a chart: 30 px at `single`, 22 px at `split`), by user decision; the dense `docs/*.drawio.svg` diagrams stay out of the slides and are carried by the report and the repository. The manifest's `docs/` diagram entries remain valid ids but the deck does not place them.
 
 ## Risks / Trade-offs
 

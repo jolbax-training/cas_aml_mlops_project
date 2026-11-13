@@ -15,10 +15,10 @@ problem = [
 ]
 approach = [
   "Read the diagram left to right: the agent loop writes code and its own development checks, the trusted host grades the final submission on hidden checks, each check runs in a fresh container, results go to a run bundle, MLflow reads the bundle afterwards, CI runs the offline and Podman checks.",
-  "Source: docs/architecture_logical.md and docs/architecture_logical.drawio.svg.",
+  "The slide shows the simplified pipeline diagram; the full logical architecture is in docs/architecture_logical.md and docs/architecture_logical.drawio.svg and in the report.",
 ]
 integrity = [
-  "Source: docs/threat_model.md. Container flags: no network, read-only root, all capabilities dropped, no-new-privileges, unprivileged user, no mounts, no Podman socket.",
+  "The slide shows the trust-boundary diagram; the full deployment diagram is docs/architecture_physical.drawio.svg. Source: docs/threat_model.md. Container flags: no network, read-only root, all capabilities dropped, no-new-privileges, unprivileged user, no mounts, no Podman socket.",
   "Only the candidate source, the function name and one check's arguments cross into the container; expected values stay on the host.",
   "Isolation probes passed: {{summary:protocol.probes_passed}}. Protected assets covered: {{summary:protocol.probe_categories}}.",
   "Residual limitations (in-process introspection, Podman or kernel escapes, CI runs with an AppArmor-unconfined profile) are listed in docs/threat_model.md.",

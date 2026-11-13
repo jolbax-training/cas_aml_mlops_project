@@ -38,4 +38,4 @@ Arrow keys, Space and PageUp/PageDown move; Home and End jump; `N` shows the spe
 
 ## Not checked by tests
 
-Legibility of the two `docs/` architecture diagrams at slide size, the look of the slides and the page count when printed are reviewed by hand in a browser.
+The look and legibility of the slides on a projector (the build computes chart and diagram text sizes but cannot see them), the full `docs/` architecture diagrams (not on the slides; the report and the repository carry them), the look of the slides and the page count when printed are reviewed by hand in a browser.

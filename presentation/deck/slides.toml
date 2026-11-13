@@ -47,7 +47,7 @@ title = "Approach overview"
 minutes = 1.5
 layout = "single"
 subtitle = "Agent loop, hidden grading, sandbox, bundles, MLflow, CI"
-figures = ["diagram-architecture-logical"]
+figures = ["diagram-pipeline-overview"]
 
 [[slide]]
 id = "integrity"
@@ -60,7 +60,7 @@ bullets = [
   "Hidden final grading: the agent never sees the checks it is graded on",
   "Isolation probes ({{summary:protocol.probes_passed}} passed) cover: {{summary:protocol.probe_categories}}",
 ]
-figures = ["diagram-architecture-physical"]
+figures = ["diagram-trust-boundary"]
 
 [[slide]]
 id = "reproducibility"
