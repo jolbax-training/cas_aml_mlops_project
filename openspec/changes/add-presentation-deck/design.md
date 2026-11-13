@@ -32,7 +32,7 @@ Alternatives rejected: a Markdown deck (needs a converter and gives weak layout 
 
 ### 2. One file, inlined assets
 
-`deck.html` inlines CSS, JS, each used SVG (checked against the manifest's element set and no `<script>`, as `build_work_log.py` does), and the ZHAW logo and present screenshots as base64 data URIs, so it works when moved or opened from `file://`. SVGs are inlined (not `<img>`) only when they keep `role="img"` plus title and desc; otherwise they are wrapped in an `<img>` data URI with the manifest alt. Decision: use `<img>` with data URI and manifest alt for every figure, because alt text then comes from one place (the manifest) for SVG, PNG and JPG alike, and `<img>` keeps chart CSS from leaking. The drawio SVGs from `docs/` are handled the same way, after the XML, no-script and no-external-reference checks.
+`deck.html` inlines CSS and JS, and embeds every figure, the ZHAW logo and present screenshots as base64 data URIs, so it works when moved or opened from `file://`. SVGs are first checked against the manifest's element set with no `<script>` and no external reference, as `build_work_log.py` does. Decision: use `<img>` with a data URI and the manifest alt for every figure, because alt text then comes from one place (the manifest) for SVG, PNG and JPG alike, and `<img>` keeps chart CSS from leaking. The drawio SVGs from `docs/` are handled the same way, after the XML, no-script and no-external-reference checks.
 
 ### 3. Slide model and the approved outline
 
@@ -74,7 +74,7 @@ Each slide is a 16:9 box (`aspect-ratio: 16/9`, sized with `min(100vw, 177.78vh)
 
 ### 8. Print / PDF and notes
 
-`@page { size: 1920px 1080px; margin: 0 }` with `print-color-adjust: exact`; each slide `break-after: page`, chrome and notes hidden, so Print to PDF gives 13 pages. Speaker notes: kept in `notes.toml`, which is the committed source, and exposed two ways: an `N`-toggled panel in `deck.html` (hidden by default and in print, so the audience view and PDF never leak notes), and `report/deck_notes.html`, printable, one slide's title, minutes, running time and notes per page, for paper. Rejected: a separate presenter window (needs `window.open` and cross-window messaging, more JS, fragile from `file://`). Notes are factual: statements with source file references and summary references; the build lints for first-person opinion markers is not attempted, rather notes may hold no `{{user}}` text and the review checks them against evidence.
+`@page { size: 1920px 1080px; margin: 0 }` with `print-color-adjust: exact`; each slide `break-after: page`, chrome and notes hidden, so Print to PDF gives 13 pages. Speaker notes: kept in `notes.toml`, which is the committed source, and exposed two ways: an `N`-toggled panel in `deck.html` (hidden by default and in print, so the audience view and PDF never leak notes), and `report/deck_notes.html`, printable, one slide's title, minutes, running time and notes per page, for paper. Rejected: a separate presenter window (needs `window.open` and cross-window messaging, more JS, fragile from `file://`). Notes are factual: statements with source file references and summary references. No tooling can detect opinion, so the reviewer checks notes against the evidence; notes never read from `user_text.toml`.
 
 ### 9. Accessibility
 
