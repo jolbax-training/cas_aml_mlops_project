@@ -51,7 +51,7 @@
 {{fig:diagram-pipeline-overview}}
 <div class="side">
 <h3>Budget-safe paid calls</h3>
-<p>All paid calls share one ledger. Before each request the worst-case cost is reserved, and a request that would pass the ceiling is never sent. A checkpoint of CHF {{val:protocol.checkpoint_chf|chf}} lets the work continue and a ceiling of CHF {{val:protocol.ceiling_chf|chf}} stops it. The ledger total after both comparison runs is CHF {{val:protocol.ledger_total_chf|chf4}}, quoted from the comparison document; the report tooling never reads the ledger.</p>
+<p>All paid calls share one ledger. The worst-case cost is reserved before each request; one that would pass the ceiling is never sent. A checkpoint of CHF {{val:protocol.checkpoint_chf|chf}} lets work continue, a ceiling of CHF {{val:protocol.ceiling_chf|chf}} stops it. Ledger total after both runs: CHF {{val:protocol.ledger_total_chf|chf4}}, quoted from the comparison document.</p>
 </div>
 </div>
 
@@ -59,20 +59,20 @@
 {{fig:diagram-trust-boundary}}
 <div class="side">
 <h3>Scoring integrity</h3>
-<p>Each check runs in a fresh Podman container with no network, a read-only filesystem, dropped capabilities, an unprivileged user and limits on time, memory and processes. The container gets only the source, the function name and one check's arguments. Expected answers and the comparison stay on the host, so a candidate can influence the verdict only through what it returns.</p>
+<p>Each check runs in a fresh Podman container: no network, read-only filesystem, dropped capabilities, unprivileged user, limits on time, memory and processes. It gets only the source, the function name and one check's arguments; expected answers and the comparison stay on the host.</p>
 </div>
 </div>
 
 <div class="cols2">
 <div>
 <h3>What the isolation probes cover</h3>
-<p>The probes target the protected assets of the threat model: {{val:protocol.probe_categories.0}}; {{val:protocol.probe_categories.1}}; {{val:protocol.probe_categories.2}}; {{val:protocol.probe_categories.3}}; and {{val:protocol.probe_categories.4}}. One residual is accepted: code that walks the executor's own frames can forge a report, but a forged value is no better than a returned one because expected answers never enter the container.</p>
+<p>The probes target the protected assets of the threat model: {{val:protocol.probe_categories.0}}; {{val:protocol.probe_categories.1}}; {{val:protocol.probe_categories.2}}; {{val:protocol.probe_categories.3}}; and {{val:protocol.probe_categories.4}}. One accepted residual: code that walks the executor's frames can forge a report, but expected answers never enter the container, so a forged value is no better than a returned one.</p>
 <h3>Experiment design</h3>
-<p>{{val:protocol.tasks}} tasks across strings, lists, dictionaries, numeric logic and parsing and formatting, {{val:protocol.trials_per_task}} trials per task and variant, {{val:comparison.baseline.hidden_checks.of}} hidden checks per variant. One model on a fixed provider route, fixed sampling, one sentence of the prompt changed.</p>
+<p>{{val:protocol.tasks}} tasks in five categories, {{val:protocol.trials_per_task}} trials per task and variant, {{val:comparison.baseline.hidden_checks.of}} hidden checks per variant. One model, fixed sampling, one prompt sentence changed.</p>
 </div>
 <div>
 <h3>Reproducibility</h3>
-<p>Every run is saved as a local bundle before any tracking happens, and the bundle's digest is recorded. Traces can be inspected without any model API or container. Grading replay reruns saved final candidates against the retained benchmark in Podman with no model call and no credentials; it regrades, it is not a new agent trial. A completeness check confirms every planned trial was recorded ({{val:provenance.runs.baseline.completeness.recorded}} of {{val:provenance.runs.baseline.completeness.planned}} for the baseline, {{val:provenance.runs.revised.completeness.recorded}} of {{val:provenance.runs.revised.completeness.planned}} for the revised run). Agent, model and tool interactions of both runs are recorded as traces in a local MLflow service.</p>
+<p>Every run is saved as a local bundle, with a recorded digest, before any tracking happens. Traces can be inspected with no model API or container. Grading replay reruns saved final candidates in Podman with no model call and no credentials; it regrades, it is not a new agent trial. A completeness check confirms every planned trial was recorded ({{val:provenance.runs.baseline.completeness.recorded}} of {{val:provenance.runs.baseline.completeness.planned}} for the baseline, {{val:provenance.runs.revised.completeness.recorded}} of {{val:provenance.runs.revised.completeness.planned}} for the revised run). Both runs are recorded as traces in a local MLflow service.</p>
 </div>
 </div>
 </div>
@@ -82,7 +82,7 @@
 <section class="page" id="page-3">
 <div class="phead"><h2>Results and statistics</h2></div>
 <div class="pbody">
-<div class="cols2">
+<div class="cols2 chartgrid">
 {{fig:outcome-overview-compact}}
 {{table:per-task}}
 {{fig:story-lists-02-compact}}
@@ -90,7 +90,7 @@
 {{fig:cost-charged-reserved-compact}}
 {{fig:engineering-tests-compact}}
 </div>
-<p>Failed trials by label: baseline {{val:comparison.baseline.failure_labels.syntax_error}} syntax errors and {{val:comparison.baseline.failure_labels.contract_error}} contract error, revised {{val:comparison.revised.failure_labels.wrong_answer}} wrong answer. The gained task was {{val:comparison.delta.gained_tasks.0}} and the regressed task was {{val:comparison.delta.regressed_tasks.0}} ({{ref:story-lists-02-compact}}, {{ref:story-strings-01-compact}}); the other tasks are unchanged ({{ref:per-task}}). The difference is two trials from one run per prompt: the stories show what changed in the traces, they do not prove why.</p>
+<p>Failed trials: baseline {{val:comparison.baseline.failure_labels.syntax_error}} syntax errors, {{val:comparison.baseline.failure_labels.contract_error}} contract error; revised {{val:comparison.revised.failure_labels.wrong_answer}} wrong answer. Gained {{val:comparison.delta.gained_tasks.0}}, regressed {{val:comparison.delta.regressed_tasks.0}} ({{ref:story-lists-02-compact}}, {{ref:story-strings-01-compact}}, {{ref:per-task}}). One run per prompt, two trials apart: the stories show what changed, not why. Test counts ({{ref:engineering-tests-compact}}): commit {{val:engineering.tests.commit|short}}; latest CI run {{val:engineering.ci.runs.last.run}}.</p>
 {{table:resources}}
 </div>
 {{footer:3}}
@@ -103,9 +103,8 @@
 {{limits}}
 <h3>Lessons learned</h3>
 <ul>
-<li><b>Tracking and large integers.</b> A few traces could not be read back because the model's check arguments held integers outside the range the tracking server accepts. Such values are now stored as decimal strings with a marker; the bundles are unchanged and all traces were re-recorded and read back.</li>
-<li><b>Forcing the last model call in a smoke run.</b> Unforced smoke runs never reached the final-only call because the model submitted early. A smoke-only instruction made it reachable; a forced trace is a prompted call and says nothing about model quality.</li>
-<li><b>Failed CI runs are history.</b> The first CI run failed in the sandbox tests and later runs fixed signals and cleanup; failed runs stay in the evidence ({{ref:engineering-tests-compact}}).</li>
+<li><b>Large integers in traces.</b> A few traces could not be read back because check arguments held integers outside the tracking server's range; they are now stored as decimal strings, and all traces were re-recorded.</li>
+<li><b>Forced last call in a smoke run.</b> Unforced smokes never reached the final-only call; a smoke-only instruction did. A forced trace says nothing about model quality.</li>
 </ul>
 <h3>Conclusions</h3>
 {{user:takeaways}}
@@ -120,9 +119,10 @@
 <li><a href="../docs/demo.md"><code>docs/demo.md</code></a></li>
 <li><a href="../docs/evaluation_design_guide.md"><code>docs/evaluation_design_guide.md</code></a></li>
 <li><a href="../docs/progress.md"><code>docs/progress.md</code></a></li>
-<li>Full diagrams, by path only: <code>docs/architecture_logical.drawio.svg</code>, <code>docs/architecture_physical.drawio.svg</code>, <code>docs/run_flow_activity.drawio.svg</code>, <code>docs/run_flow_sequence.drawio.svg</code></li>
+<li><code>docs/*.drawio.svg</code> (four full diagrams)</li>
+<li>Work log: {{link:index}}</li>
+<li>Recording: {{link:demo}}</li>
 </ul>
-<p>Work log: {{link:index}}. Recording: {{link:demo}}.</p>
 </div>
 {{footer:4}}
 </section>

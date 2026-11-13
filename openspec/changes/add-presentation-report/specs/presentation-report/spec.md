@@ -35,6 +35,10 @@ Source: accepted user decisions (exactly four printed pages).
 - **WHEN** a page's content is taller than its box in the measurement
 - **THEN** the measurement exits non-zero and names the page and the excess height
 
+#### Scenario: Spare space is visible
+- **WHEN** a page's content is shorter than its box
+- **THEN** the measurement reports the content height, not the box height, so spare space shows as less than full
+
 #### Scenario: Missing browser is not a pass
 (A missing browser MUST be reported as skipped, never as a pass, and an unreadable page count MUST fail distinctly.)
 

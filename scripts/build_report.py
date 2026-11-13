@@ -47,7 +47,7 @@ MIN_PRINT_PT = 7.5
 MIN_MM = MIN_PRINT_PT * 25.4 / 72  # 2.646 mm
 HEADROOM = 0.94
 CONTRAST_MIN = 4.5
-SLOT_MAX_CHARS = {"motivation": 500, "takeaways": 500}
+SLOT_MAX_CHARS = {"motivation": 650, "takeaways": 420}
 
 # Tokens with digits that the template prose may contain; whole tokens, never substrings.
 DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256", "lists_02", "strings_01"})
@@ -56,13 +56,13 @@ DIGIT_ALLOWLIST = frozenset({"A4", "SHA-256", "lists_02", "strings_01"})
 # constants below have been fitted to it; `check` refuses to pass while it is empty.
 BUDGETS = {
     "calibrated_against": "UNMEASURED: first-principles estimate; replace with browser, version and date after `measure` (tasks 4.2, 4.3)",
-    "body_mm": 262.0,  # usable height of a page body (page box minus padding, header, footer)
-    "char_mm": 1.62,  # average character advance at body size
-    "line_mm": 4.55,  # body line height
+    "body_mm": 258.8,  # usable height of a page body (page box minus padding, header, footer)
+    "char_mm": 1.8,  # average character advance at body size
+    "line_mm": 5.0,  # body line height
     "small_char_mm": 1.30,  # captions and footnotes
     "small_line_mm": 3.55,
-    "row_mm": 3.8,  # one table row
-    "block_gap_mm": 1.8,  # margin below a block
+    "row_mm": 4.2,  # one table row
+    "block_gap_mm": 2.4,  # margin below a block
     "heading_mm": 7.5,
 }
 
@@ -131,6 +131,8 @@ def lookup(summary: dict, path: str):
     for part in path.split("."):
         if isinstance(node, dict) and part in node:
             node = node[part]
+        elif isinstance(node, list) and part == "last" and node:
+            node = node[-1]
         elif isinstance(node, list) and part.isdigit() and int(part) < len(node):
             node = node[int(part)]
         else:
@@ -139,7 +141,7 @@ def lookup(summary: dict, path: str):
 
 
 def format_value(value, fmt: str | None, path: str) -> str:
-    """The closed format set: int, id, chf, chf4, ratio, pct, ratiopct, ms, text."""
+    """The closed format set: int, id, short, chf, chf4, ratio, pct, ratiopct, ms, text."""
     if fmt in ("ratio", "pct", "ratiopct"):
         if not (isinstance(value, dict) and {"count", "of", "rate"} <= set(value)):
             raise ReportError(f"{path!r}: format {fmt!r} needs an object with count, of and rate")
@@ -150,6 +152,8 @@ def format_value(value, fmt: str | None, path: str) -> str:
         raise ReportError(f"{path!r} is not a single value")
     if fmt in (None, "text", "id"):
         return str(value)
+    if fmt == "short":
+        return str(value)[:7]
     if fmt == "int":
         return f"{int(value)}"
     if fmt == "ms":
@@ -292,11 +296,11 @@ def render_user(inputs: Inputs, slot: str) -> str:
         raise ReportError(f"unknown user slot {slot!r}")
     text = user_slot_state(inputs, slot).strip()
     if not text:
-        return (f'<div class="slot slot-empty ph" data-slot="{slot}" data-placeholder="{slot}" data-est-kind="slot">'
+        return (f'<div class="slot slot-{slot} slot-empty ph" data-slot="{slot}" data-placeholder="{slot}" data-est-kind="slot">'
                 f'<b>YOUR TEXT HERE ({slot}).</b> Write the {slot} in the <code>report</code> key of '
                 f'<code>[{slot}]</code> in <code>presentation/user_text.toml</code>; this box is a placeholder.</div>')
     paragraphs = "".join(f"<p>{esc(p.strip())}</p>" for p in re.split(r"\n\s*\n", text) if p.strip())
-    return f'<div class="slot slot-filled" data-slot="{slot}" data-est-kind="slot">{paragraphs}</div>'
+    return f'<div class="slot slot-{slot} slot-filled" data-slot="{slot}" data-est-kind="slot">{paragraphs}</div>'
 
 
 def doc_row(summary: dict, field: str) -> dict:
@@ -386,23 +390,30 @@ def table_changes(summary: dict) -> tuple[str, int]:
 
 
 TABLES = {
-    "per-task": ("outcome-by-task", table_per_task),
-    "resources": ("efficiency-latency", table_resources),
-    "ci-runs": ("engineering-ci", table_ci),
-    "changes": ("engineering-changes", table_changes),
+    "per-task": ("outcome-by-task", table_per_task, None, None),
+    "resources": ("efficiency-latency", table_resources,
+                  "Resources per prompt: model calls, tool attempts, revisions, tokens, model latency and cost.",
+                  ["efficiency.baseline", "efficiency.revised"]),
+    "ci-runs": ("engineering-ci", table_ci, None, None),
+    "changes": ("engineering-changes", table_changes, None, None),
 }
 
 
 def render_table(inputs: Inputs, numbers: Numbers, name: str) -> str:
     if name not in TABLES:
         raise ReportError(f"unknown table {name!r}")
-    caption_id, fn = TABLES[name]
+    caption_id, fn, title, source_keys = TABLES[name]
     body, rows = fn(inputs.summary)
     entry = inputs.figures[caption_id]
-    sources = ", ".join(entry["source_keys"])
+    caption = entry["caption"]
+    if title:
+        # the table shows more than its manifest figure: its own title, then the manifest's
+        # measurement note (everything after the first sentence) unchanged
+        caption = f"{title} {caption.split('. ', 1)[1] if '. ' in caption else ''}".strip()
+    sources = ", ".join(source_keys or entry["source_keys"])
     return (
-        f'<figure class="tab" id="tab-{name}" data-evidence="manifest" data-est-rows="{rows}" data-est-caption="{len(entry["caption"]) + len(sources)}">'
-        f'<figcaption><b>{numbers.ref(name)}.</b> {esc(entry["caption"])} <span class="src">Source: {esc(sources)}.</span></figcaption>'
+        f'<figure class="tab" id="tab-{name}" data-evidence="manifest" data-est-rows="{rows}" data-est-caption="{len(caption) + len(sources)}">'
+        f'<figcaption><b>{numbers.ref(name)}.</b> {esc(caption)} <span class="src">Source: {esc(sources)}.</span></figcaption>'
         f'<table class="dtab"><tbody>{body}</tbody></table></figure>'
     )
 
@@ -794,8 +805,8 @@ def estimate_page_mm(page: Node, css: str, budgets: dict) -> float:
                 total += height(child, width) if scale == 1.0 else prose_mm(child, width, scale)
         return total
 
-    def height_plain(node: Node, width: float) -> float:
-        return prose_mm(node, width, 0.88)
+    def height_plain(node: Node, width: float, scale: float) -> float:
+        return prose_mm(node, width, scale)
 
     def height(node: Node, width: float) -> float:
         if node.tag in {"svg", "style", "nav"} or "screen-only" in node.classes():
@@ -810,19 +821,21 @@ def estimate_page_mm(page: Node, css: str, budgets: dict) -> float:
         if node.tag == "table" and "data-est-rows" in node.attrs:
             return int(node.attrs["data-est-rows"]) * budgets["row_mm"]
         if node.attrs.get("data-est-kind") == "slot":
-            return mm_var(css, "--slot-h") + budgets["block_gap_mm"]
+            return mm_var(css, f"--slot-h-{node.attrs['data-slot']}") + budgets["block_gap_mm"]
         if node.tag in {"h1", "h2", "h3"}:
             return budgets["heading_mm"]
         if "side" in node.classes():
             return prose_mm(node, mm_var(css, "--w-side"))
         if "figrow" in node.classes():
             return max((height(k, width) for k in node.children), default=0.0)
-        if "cols2" in node.classes():
+        if node.classes() & {"cols2", "chartgrid"}:
             kids = [c for c in node.children if height(c, width / 2) or c.tag]
             rows = [kids[i:i + 2] for i in range(0, len(kids), 2)]
             return sum(max(height(k, width / 2) for k in row) for row in rows)
-        if node.classes() & {"limits", "docs"}:
-            return height_plain(node, width / 2) / 2
+        if "limits" in node.classes():
+            return height_plain(node, width / 2, 0.83) / 2
+        if "docs" in node.classes():
+            return height_plain(node, width / 3, 0.86) / 3
         if "stats" in node.classes():
             return mm_var(css, "--stats-h") + budgets["block_gap_mm"]
         return prose_mm(node, width)
@@ -862,8 +875,14 @@ window.addEventListener('load', function () {
   var out = [];
   document.querySelectorAll('section.page').forEach(function (p) {
     var b = p.querySelector('.pbody') || p;
+    var top = b.getBoundingClientRect().top, bottom = top;
+    Array.prototype.forEach.call(b.children, function (c) {
+      var r = c.getBoundingClientRect(), m = parseFloat(getComputedStyle(c).marginBottom) || 0;
+      bottom = Math.max(bottom, r.bottom + m);
+    });
     out.push({id: p.id, scroll: p.scrollHeight, client: p.clientHeight,
-              bodyScroll: b.scrollHeight, bodyClient: b.clientHeight, ppx: p.getBoundingClientRect().height});
+              bodyScroll: b.scrollHeight, bodyClient: b.clientHeight, used: bottom - top,
+              ppx: p.getBoundingClientRect().height});
   });
   var pre = document.createElement('pre'); pre.id = 'measure-result'; pre.textContent = JSON.stringify(out);
   document.body.appendChild(pre);
@@ -906,11 +925,14 @@ def parse_measurements(dom: str) -> list[dict]:
 def evaluate_measurements(rows: list[dict]) -> tuple[list[str], list[str]]:
     errors, warnings = [], []
     for row in rows:
-        spare = row["bodyClient"] - row["bodyScroll"]
-        if row["scroll"] > row["client"] or row["bodyScroll"] > row["bodyClient"]:
-            errors.append(f"{row['id']}: content is {row['bodyScroll'] - row['bodyClient']} px taller than its box (clipped)")
-        elif row["bodyScroll"] > row["bodyClient"] * HEADROOM:
-            warnings.append(f"{row['id']}: body is {row['bodyScroll'] / row['bodyClient']:.0%} full, above {HEADROOM:.0%} headroom ({spare} px spare)")
+        # the body box is a flex item that stretches, so its scrollHeight is never below its
+        # client height; the content height is the lowest child edge ("used")
+        used = row.get("used", row["bodyScroll"])
+        spare = row["bodyClient"] - used
+        if row["scroll"] > row["client"] or row["bodyScroll"] > row["bodyClient"] or used > row["bodyClient"]:
+            errors.append(f"{row['id']}: content is {max(row['bodyScroll'], used) - row['bodyClient']:.0f} px taller than its box (clipped)")
+        elif used > row["bodyClient"] * HEADROOM:
+            warnings.append(f"{row['id']}: body is {used / row['bodyClient']:.0%} full, above {HEADROOM:.0%} headroom ({spare:.0f} px spare)")
     return errors, warnings
 
 
@@ -961,7 +983,8 @@ def measure(inputs: Inputs, built: Path, browser: str, pdf_out: Path | None) -> 
     print("page      used mm  available mm  fill")
     mm_per_px = PAGE_HEIGHT_MM / rows[0]["ppx"] if rows else 0
     for row in rows:
-        print(f"{row['id']:<8} {row['bodyScroll'] * mm_per_px:8.1f} {row['bodyClient'] * mm_per_px:13.1f}  {row['bodyScroll'] / row['bodyClient']:.0%}")
+        used = row.get("used", row["bodyScroll"])
+        print(f"{row['id']:<8} {used * mm_per_px:8.1f} {row['bodyClient'] * mm_per_px:13.1f}  {used / row['bodyClient']:.0%}")
     errors, warnings = evaluate_measurements(rows)
     pages = count_pdf_pages(data)
     print(f"printed pages: {pages}")

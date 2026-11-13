@@ -60,7 +60,8 @@ Offline implementation on the worktree branch; results below are the output of t
 Implemented on the worktree branch after `add-presentation-evidence` merged; results below are the output of the commands named.
 
 - **Built:** `.venv/bin/python scripts/build_report.py build` wrote `report/presentation_report.html` (four A4 pages, script-free, self-contained); `check` passes offline. Placeholders remain by design: the date, the `report` keys of `motivation` and `takeaways` in `presentation/user_text.toml`, and any pending screenshot.
-- **Not measured:** headless Chrome did not return in this session's sandbox (the `--dump-dom` call timed out), so no printed page count or per-page fill exists yet. The static height budgets are marked `UNMEASURED`; task 4.2 (`build_report.py measure`) and 4.3 (calibration) are the coordinator's, and the CI step is added only after calibration.
+- **Host measurement (coordinator, Chrome 157):** four printed pages, but page 3 clipped by 12 px and page 4 by 72 px, and the measurement itself overstated pages 1 and 2 (box instead of content height); fixed in the follow-up, to be measured again.
+- **Earlier, not measured here:** headless Chrome did not return in this session's sandbox (the `--dump-dom` call timed out), so no printed page count or per-page fill exists yet. The static height budgets are marked `UNMEASURED`; task 4.2 (`build_report.py measure`) and 4.3 (calibration) are the coordinator's, and the CI step is added only after calibration.
 - **Diagrams:** the dense draw.io diagrams print far below 7.5 pt, so page 2 uses `diagram-pipeline-overview` and `diagram-trust-boundary` (128 mm) and lists the draw.io files by path only; the legibility check fails for any figure below 7.5 pt.
 - **Offline tests:** `tests/test_presentation_report.py`.
 

@@ -155,7 +155,7 @@ def test_evidence_section_prints_full_digests_and_run_ids(real):
 
 def test_pending_and_empty_items_are_visible_placeholders(real):
     _, text = real
-    assert 'class="slot slot-empty ph"' in text
+    assert 'class="slot slot-motivation slot-empty ph"' in text
     assert "YOUR TEXT HERE (motivation)" in text and "presentation/user_text.toml" in text
     assert "[DATE: fill in]" in text
 
@@ -200,7 +200,7 @@ def test_slot_text_is_escaped_filled_slots_are_not_placeholders(tmp_path):
     inputs = make_inputs(tmp_path, template=page_template("{{user:motivation}}"), user=user_toml(motivation="A <b>bold</b> claim & more.\n\nSecond paragraph."))
     text = report.build_html(inputs)
     assert "A &lt;b&gt;bold&lt;/b&gt; claim &amp; more." in text and "<p>Second paragraph.</p>" in text
-    assert 'class="slot slot-empty' not in text
+    assert "slot-empty" not in re.sub(r"<style>.*?</style>", "", text, flags=re.S)
     assert "user text motivation" not in report.placeholders(report.parse(text))
 
 
@@ -322,7 +322,7 @@ def test_contrast_arithmetic():
 
 
 def test_chart_too_narrow_fails_legibility(tmp_path):
-    inputs = make_inputs(tmp_path, template=page_template("{{fig:outcome-overview-compact}}"), css=css_with("--w-compact: 88mm", "--w-compact: 40mm"))
+    inputs = make_inputs(tmp_path, template=page_template("{{fig:outcome-overview-compact}}"), css=css_with("--w-compact: 75mm", "--w-compact: 40mm"))
     problems, _ = report.check_legibility(inputs, report.parse(report.build_html(inputs)), inputs.css)
     assert any("outcome-overview-compact" in p and "below 7.5 pt" in p for p in problems)
 
@@ -335,7 +335,7 @@ def test_real_figures_print_at_least_the_floor(real):
     assert {"diagram-pipeline-overview", "diagram-trust-boundary"} <= used
     # the dense draw.io exports are references only, never figures
     assert not any(i.startswith(("diagram-architecture", "diagram-run-flow", "diagram-work-log")) for i in used)
-    assert "docs/run_flow_sequence.drawio.svg" in text
+    assert "docs/*.drawio.svg" in text
 
 
 def test_a_diagram_too_small_fails_not_warns(tmp_path):
@@ -399,18 +399,52 @@ def test_page_counter():
 
 def test_measurement_parsing_and_evaluation():
     rows = [
-        {"id": "page-1", "scroll": 1000, "client": 1000, "bodyScroll": 800, "bodyClient": 1000, "ppx": 1118},
-        {"id": "page-2", "scroll": 1000, "client": 1000, "bodyScroll": 980, "bodyClient": 1000, "ppx": 1118},
-        {"id": "page-3", "scroll": 1100, "client": 1000, "bodyScroll": 1100, "bodyClient": 1000, "ppx": 1118},
+        # a flex body stretches to its box, so scroll equals client; only "used" shows the content
+        {"id": "page-1", "scroll": 1000, "client": 1000, "bodyScroll": 1000, "bodyClient": 1000, "used": 600, "ppx": 1118},
+        {"id": "page-2", "scroll": 1000, "client": 1000, "bodyScroll": 1000, "bodyClient": 1000, "used": 980, "ppx": 1118},
+        {"id": "page-3", "scroll": 1100, "client": 1000, "bodyScroll": 1100, "bodyClient": 1000, "used": 1100, "ppx": 1118},
+        {"id": "page-4", "scroll": 1000, "client": 1000, "bodyScroll": 1000, "bodyClient": 1000, "used": 1072, "ppx": 1118},
     ]
     dom = '<pre id="measure-result">' + json.dumps(rows).replace('"', "&quot;") + "</pre>"
     parsed = report.parse_measurements(dom)
     assert parsed == rows
     errors, warnings = report.evaluate_measurements(parsed)
     assert any("page-3" in e and "clipped" in e for e in errors)
+    assert any("page-4" in e and "72 px" in e for e in errors)
     assert any("page-2" in w for w in warnings) and not any("page-1" in w for w in warnings)
+    assert not any("page-1" in e for e in errors)
     with pytest.raises(report.ReportError):
         report.parse_measurements("<html></html>")
+
+
+def test_a_page_with_spare_space_is_not_reported_as_full():
+    row = {"id": "page-1", "scroll": 1000, "client": 1000, "bodyScroll": 1000, "bodyClient": 1000, "used": 640, "ppx": 1118}
+    assert report.evaluate_measurements([row]) == ([], [])
+
+
+def test_the_measuring_script_reports_content_height_not_the_box():
+    assert "used: bottom - top" in report.MEASURE_SCRIPT and "getBoundingClientRect" in report.MEASURE_SCRIPT
+
+
+def test_lookup_last_and_short_format(real):
+    inputs, _ = real
+    runs = inputs.summary["engineering"]["ci"]["runs"]
+    assert report.lookup(inputs.summary, "engineering.ci.runs.last") == runs[-1]
+    assert report.format_value("17ada6edb1dc", "short", "x") == "17ada6e"
+
+
+def test_engineering_numbers_state_their_commit_and_run(real):
+    inputs, text = real
+    assert inputs.summary["engineering"]["tests"]["commit"][:7] in text
+    assert inputs.summary["engineering"]["ci"]["runs"][-1]["run"] in text
+
+
+def test_the_resources_table_caption_describes_the_whole_table(real):
+    _, text = real
+    caption = re.search(r'id="tab-resources".*?<figcaption>(.*?)</figcaption>', text, re.S).group(1)
+    for word in ("model calls", "tool attempts", "revisions", "tokens", "latency", "cost", "not attributed to the prompt"):
+        assert word in caption
+    assert not caption.split("</b>")[1].lstrip().startswith("Model latency per prompt")
 
 
 def test_missing_browser_is_skipped_never_a_pass(monkeypatch, capsys, tmp_path):
