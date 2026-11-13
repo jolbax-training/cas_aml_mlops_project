@@ -664,7 +664,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/report-local-architecture.png",
       "shows": "report/index.html architecture figure",
-      "status": "pending"
+      "status": "present"
     },
     {
       "alt": "Screenshot: report/index.html results section.",
@@ -675,7 +675,7 @@
       "owner": "coordinator",
       "path": "presentation/screenshots/report-local-results.png",
       "shows": "report/index.html results section",
-      "status": "pending"
+      "status": "present"
     }
   ],
   "summary": "presentation/evidence/summary.json",
