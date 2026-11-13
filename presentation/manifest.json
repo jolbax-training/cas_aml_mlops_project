@@ -56,6 +56,40 @@
       "path": "docs/work_log_architecture.svg",
       "role": "architecture",
       "status": "present"
+    },
+    {
+      "alt": "Boxes from a task and prompt through a bounded agent and hidden grading to a local run bundle, which feeds MLflow, grading replay and comparison; a CI band runs alongside.",
+      "caption": "Pipeline overview: task and prompt, bounded agent, hidden grading, local run bundle, then MLflow record, grading replay and comparison, with CI alongside.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "diagram-pipeline-overview",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/diagram-pipeline-overview.svg",
+      "role": "pipeline",
+      "status": "present",
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
+    },
+    {
+      "alt": "Two regions: the trusted host with a launcher, answers and scoring, and key and ledger, and a per-check container with the candidate function, a supervisor and a list of what never goes inside.",
+      "caption": "Trust boundary: the trusted host keeps answers, scoring, key and ledger; the per-check container receives only code and one case and returns one signed report.",
+      "elements": "work-log set",
+      "format": "svg",
+      "id": "diagram-trust-boundary",
+      "min_font_units": 20,
+      "min_render_mm": 160,
+      "path": "presentation/charts/diagram-trust-boundary.svg",
+      "role": "trust-boundary",
+      "status": "present",
+      "uses": [
+        "deck",
+        "report"
+      ],
+      "viewbox": "0 0 960 540"
     }
   ],
   "figures": [

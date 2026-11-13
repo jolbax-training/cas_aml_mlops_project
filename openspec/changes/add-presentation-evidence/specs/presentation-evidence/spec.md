@@ -240,3 +240,34 @@ Source: code review finding 1.
 #### Scenario: Footnote collides with the last row
 - **WHEN** a chart is parsed
 - **THEN** no estimated text box intersects another text box or a filled shape
+
+### Requirement: Overlap model with clearance
+The no-overlap check SHALL estimate text boxes with ascent, descent for strings that have descenders or parentheses, and shape strokes, and SHALL require a small clearance, so that a footnote touching a bar is a failure; a regression fixture of the old geometry MUST fail it.
+
+Source: code review round 3, finding R1.
+
+#### Scenario: Old category chart geometry
+- **WHEN** the committed old chart geometry (bar bottom at y=478 with its outline, a footnote line at baseline 494) is checked
+- **THEN** the check reports a collision
+
+### Requirement: Slide-legible diagrams
+The project SHALL provide two diagrams generated as plain SVG under the full-size chart rules: a pipeline overview and a trust-boundary diagram, each with at most about seven boxes and no implementation-status labels. They MUST be registered in the manifest for the deck and the report with their own identifiers, caption and alt text.
+
+Source: user decision round 3.
+
+#### Scenario: Diagrams listed for both consumers
+- **WHEN** the manifest is loaded
+- **THEN** both diagrams are listed with caption, alt text and uses for the deck and the report
+
+### Requirement: Diagram boxes map to real components
+Every box and flow label of the two diagrams MUST map to a real component or flow named in the architecture documents, the threat model or the code, and the diagrams MUST stay legible at 7.5 pt printed when rendered at least 160 mm wide.
+
+Source: user decision round 3.
+
+#### Scenario: Box labels are all mapped
+- **WHEN** the diagram SVGs are parsed
+- **THEN** every box title appears in the documented mapping and every mapped source path exists
+
+#### Scenario: No status labels
+- **WHEN** the diagram text is read
+- **THEN** it contains none of the words implemented, pending, partial, or live run

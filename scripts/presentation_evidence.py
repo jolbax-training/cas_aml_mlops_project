@@ -786,6 +786,12 @@ def build_manifest(root: Path = REPO_ROOT) -> dict[str, Any]:
     diagrams = [{"id": i, "path": p, "format": "svg", "caption": c, "alt": a, "role": role,
                  "status": "present" if (root / p).is_file() else "pending"}
                 for i, p, role, c, a in DIAGRAMS]
+    for meta in render_charts.DIAGRAM_META:
+        diagrams.append({
+            "id": meta["id"], "path": f"{CHARTS_REL}/{meta['id']}.svg", "format": "svg",
+            "caption": meta["caption"], "alt": meta["alt"], "role": meta["role"],
+            "uses": ["deck", "report"], "viewbox": render_charts.VIEWBOX, "min_render_mm": 160,
+            "min_font_units": render_charts.MIN_FONT, "elements": "work-log set", "status": "present"})
     screenshots = [{"id": i, "path": f"presentation/screenshots/{name}", "format": "png",
                     "caption": caption, "alt": f"Screenshot: {shows}.", "shows": shows,
                     "must_display": must, "owner": "coordinator",

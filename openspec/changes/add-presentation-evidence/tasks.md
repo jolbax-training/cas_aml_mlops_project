@@ -43,3 +43,9 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [x] 6.3 Add `presentation/user_text.toml` with empty marked slots, list it in the manifest, and test that tools never write it (decision 13).
 - [x] 6.4 Require non-empty `alt` on every manifest entry including assets and improve the logo's alt text.
 - [x] 6.5 Record in `docs/presentation_evidence.md` and `docs/progress.md` the additions and that `schema_version` stays 1 because they are additive (decision 14); rerun the full checks and tests.
+
+## 7. Round 3 (review of the deck's charts, user decision on diagrams)
+
+- [x] 7.1 Fix the footnote overlap in `outcome-by-category` (full-size and compact) through the generator, and harden the overlap test (ascent, descent, strokes, clearance) with the old chart as a failing fixture.
+- [x] 7.2 Add the pipeline-overview and trust-boundary diagrams (decision 15) to `scripts/render_charts.py`, register them in the manifest (`diagram-pipeline-overview`, `diagram-trust-boundary`), and test the box-to-source mapping, the element set, font size, determinism and the absence of status labels.
+- [ ] 7.3 Regenerate the charts, summary and manifest through the scripts, record the results in `docs/progress.md` and `docs/presentation_evidence.md`, and rerun the checks and tests.

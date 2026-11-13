@@ -35,7 +35,7 @@ def is_compact(name):
 
 
 def test_thirteen_full_charts_in_the_four_requested_sets(rendered):
-    ids = {name[:-4] for name in rendered if not is_compact(name)}
+    ids = {name[:-4] for name in rendered if not is_compact(name) and not name.startswith("diagram-")}
     assert len(ids) == 13
     assert {"outcome-overview", "outcome-by-category", "outcome-by-task"} <= ids
     assert {"failure-labels", "story-lists-02", "story-strings-01"} <= ids
@@ -180,6 +180,8 @@ def test_every_text_stays_inside_its_viewbox(rendered):
             extent = len(element.text or "") * size * 0.56
             if element.get("text-anchor") == "end":
                 assert x - extent >= 0, (name, element.text)
+            elif element.get("text-anchor") == "middle":
+                assert x - extent / 2 >= 0 and x + extent / 2 <= width, (name, element.text)
             else:
                 assert x + extent <= width, (name, element.text)
 
@@ -228,41 +230,161 @@ def test_compact_note_wraps_and_rejects_overlong_notes():
         charts.cfoot("word " * 30)
 
 
+ASCENT = 0.80   # em above the baseline: ascenders (l, d, b, f) reach about 0.76 em, capitals 0.72 em
+DESCENT = 0.22  # em below the baseline, only for strings with descenders or parentheses
+CLEARANCE = 2   # user units of air required between a text box and anything else
+
+
 def boxes(root):
-    """Estimated text boxes (0.56 em wide per character, 0.72 em above the baseline) and shapes."""
+    """Estimated text boxes (0.56 em per character, ascent and descent) and shapes with their stroke."""
     texts, shapes = [], []
     rects = [e for e in root.iter() if local(e.tag) == "rect"][1:]  # the first is the background
     for e in rects:
+        if e.get("fill") == "none":
+            continue  # a region outline, not a filled shape
         x, y, w, h = (float(e.get(k)) for k in ("x", "y", "width", "height"))
-        shapes.append((x, y, x + w, y + h, "rect"))
+        stroke = float(e.get("stroke-width", 0)) / 2 if e.get("stroke", "none") != "none" else 0
+        shapes.append((x - stroke, y - stroke, x + w + stroke, y + h + stroke, "rect"))
     for e in root.iter():
         if local(e.tag) != "text":
             continue
         size, x, y = int(e.get("font-size")), float(e.get("x")), float(e.get("y"))
         width = len(e.text or "") * size * 0.56
-        left = x - width if e.get("text-anchor") == "end" else x
-        texts.append((left, y - 0.72 * size, left + width, y, e.text))
+        anchor = e.get("text-anchor")
+        left = x - width if anchor == "end" else x - width / 2 if anchor == "middle" else x
+        descends = any(ch in "gjpqy()," for ch in (e.text or ""))
+        texts.append((left, y - ASCENT * size, left + width, y + (DESCENT * size if descends else 0), e.text))
     return texts, shapes
 
 
-def overlaps(a, b):
-    return min(a[2], b[2]) - max(a[0], b[0]) > 1 and min(a[3], b[3]) - max(a[1], b[1]) > 1
+def overlaps(a, b, clearance=CLEARANCE):
+    return (min(a[2], b[2]) - max(a[0], b[0]) > -clearance
+            and min(a[3], b[3]) - max(a[1], b[1]) > -clearance)
 
 
-def test_no_text_overlaps_another_text_or_a_shape(rendered):
-    for name, svg in rendered.items():
-        texts, shapes = boxes(parse(svg))
-        for i, a in enumerate(texts):
-            for b in texts[i + 1:]:
-                assert not overlaps(a, b), (name, a[4], b[4])
-            for shape in shapes:
-                assert not overlaps(a, shape), (name, a[4], shape)
+def inside(text_box, shape):
+    """A label wholly inside a filled box is intended; a partial overlap is a collision."""
+    return (text_box[0] >= shape[0] + CLEARANCE and text_box[1] >= shape[1] + CLEARANCE
+            and text_box[2] <= shape[2] - CLEARANCE and text_box[3] <= shape[3] - CLEARANCE)
+
+
+def collisions(svg):
+    texts, shapes = boxes(parse(svg))
+    found = []
+    for i, a in enumerate(texts):
+        found += [(a[4], b[4]) for b in texts[i + 1:] if overlaps(a, b)]
+        found += [(a[4], shape) for shape in shapes if overlaps(a, shape) and not inside(a, shape)]
+    return found
 
 
 def test_the_overlap_check_detects_a_collision():
     svg = charts.svg_doc("x", "t", "d", charts.text(40, 100, "label text") + charts.rect(50, 90, 60, 12, "#000"))
-    texts, shapes = boxes(parse(svg))
-    assert overlaps(texts[0], shapes[0])
+    assert collisions(svg)
     svg = charts.svg_doc("y", "t", "d", charts.text(40, 100, "aaaa") + charts.text(40, 104, "bbbb"))
-    texts, _ = boxes(parse(svg))
-    assert overlaps(texts[0], texts[1])
+    assert collisions(svg)
+    svg = charts.svg_doc("z", "t", "d", charts.text(40, 100, "aaaa") + charts.text(40, 140, "bbbb"))
+    assert not collisions(svg)
+
+
+def test_the_old_category_chart_geometry_is_caught():
+    """Regression for the footnote that touched the last bar in a browser (code review round 3).
+
+    The old chart put the last revised bar (stroke included) down to y=479 and a footnote line
+    with ascenders at baseline 494; the round 2 test used a 0.72 em box with no stroke and
+    no clearance, so it saw a 2-unit gap and passed. This fixture is that chart as committed.
+    """
+    old = (REPO / "tests/fixtures/presentation/old_outcome_by_category.svg").read_text(encoding="utf-8")
+    assert collisions(old), "the stricter box model must flag the old chart"
+    root = parse(old)
+    bars = [e for e in root.iter() if local(e.tag) == "rect"][1:]
+    assert max(float(e.get("y")) + float(e.get("height")) for e in bars) == 478
+
+
+def test_no_chart_has_a_collision(rendered):
+    for name, svg in rendered.items():
+        assert collisions(svg) == [], name
+
+
+# --- the two slide-legible diagrams ---------------------------------------------------------------
+
+DIAGRAM_IDS = ("diagram-pipeline-overview", "diagram-trust-boundary")
+DESIGN = (REPO / "openspec/changes/add-presentation-evidence/design.md").read_text(encoding="utf-8")
+
+
+def svg_texts(svg):
+    return [e for e in parse(svg).iter() if local(e.tag) == "text"]
+
+
+def test_diagrams_follow_the_full_size_rules(rendered):
+    for cid in DIAGRAM_IDS:
+        svg = rendered[f"{cid}.svg"]
+        root = parse(svg)
+        assert root.get("viewBox") == "0 0 960 540" and root.get("role") == "img"
+        assert {local(e.tag) for e in root.iter()} <= ALLOWED
+        work_log.validate_svg(svg)
+        assert "<script" not in svg and "href" not in svg and "url(" not in svg and "http" not in svg.replace(
+            'xmlns="http://www.w3.org/2000/svg"', "")
+        assert all(int(t.get("font-size")) >= charts.MIN_FONT for t in svg_texts(svg))
+        assert collisions(svg) == []
+
+
+def test_diagrams_are_deterministic(summary, rendered):
+    assert charts.render_all(summary)["diagram-pipeline-overview.svg"] == rendered["diagram-pipeline-overview.svg"]
+    assert charts.render_all(summary)["diagram-trust-boundary.svg"] == rendered["diagram-trust-boundary.svg"]
+
+
+def test_diagram_text_is_at_least_7_5_pt_at_a_full_text_column():
+    pt = charts.MIN_FONT * 160 / 960 / 25.4 * 72
+    assert pt >= 7.5 and round(pt, 1) == 9.4
+
+
+def test_every_box_and_flow_label_is_in_the_documented_mapping(rendered):
+    keys = set(charts.BOX_SOURCES)
+    for cid in DIAGRAM_IDS:
+        texts = svg_texts(rendered[f"{cid}.svg"])
+        bold = [t.text for t in texts if t.get("font-weight") == "bold" and t.get("font-size") != "26"]
+        assert bold and set(bold) <= keys, (cid, set(bold) - keys)
+        words = {w for t in texts for w in (t.text or "").replace(",", " ").split()}
+        flows = {"pipeline": ("final submission", "grades", "record", "re-grade", "compare"),
+                 "trust": ("code + case", "signed report")}["pipeline" if "pipeline" in cid else "trust"]
+        for flow in flows:
+            assert all(word in words for word in flow.split()), (cid, flow)
+    ci = [t.text for t in svg_texts(rendered["diagram-pipeline-overview.svg"])]
+    assert "CI: tests and probes on fixtures, no model API" in ci
+
+
+def test_the_mapping_is_written_in_design_md_and_its_sources_exist():
+    for label, sources in charts.BOX_SOURCES.items():
+        assert re.search(rf"^\| (pipeline|trust) \| {re.escape(label)} \|", DESIGN, re.M), label
+        assert sources
+        for source in sources:
+            assert (REPO / source).is_file(), (label, source)
+    rows = re.findall(r"^\| (?:pipeline|trust) \| (.+?) \|", DESIGN, re.M)
+    assert set(rows) == set(charts.BOX_SOURCES)
+
+
+def test_diagrams_have_few_boxes_and_no_status_labels(rendered):
+    for cid in DIAGRAM_IDS:
+        svg = rendered[f"{cid}.svg"]
+        boxes_drawn = len([e for e in parse(svg).iter() if local(e.tag) == "rect" and e.get("rx")])
+        assert boxes_drawn <= 10, cid
+        everything = " ".join((e.text or "") for e in parse(svg).iter()).lower()
+        for word in charts.STATUS_WORDS:
+            assert word not in everything, (cid, word)
+    pipeline = [e for e in parse(rendered["diagram-pipeline-overview.svg"]).iter()
+                if local(e.tag) == "rect" and e.get("rx") and e.get("stroke-dasharray") is None]
+    assert len(pipeline) == 7
+
+
+def test_diagrams_are_registered_for_the_deck_and_the_report():
+    manifest = json.loads((REPO / "presentation/manifest.json").read_text(encoding="utf-8"))
+    entries = {d["id"]: d for d in manifest["diagrams"]}
+    assert manifest["schema_version"] == 1
+    for cid in DIAGRAM_IDS:
+        entry = entries[cid]
+        assert entry["uses"] == ["deck", "report"] and entry["path"] == f"presentation/charts/{cid}.svg"
+        assert entry["viewbox"] == "0 0 960 540" and entry["min_render_mm"] == 160 and entry["min_font_units"] == 20
+        assert entry["alt"].strip() and entry["caption"].strip() and (REPO / entry["path"]).is_file()
+    assert [d["id"] for d in manifest["diagrams"]][:4] == [
+        "diagram-architecture-logical", "diagram-architecture-physical",
+        "diagram-run-flow-activity", "diagram-run-flow-sequence"]

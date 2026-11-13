@@ -134,7 +134,7 @@ def ratio(r: Mapping[str, Any]) -> str:
 def grouped_bars(rows: Sequence[tuple[str, Sequence[tuple[str, float, str]]]], *, per_row_scale: bool,
                  top: int = 96, label_w: int = 260, x_end: int = 700) -> str:
     """rows: (label, [(variant, value, label text)]). Bars scale to the global or per-row maximum."""
-    avail = 500 - top
+    avail = 468 - top  # rows end above the first footnote line (ascenders start near y=478)
     row_h = min(110, avail // max(len(rows), 1))
     bar_h = 22 if row_h >= 56 else 24
     overall = max((v for _, bars in rows for _, v, _ in bars), default=1) or 1
@@ -149,7 +149,7 @@ def grouped_bars(rows: Sequence[tuple[str, Sequence[tuple[str, float, str]]]], *
             by = top_of_group + i * (bar_h + 4)
             width = int(round(value / peak * (x_end - x0))) if peak else 0
             parts.append(bar(x0, by, width, bar_h, variant))
-            parts.append(text(x0 + width + 10, by + bar_h - 3, label_text))
+            parts.append(text(x0 + width + 10, by + bar_h - 5, label_text))
     parts.append(f'<path d="M{x0} {top - 6}V{top + len(rows) * row_h}" stroke="{GRID}" stroke-width="2" fill="none"/>')
     return "".join(parts)
 
@@ -444,12 +444,12 @@ def cbars(rows: Sequence[tuple[str, Sequence[tuple[str, float, str]]]], *, per_r
         y0 = top + r * row_h + (row_h - group) // 2
         parts.append(text(8, y0 + group // 2 + 6, label, size=COMPACT_MIN_FONT))
         peak = (max(v for _, v, _ in bars) or 1) if per_row_scale else overall
-        for i, (variant, value, label_text) in enumerate(bars):
+        widths = [int(round(v / peak * (x_end - x0))) if peak else 0 for _, v, _ in bars]
+        for i, ((variant, _, label_text), width) in enumerate(zip(bars, widths)):
             by = y0 + i * (bar_h + 3)
-            width = int(round(value / peak * (x_end - x0))) if peak else 0
             parts.append(bar(x0, by, width, bar_h, variant, 6))
-            parts.append(text(x0 + width + 6, by + bar_h - 1 if bar_h < 16 else by + bar_h - 3, label_text,
-                              size=COMPACT_MIN_FONT))
+            # labels line up right of the row's longest bar so they never sit beside a neighbouring bar
+            parts.append(text(x0 + max(widths) + 6, by + bar_h - 1, label_text, size=COMPACT_MIN_FONT))
     parts.append(f'<path d="M{x0} {top - 4}V{top + len(rows) * row_h}" stroke="{GRID}" stroke-width="2" fill="none"/>')
     return "".join(parts)
 
@@ -485,7 +485,7 @@ def c_outcome_by_category(s: Mapping[str, Any]) -> tuple[str, str, str]:
     rows = variants_rows(s, [(cat, lambda v, cat=cat: (c[v]["categories"][cat]["rate"],
                                                        cratio(c[v]["categories"][cat]))) for cat in cats])
     title = "Successful trials per category"
-    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=172, x_end=350, top=54, bottom=240) \
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=182, x_end=350, top=54, bottom=240) \
         + cfoot(climit(s))
     return title, "Successful trials per category. " + describe(rows), body
 
@@ -496,7 +496,7 @@ def c_failure_labels(s: Mapping[str, Any]) -> tuple[str, str, str]:
     rows = variants_rows(s, [(lab, lambda v, lab=lab: (c[v]["failure_labels"].get(lab, 0),
                                                         str(c[v]["failure_labels"].get(lab, 0)))) for lab in labels])
     title = "Failure labels per variant"
-    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=135, x_end=330) \
+    body = cheading(title) + clegend(s) + cbars(rows, per_row_scale=False, label_w=150, x_end=330) \
         + cfoot("Failed trials: " + ", ".join(f"{sum(c[v]['failure_labels'].values())} {v}" for v in VARIANTS) + ".")
     return title, "Trials per failure label. " + describe(rows), body
 
@@ -591,6 +591,147 @@ def c_changes(s: Mapping[str, Any]) -> tuple[str, str, str]:
     return title, f"{arch['count']} archived changes by date. " + describe(rows), body
 
 
+# --- slide-legible diagrams (deck and report) ------------------------------------------------------
+# Plain SVG under the full-size chart rules. Every box and flow label is mapped to real components
+# in BOX_SOURCES (and in design.md decision 15); no implementation-status wording appears.
+
+BOX_FILL, BOX_STROKE = "#eef3fa", BASE_FILL
+HOST_FILL = "#f4f4f4"
+NEVER_FILL, NEVER_STROKE = "#fdece3", REV_STROKE
+ARCH = "docs/architecture_logical.md"
+PHYS = "docs/architecture_physical.md"
+THREAT = "docs/threat_model.md"
+SRC = "src/codegen_eval/"
+BOX_SOURCES: dict[str, list[str]] = {
+    "Task + prompt": [SRC + "tasks.py", SRC + "agent_config.py", ARCH],
+    "Bounded agent": [SRC + "trial.py", SRC + "run_checks.py", SRC + "model_client.py", ARCH],
+    "Hidden grading": [SRC + "evaluate.py", SRC + "contract.py", SRC + "sandbox.py", THREAT],
+    "Local run bundle": [SRC + "bundle.py", SRC + "run_recording.py", PHYS],
+    "MLflow record": [SRC + "mlflow_tracking.py", ARCH],
+    "Grading replay": [SRC + "replay.py", ARCH],
+    "Comparison": [SRC + "comparison.py", ARCH],
+    "CI: tests and probes on fixtures, no model API": [".github/workflows/ci.yml", ARCH],
+    "final submission": [SRC + "contract.py", SRC + "evaluate.py", ARCH],
+    "grades": [SRC + "run_recording.py", SRC + "evaluate.py", ARCH],
+    "record": [SRC + "mlflow_tracking.py", ARCH],
+    "re-grade": [SRC + "replay.py", ARCH],
+    "compare": [SRC + "comparison.py", ARCH],
+    "Trusted host": [PHYS],
+    "Per-check container": [PHYS, THREAT],
+    "Answers + scoring": [SRC + "evaluate.py", THREAT],
+    "Key + ledger": [SRC + "openrouter_cli.py", SRC + "ledger.py", PHYS],
+    "Launcher": [SRC + "sandbox.py", ARCH],
+    "Candidate function": [SRC + "worker.py", THREAT],
+    "Supervisor": [SRC + "worker.py", THREAT],
+    "Never inside": [THREAT, ARCH],
+    "code + case": [SRC + "sandbox.py", THREAT],
+    "signed report": [SRC + "worker.py", THREAT],
+}
+STATUS_WORDS = ("implemented", "pending", "partial", "live run", "planned")
+
+
+def dbox(x: int, y: int, w: int, h: int, title: str, sub: str, fill: str = BOX_FILL,
+         stroke: str = BOX_STROKE, dash: bool = False) -> str:
+    dashes = ' stroke-dasharray="8 6"' if dash else ""
+    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="{fill}" stroke="{stroke}" '
+            f'stroke-width="3"{dashes}/>'
+            + text(x + w // 2, y + int(h * 0.44), title, anchor="middle", weight="bold")
+            + text(x + w // 2, y + int(h * 0.80), sub, anchor="middle", fill=MUTED))
+
+
+def head(x: int, y: int, direction: str) -> str:
+    dx, dy = {"right": (-14, 7), "left": (14, 7), "down": (7, -14)}[direction]
+    if direction == "down":
+        pts = f"M{x} {y}L{x - 7} {y - 14}L{x + 7} {y - 14}Z"
+    else:
+        pts = f"M{x} {y}L{x + dx} {y - dy}L{x + dx} {y + dy}Z"
+    return f'<path d="{pts}" fill="{INK}" stroke="none"/>'
+
+
+def harrow(x1: int, x2: int, y: int) -> str:
+    tip = x2 - 2 if x2 > x1 else x2 + 2
+    return (f'<path d="M{x1} {y}H{tip + (-14 if x2 > x1 else 14)}" stroke="{INK}" stroke-width="3" fill="none"/>'
+            + head(tip, y, "right" if x2 > x1 else "left"))
+
+
+def elbow(x1: int, y1: int, ym: int, x2: int, y2: int) -> str:
+    """Down from (x1, y1), across at ym, down to (x2, y2) with an arrowhead."""
+    d = f"M{x1} {y1}V{ym}H{x2}V{y2 - 14}" if x1 != x2 else f"M{x1} {y1}V{y2 - 14}"
+    return f'<path d="{d}" stroke="{INK}" stroke-width="3" fill="none"/>' + head(x2, y2 - 2, "down")
+
+
+def diagram_pipeline(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    title = "Pipeline: from task to evidence"
+    boxes = [(40, 70, 210, "Task + prompt", "frozen, versioned"),
+             (375, 70, 210, "Bounded agent", "model + run_checks"),
+             (710, 70, 210, "Hidden grading", "on the host"),
+             (355, 230, 250, "Local run bundle", "written first"),
+             (40, 390, 250, "MLflow record", "after the bundle"),
+             (355, 390, 250, "Grading replay", "regrades saved finals"),
+             (670, 390, 250, "Comparison", "baseline vs revised")]
+    body = [heading(title)]
+    for x, y, w, t, sub in boxes:
+        body.append(dbox(x, y, w, 90, t, sub))
+    body += [harrow(250, 375, 115),
+             text(647, 96, "final", anchor="middle"), text(647, 118, "submission", anchor="middle"),
+             harrow(585, 710, 135),
+             elbow(815, 160, 195, 480, 230), text(660, 186, "grades", anchor="middle"),
+             elbow(480, 320, 355, 165, 390), text(178, 380, "record"),
+             elbow(480, 320, 355, 480, 390), text(560, 345, "re-grade", anchor="start"),
+             elbow(480, 320, 355, 795, 390), text(782, 380, "compare", anchor="end"),
+             f'<rect x="40" y="494" width="880" height="36" rx="8" fill="{HOST_FILL}" stroke="{MUTED}" '
+             f'stroke-width="3" stroke-dasharray="8 6"/>',
+             text(480, 519, "CI: tests and probes on fixtures, no model API", anchor="middle")]
+    desc = ("Pipeline overview. A task and a versioned prompt feed a bounded agent that uses run_checks. "
+            "Its final submission goes to hidden grading on the host, which writes a local run bundle first. "
+            "From the bundle the evidence is recorded in MLflow, regraded by grading replay, and used for the "
+            "baseline versus revised comparison. CI runs alongside on fixtures and probes with no model API.")
+    return title, desc, "".join(body)
+
+
+def diagram_trust(s: Mapping[str, Any]) -> tuple[str, str, str]:
+    title = "Trust boundary: host and per-check container"
+    body = [heading(title),
+            f'<rect x="40" y="56" width="340" height="448" rx="10" fill="none" stroke="{INK}" stroke-width="3"/>',
+            text(60, 88, "Trusted host", size=22, weight="bold"),
+            f'<rect x="580" y="56" width="340" height="448" rx="10" fill="none" stroke="{INK}" '
+            f'stroke-width="3" stroke-dasharray="10 6"/>',
+            text(600, 88, "Per-check container", size=22, weight="bold"),
+            dbox(60, 110, 300, 80, "Launcher", "one container per check", HOST_FILL, INK),
+            dbox(60, 210, 300, 80, "Answers + scoring", "hidden, on the host", HOST_FILL, INK),
+            dbox(60, 310, 300, 80, "Key + ledger", "host process only", HOST_FILL, INK),
+            dbox(600, 110, 300, 80, "Candidate function", "plus one case's input"),
+            dbox(600, 210, 300, 80, "Supervisor", "only writer of stdout"),
+            f'<rect x="600" y="330" width="300" height="154" rx="8" fill="{NEVER_FILL}" '
+            f'stroke="{NEVER_STROKE}" stroke-width="3" stroke-dasharray="8 6"/>',
+            text(750, 362, "Never inside", anchor="middle", weight="bold"),
+            text(750, 394, "answers, credentials", anchor="middle"),
+            text(750, 424, "repository files, network", anchor="middle"),
+            text(750, 454, "MLflow, Podman control", anchor="middle"),
+            harrow(360, 600, 150), text(490, 112, "code +", anchor="middle"),
+            text(490, 136, "one case", anchor="middle"),
+            harrow(600, 360, 250), text(490, 212, "signed", anchor="middle"),
+            text(490, 236, "report", anchor="middle")]
+    desc = ("Trust boundary. On the trusted host, a launcher starts one container per check; hidden answers "
+            "and scoring and the API key and ledger stay on the host. Into the per-check container go only the "
+            "candidate code and one case; out comes one signed report through the supervisor. Never inside the "
+            "container: answers, credentials, repository files, network, MLflow, Podman control.")
+    return title, desc, "".join(body)
+
+
+DIAGRAM_META: list[dict[str, Any]] = [
+    {"id": "diagram-pipeline-overview", "fn": diagram_pipeline, "role": "pipeline",
+     "caption": "Pipeline overview: task and prompt, bounded agent, hidden grading, local run bundle, then "
+                "MLflow record, grading replay and comparison, with CI alongside.",
+     "alt": "Boxes from a task and prompt through a bounded agent and hidden grading to a local run bundle, "
+            "which feeds MLflow, grading replay and comparison; a CI band runs alongside."},
+    {"id": "diagram-trust-boundary", "fn": diagram_trust, "role": "trust-boundary",
+     "caption": "Trust boundary: the trusted host keeps answers, scoring, key and ledger; the per-check "
+                "container receives only code and one case and returns one signed report.",
+     "alt": "Two regions: the trusted host with a launcher, answers and scoring, and key and ledger, and a "
+            "per-check container with the candidate function, a supervisor and a list of what never goes inside."}]
+
+
 CHART_META: list[dict[str, Any]] = []
 
 
@@ -670,6 +811,9 @@ def render_all(summary: Mapping[str, Any]) -> dict[str, str]:
     for meta in COMPACT_META:
         title, desc, body = meta["fn"](summary)
         out[f"{meta['id']}.svg"] = svg_doc(meta["id"], title, desc, body, CW, CH)
+    for meta in DIAGRAM_META:
+        title, desc, body = meta["fn"](summary)
+        out[f"{meta['id']}.svg"] = svg_doc(meta["id"], title, desc, body)
     return out
 
 
@@ -708,7 +852,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     for name, content in render_all(summary).items():
         (out / name).write_text(content, encoding="utf-8")
-    print(f"wrote {len(CHART_META) + len(COMPACT_META)} charts to {out}")
+    print(f"wrote {len(CHART_META) + len(COMPACT_META) + len(DIAGRAM_META)} charts and diagrams to {out}")
     return 0
 
 
