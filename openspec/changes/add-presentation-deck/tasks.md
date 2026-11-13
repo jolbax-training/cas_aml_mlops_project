@@ -13,7 +13,7 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 ## 2. Tests and wiring
 
-- [x] 2.1 Add `tests/test_build_deck.py` and `tests/fixtures/deck/` covering every item of design decision 11, offline, no network, Podman, bundles or ledger.
+- [x] 2.1 Add `tests/test_build_deck.py` (building from the committed sources copied to a scratch root) covering every item of design decision 11, offline, no network, Podman, bundles or ledger.
 - [x] 2.2 Add the `build_deck.py --check` step to the CI `offline` job and name it in the workflow header comment; add the README subsection and the `offline` row of the README CI table; add the `docs/progress.md` entry and any `docs/work_log.toml` registration; keep edits small and list them for the merge with `add-presentation-report`.
 - [x] 2.3 Run `openspec validate add-presentation-deck --strict`, the full offline test suite, `build_deck.py --check`, and a build; confirm `report/index.html` is unchanged by a build; document and exercise the build order (player, report, work log, deck) and check that `--check` names the links that would fall back.
 

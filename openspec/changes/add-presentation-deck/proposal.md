@@ -22,4 +22,4 @@ The user gives a 15-minute talk to classmates and examiners on "a trustworthy, r
 
 ## Impact
 
-New: `presentation/deck/*`, `scripts/build_deck.py`, `tests/test_build_deck.py`, `tests/fixtures/deck/`. Edited additively: `README.md`, `docs/progress.md`, `docs/work_log.toml`, `.github/workflows/ci.yml`. Depends on `add-presentation-evidence` being merged first (manifest, summary, charts, logo); the sibling `add-presentation-report` shares the manifest. Fits the delivery phase of docs/project_spec.md; completion evidence is a passing build `--check`, offline tests, and a coordinator rehearsal review.
+New: `presentation/deck/*`, `scripts/build_deck.py`, `tests/test_build_deck.py` (builds from the committed sources copied to a scratch root), `docs/presentation_deck.md`. Edited additively: `README.md`, `docs/progress.md`, `docs/work_log.toml`, `.github/workflows/ci.yml`. Depends on `add-presentation-evidence` being merged first (manifest, summary, charts, logo); the sibling `add-presentation-report` shares the manifest. Fits the delivery phase of docs/project_spec.md; completion evidence is a passing build `--check`, offline tests, and a coordinator rehearsal review.

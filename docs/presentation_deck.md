@@ -33,7 +33,7 @@ Arrow keys, Space and PageUp/PageDown move; Home and End jump; `N` shows the spe
 - Every number is read from `summary.json`; a literal number, CHF amount or ratio in slide or note text fails, except the tokens allowed with a reason in `slides.toml`. The ledger total is shown through `chf4` (four decimals) with the full quoted value in a footnote.
 - Figures, diagrams, screenshots and the logo are placed by manifest id with the manifest's caption and alt text; an unknown id or an empty alt fails.
 - The words "improvement" and "breakthrough" may not appear in the deck's own text, and evidence captions may use them only to deny the claim.
-- Each chart's effective text size (its minimum font units scaled to the width it is shown at) must be at least 18 px on a 1920 px slide; slide text is at least 20 px and body text at least 28 px.
+- Each chart's effective text size (its minimum font units scaled to the width it is shown at, with 1cqw = 19.2 px on a 1920 px slide) must be at least 18 px; a screenshot can be shown as a cropped detail (`[crop.<id>]` in `slides.toml`); slide text is at least 20 px and body text at least 28 px.
 - The output loads nothing external and contains no home path or key-like string.
 
 ## Not checked by tests

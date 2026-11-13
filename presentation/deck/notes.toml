@@ -27,7 +27,7 @@ reproducibility = [
   "Source: docs/demo.md and docs/comparison_evidence.md. Every run writes its bundle before anything else; the agent and evaluator never call MLflow.",
   "Both comparison runs are complete: {{summary:provenance.runs.baseline.completeness.recorded}} of {{summary:provenance.runs.baseline.completeness.planned}} planned trials with intact records for the baseline; the revised run is checked the same way.",
   "Bundle digests: baseline {{summary:provenance.runs.baseline.bundle_digest}}, revised {{summary:provenance.runs.revised.bundle_digest}}.",
-  "If the screenshot shows a pending box, the coordinator has not captured it yet; the trace it will show is a lists_02 baseline trace.",
+  "The screenshot is a detail of an MLflow trace of a baseline lists_02 trial: model calls, tool attempts, the contract failure and the submission.",
 ]
 budget = [
   "Source: docs/model_access.md and docs/prompt_comparison.md. The ledger lives outside Git and is never read by the presentation tooling; the total is a quote from the comparison document.",

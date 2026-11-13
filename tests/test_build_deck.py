@@ -217,7 +217,7 @@ def test_built_text_never_claims_improvement(root):
     for text in (visible_text(page), visible_text(notes)):
         for sentence in re.split(r"(?<=[.;])\s+", text):
             if deck.FORBIDDEN_WORDS.search(sentence):
-                assert deck.DENIAL.search(sentence) or "Rounded" not in sentence, sentence
+                assert deck.DENIAL.search(sentence), sentence
 
 
 def test_limits_are_in_the_notes_of_the_limits_slide(root):
@@ -317,7 +317,7 @@ def test_slides_4_and_5_use_the_slide_legible_diagrams_not_the_docs_ones(root):
     for slide in slides.values():
         assert not any(item.startswith("diagram-architecture") for item in slide.get("figures", []))
     _, _, report = build(root)
-    assert "diagram-pipeline-overview: 30.0px at layout single" in report.chart_fonts
+    assert "diagram-pipeline-overview: 27.2px at layout single" in report.chart_fonts
     assert "diagram-trust-boundary: 22.0px at layout split" in report.chart_fonts
 
 
@@ -331,7 +331,7 @@ def test_unknown_diagram_id_fails(root):
 
 def test_effective_chart_text_is_computed_per_layout(root):
     _, _, report = build(root)
-    assert "outcome-overview: 19.2px at layout pair" in report.chart_fonts
+    assert "outcome-overview: 18.6px at layout pair" in report.chart_fonts
     assert "cost-charged-reserved: 22.0px at layout split" in report.chart_fonts
 
 
@@ -341,16 +341,44 @@ def test_small_chart_text_fails_the_build(root):
         build(root)
 
 
-def test_figure_widths_match_the_stylesheet():
+def rule_body(css, selector):
+    match = re.search(re.escape(selector) + r"\s*\{([^{}]*)\}", css)
+    assert match, selector
+    return match.group(1)
+
+
+def test_cqw_basis_is_the_unpadded_slide():
+    """1cqw is the query container's content width: the container must carry no padding."""
     css = (REPO / "presentation/deck/deck.css").read_text(encoding="utf-8")
-    widths = {
-        "single": r"\.stage\.single > figure \{ flex: 0 0 ([\d.]+)cqw",
-        "split": r"\.stage\.split > figure \{ flex: 0 0 ([\d.]+)cqw",
-        "pair": r"\.stage\.pair > figure \{ flex: 0 0 ([\d.]+)cqw",
-    }
-    for layout, pattern in widths.items():
-        found = float(re.search(pattern, css).group(1)) * deck.SLIDE_PX / 100
-        assert abs(found - deck.FIGURE_WIDTH_PX[layout]) < 2, layout
+    slide = rule_body(css, ".slide")
+    assert "container-type: inline-size" in slide and "padding" not in slide
+    assert "padding" in rule_body(css, ".frame")
+
+
+def test_figure_widths_match_the_stylesheet_and_fit_the_frame():
+    css = (REPO / "presentation/deck/deck.css").read_text(encoding="utf-8")
+    frame = rule_body(css, ".frame")
+    side = float(re.search(r"padding:\s*[\d.]+cqw\s+([\d.]+)cqw", frame).group(1))
+    content = 100 - 2 * side
+    gap = float(re.search(r"\.stage\s*\{[^}]*gap:\s*([\d.]+)cqw", css).group(1))
+    text_col = float(re.search(r"\.col-text \{ flex: 0 0 ([\d.]+)cqw", css).group(1))
+    for layout in ("single", "split", "pair"):
+        found = float(re.search(rf"\.stage\.{layout} > figure \{{ flex: 0 0 ([\d.]+)cqw", css).group(1))
+        assert found == deck.FIGURE_CQW[layout], layout
+        assert abs(found * deck.SLIDE_PX / 100 - deck.FIGURE_WIDTH_PX[layout]) < 0.01
+    assert 2 * deck.FIGURE_CQW["pair"] + gap <= content
+    assert text_col + gap + deck.FIGURE_CQW["split"] <= content
+    assert deck.FIGURE_CQW["single"] <= content
+
+
+def test_effective_chart_text_meets_the_floor_on_the_corrected_basis(root):
+    """Pinned: 20 units * cqw width in px / 960 units, with 1cqw = 19.2px on the 1920px slide."""
+    for layout, expected in (("pair", 18.6), ("split", 22.0), ("single", 27.2)):
+        assert round(20 * deck.FIGURE_CQW[layout] * 19.2 / 960, 1) == expected
+        assert expected >= deck.CHART_FLOOR_PX
+    _, _, report = build(root)
+    for line in report.chart_fonts:
+        assert float(line.split(": ")[1].split("px")[0]) >= deck.CHART_FLOOR_PX, line
 
 
 def css_text():
@@ -569,3 +597,68 @@ def test_script_never_touches_the_ledger_or_api_keys():
     source = (REPO / "scripts/build_deck.py").read_text(encoding="utf-8")
     for word in ("ledger", "OPENROUTER", "environ", "codegen_eval", "subprocess", "urllib", "socket"):
         assert word not in source, word
+
+
+# --- review follow-ups --------------------------------------------------------
+
+@pytest.mark.parametrize("literal", ["rate 0.90", "pi is 3.14", "about 9 of them", "9 trials", "7%"])
+def test_decimals_and_counted_single_digits_are_literals(literal):
+    with pytest.raises(deck.DeckError, match="literal"):
+        deck.lint_numbers(literal, "where", set())
+
+
+def test_prose_digits_without_a_count_are_not_literals():
+    deck.lint_numbers("a 7 or 8 day trip, lists_02, int64", "where", set())
+
+
+@pytest.mark.parametrize("figures", ['[]', '["outcome-overview"]'])
+def test_pair_layout_needs_two_figures(root, figures):
+    edit(slides_path(root), 'figures = ["outcome-overview", "outcome-by-category"]', f"figures = {figures}")
+    with pytest.raises(deck.DeckError, match="needs 2 figure"):
+        build(root)
+
+
+def test_single_layout_without_a_figure_is_a_deck_error_not_a_crash(root):
+    edit(slides_path(root), 'figures = ["diagram-pipeline-overview"]', "figures = []")
+    with pytest.raises(deck.DeckError, match="needs 1 figure"):
+        build(root)
+    assert deck.main(["--root", str(root)]) == 1
+
+
+def test_slide_6_screenshot_is_a_css_crop_of_the_same_image(root):
+    page, _, _ = build(root)
+    assert 'class="crop"' in page and "Detail: the span tree of the trace." in page
+    manifest = json.loads((root / "presentation/manifest.json").read_text(encoding="utf-8"))
+    shot = next(s for s in manifest["screenshots"] if s["id"] == "shot-mlflow-trace-lists02-baseline")
+    assert f'alt="{shot["alt"]}"' in page
+    x, y, w, h = 144, 90, 616, 400
+    assert f"width:{1440 / w * 100:.4f}%;left:{-x / w * 100:.4f}%;top:{-y / h * 100:.4f}%" in page
+
+
+def test_crop_box_must_lie_inside_the_screenshot(root):
+    edit(slides_path(root), "box = [144, 90, 616, 400]", "box = [144, 90, 6160, 400]")
+    with pytest.raises(deck.DeckError, match="outside"):
+        build(root)
+
+
+def test_a_failure_before_the_renames_leaves_both_previous_files(root, monkeypatch):
+    out = root / "report" / "deck.html"
+    notes = root / "report" / "deck_notes.html"
+    assert deck.main(["--root", str(root)]) == 0
+    before = (out.read_bytes(), notes.read_bytes())
+    edit(root / "presentation/deck/notes.toml", "Introduce the headline", "Open with the headline")
+    new_deck, new_notes, _ = build(root)
+    real = deck.tempfile.NamedTemporaryFile
+    calls = []
+
+    def failing(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 2:
+            raise OSError("disk full")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(deck.tempfile, "NamedTemporaryFile", failing)
+    with pytest.raises(OSError):
+        deck.write_pair(root, out, new_deck, new_notes)
+    assert (out.read_bytes(), notes.read_bytes()) == before
+    assert not list((root / "report").glob(".deck-*.tmp"))

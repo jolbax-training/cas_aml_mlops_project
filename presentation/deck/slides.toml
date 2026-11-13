@@ -14,6 +14,12 @@ allow = [
   { token = "15", reason = "talk length in minutes, fixed by the approved outline" },
 ]
 
+# Screenshots shown as a detail: the same PNG cropped by CSS to box = [x, y, width, height] in
+# its native pixels, so small interface text is readable from the back of a room.
+[crop.shot-mlflow-trace-lists02-baseline]
+box = [144, 90, 616, 400]
+note = "Detail: the span tree of the trace."
+
 [[slide]]
 id = "title"
 title = "Title"

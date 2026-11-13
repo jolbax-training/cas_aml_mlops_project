@@ -19,8 +19,11 @@ import base64
 import html
 import importlib.util
 import json
+import os
 import re
+import struct
 import sys
+import tempfile
 import tomllib
 from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from pathlib import Path
@@ -53,9 +56,12 @@ OUTLINE = (
 TOTAL_TENTHS = 150
 
 LAYOUTS = {"title", "slot", "text", "single", "split", "pair", "links"}
-# Rendered width of one figure in px on a 1920px slide; mirrors the cqw widths in deck.css.
-FIGURE_WIDTH_PX = {"single": 1440, "split": 1056, "pair": 920}
+# Width of one figure in cqw per layout; mirrors deck.css. The slide is the unpadded query
+# container, so 1cqw is SLIDE_PX / 100 px (checked in a browser: the padding is on .frame).
 SLIDE_PX = 1920
+FIGURE_CQW = {"single": 68, "split": 55, "pair": 46.5}
+FIGURE_WIDTH_PX = {layout: width * SLIDE_PX / 100 for layout, width in FIGURE_CQW.items()}
+FIGURES_PER_LAYOUT = {"single": 1, "split": 1, "pair": 2}
 CHART_FLOOR_PX = 18
 SLIDE_TEXT_FLOOR_PX = 20
 BODY_FLOOR_PX = 28
@@ -63,6 +69,8 @@ FORBIDDEN_WORDS = re.compile(r"improvement|breakthrough", re.I)
 DENIAL = re.compile(r"\bnot an? (?:measured |general |reliable )?(?:claim of )?(?:improvement|breakthrough)", re.I)
 REFERENCE = re.compile(r"\{\{(summary|fmt):([^{}]+)\}\}")
 BARE_NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d{2,}(?![A-Za-z0-9_])")
+DECIMAL_NUMBER = re.compile(r"(?<![A-Za-z0-9_])\d+\.\d+(?![A-Za-z0-9_])")
+COUNTED_DIGIT = re.compile(r"(?<![A-Za-z0-9_.])\d(?:\s*(?:of|/|%)|\s+(?:trials?|tasks?|checks?|calls?)\b)")
 CHF_NUMBER = re.compile(r"CHF\s*\d")
 RATIO_NUMBER = re.compile(r"\d\s*/\s*\d")
 KEY_LIKE = re.compile(r"sk-[A-Za-z0-9_-]{16,}|Bearer\s+[A-Za-z0-9._-]{16,}")
@@ -129,8 +137,16 @@ def check_outline(slides: list[dict]) -> list[int]:
         value = tenths(slide.get("minutes"), where)
         if value != expected:
             raise DeckError(f"{where}: {value / 10} minutes, the approved outline has {expected / 10}")
-        if slide.get("layout") not in LAYOUTS:
-            raise DeckError(f"{where}: unknown layout {slide.get('layout')!r}")
+        layout = slide.get("layout")
+        if layout not in LAYOUTS:
+            raise DeckError(f"{where}: unknown layout {layout!r}")
+        wanted = FIGURES_PER_LAYOUT.get(layout, 0)
+        if len(slide.get("figures", [])) != wanted:
+            raise DeckError(f"{where}: layout {layout!r} needs {wanted} figure(s), found {len(slide.get('figures', []))}")
+        if layout == "title" and not slide.get("logo"):
+            raise DeckError(f"{where}: the title layout needs a logo id")
+        if layout == "slot" and not slide.get("slot"):
+            raise DeckError(f"{where}: the slot layout needs a slot name")
         minutes.append(value)
     if sum(minutes) != TOTAL_TENTHS:
         raise DeckError(f"minutes sum to {sum(minutes) / 10}, not {TOTAL_TENTHS / 10}")
@@ -200,6 +216,10 @@ def lint_numbers(text: str, where: str, allow: set[str]) -> None:
     plain = REFERENCE.sub("", text)
     for match in BARE_NUMBER.finditer(plain):
         if match.group(0) not in allow:
+            raise DeckError(f"{where}: literal number {match.group(0)!r}; use a summary reference or the allow-list")
+    for pattern in (DECIMAL_NUMBER, COUNTED_DIGIT):
+        match = pattern.search(plain)
+        if match and match.group(0) not in allow:
             raise DeckError(f"{where}: literal number {match.group(0)!r}; use a summary reference or the allow-list")
     if CHF_NUMBER.search(plain) or RATIO_NUMBER.search(plain):
         raise DeckError(f"{where}: literal CHF amount or ratio; use a summary reference")
@@ -304,6 +324,9 @@ def render_figure(ctx: "Context", item_id: str, layout: str, slide_id: str) -> s
             f"<strong>SCREENSHOT PENDING</strong>{esc(item_id)}<br>{caption}</div></figure>"
         )
     uri = ctx.evidence.data_uri(entry, kind, where)
+    crop = ctx.crops.get(item_id)
+    if crop is not None:
+        return render_crop(ctx, entry, uri, crop, where)
     font = ctx.evidence.effective_font_px(entry, layout)
     if font is not None:
         ctx.report.chart_fonts.append(f"{item_id}: {font:.1f}px at layout {layout}")
@@ -315,9 +338,36 @@ def render_figure(ctx: "Context", item_id: str, layout: str, slide_id: str) -> s
     return f'<figure><img src="{uri}" alt="{esc(entry["alt"])}">{cap}</figure>'
 
 
+def png_size(path: Path, where: str) -> tuple[int, int]:
+    head = path.read_bytes()[:24]
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise DeckError(f"{where}: {path.name} is not a PNG, so it cannot be cropped")
+    return struct.unpack(">II", head[16:24])
+
+
+def render_crop(ctx: "Context", entry: dict, uri: str, crop: dict, where: str) -> str:
+    """A screenshot shown as a detail: the same image, cropped by CSS to a box in native pixels."""
+    box = crop.get("box")
+    if not (isinstance(box, list) and len(box) == 4 and all(isinstance(v, int) for v in box)):
+        raise DeckError(f"{where}: crop of {entry['id']!r} needs box = [x, y, width, height] in pixels")
+    x, y, w, h = box
+    natural_w, natural_h = png_size(ctx.root / entry["path"], where)
+    if min(x, y) < 0 or w <= 0 or h <= 0 or x + w > natural_w or y + h > natural_h:
+        raise DeckError(f"{where}: crop box {box} is outside the {natural_w}x{natural_h} screenshot")
+    note = esc(crop.get("note", "Detail of the screenshot."))
+    caption = esc(entry.get("caption", ""))
+    style = f"width:{natural_w / w * 100:.4f}%;left:{-x / w * 100:.4f}%;top:{-y / h * 100:.4f}%"
+    return (
+        f'<figure><div class="crop" style="aspect-ratio:{w} / {h}">'
+        f'<img src="{uri}" alt="{esc(entry["alt"])}" style="{style}"></div>'
+        f"<figcaption>{caption} {note}</figcaption></figure>"
+    )
+
+
 class Context:
     def __init__(self, root: Path, evidence: Evidence, summary: dict, user_text: dict, report: Report,
-                 allow: set[str], output_dir: Path) -> None:
+                 allow: set[str], output_dir: Path, crops: dict | None = None) -> None:
+        self.crops = crops or {}
         self.root = root
         self.evidence = evidence
         self.summary = summary
@@ -429,7 +479,7 @@ def render_slide(ctx: Context, slide: dict, number: int, total: int) -> str:
     label = f"Slide {number} of {total}: {title}"
     return (
         f'<section class="slide{classes}" id="s{number}" aria-label="{esc(label)}">'
-        f"{head}{subtitle}{inner}{foot}</section>"
+        f'<div class="frame">{head}{subtitle}{inner}{foot}</div></section>'
     )
 
 
@@ -474,7 +524,9 @@ def build(root: Path, output: Path) -> tuple[str, str, Report]:
     slides = slides_toml.get("slide", [])
     minutes = check_outline(slides)
     allow = {entry["token"] for entry in slides_toml.get("lint", {}).get("allow", []) if entry.get("reason")}
-    ctx = Context(root, Evidence(root, manifest, load_work_log(root)), summary, user_text, Report(), allow, output.parent)
+    crops = slides_toml.get("crop", {})
+    ctx = Context(root, Evidence(root, manifest, load_work_log(root)), summary, user_text, Report(), allow,
+                  output.parent, crops)
     total = len(slides)
     rendered, panels, pages = [], [], []
     running = 0
@@ -520,10 +572,26 @@ def validate_output(text: str) -> None:
 
 
 def write_pair(root: Path, output: Path, deck: str, notes_page: str) -> None:
-    """Write both files atomically (the work-log writer); a failed write keeps the previous file."""
-    work_log = load_work_log(root)
-    work_log.write_atomic(output, deck)
-    work_log.write_atomic(output.parent / NOTES_OUTPUT_NAME, notes_page)
+    """Write both files, each to a temporary file first, and rename both only after both exist."""
+    targets = [(output, deck), (output.parent / NOTES_OUTPUT_NAME, notes_page)]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporaries: list[tuple[Path, Path]] = []
+    try:
+        for target, text in targets:
+            handle = tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", newline="\n", dir=target.parent, prefix=".deck-", suffix=".tmp", delete=False)
+            temporaries.append((Path(handle.name), target))
+            with handle:
+                handle.write(text)
+        umask = os.umask(0)
+        os.umask(umask)
+        for temporary, _ in temporaries:
+            os.chmod(temporary, 0o666 & ~umask)
+        for temporary, target in temporaries:
+            os.replace(temporary, target)
+    finally:
+        for temporary, _ in temporaries:
+            temporary.unlink(missing_ok=True)
 
 
 def main(argv: list[str] | None = None) -> int:

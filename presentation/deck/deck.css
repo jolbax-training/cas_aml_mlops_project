@@ -1,5 +1,6 @@
-/* Slide geometry: a slide is a 16:9 box; sizes are in cqw, so 1cqw is 19.2px on a 1920px slide.
-   Floors (checked by tests): slide text >= 20px, body text >= 28px.
+/* Slide geometry: a slide is a 16:9 box and the query container; it has NO padding, so 1cqw is
+   exactly 19.2px on a 1920px slide. The padding sits on the inner .frame (content width 95cqw).
+   Floors (checked by tests): slide text >= 20px, body text >= 28px, chart text >= 18px.
    Rules that hide or position slides one at a time live under html.js-deck only. */
 :root {
   --ink: #111111;
@@ -24,12 +25,12 @@ main { display: block; }
   width: min(100vw, 177.78vh);
   aspect-ratio: 16 / 9;
   margin: 0 auto 2vh;
-  padding: 3cqw 4cqw 2.5cqw;
   background: var(--paper);
   color: var(--ink);
   display: flex;
   flex-direction: column;
 }
+.frame { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 3cqw 2.5cqw 2.5cqw; }
 .slide h1 { margin: 0; font-size: 3.75cqw; line-height: 1.15; color: var(--accent); }
 .slide h2 { margin: 0 0 1.2cqw; font-size: 2.9cqw; line-height: 1.15; color: var(--accent); }
 .subtitle { margin: 0 0 1.2cqw; font-size: 1.6cqw; color: var(--muted); }
@@ -38,15 +39,17 @@ main { display: block; }
 .body li { margin-bottom: 1.1cqw; }
 .caption, figcaption { font-size: 1.25cqw; line-height: 1.25; color: var(--muted); margin: 0.4cqw 0 0; }
 .footnote { font-size: 1.25cqw; line-height: 1.25; color: var(--muted); margin: auto 0 0; padding-top: 0.8cqw; }
-.foot { font-size: 1.05cqw; color: var(--muted); }
+.foot { font-size: 1.1cqw; color: var(--muted); }
 .stage { flex: 1; min-height: 0; display: flex; gap: 2cqw; align-items: flex-start; }
 .stage.single { justify-content: center; }
 .stage.split > .col-text { flex: 0 0 38cqw; }
 .stage.split > figure { flex: 0 0 55cqw; }
-.stage.pair > figure { flex: 0 0 47.9cqw; }
-.stage.single > figure { flex: 0 0 75cqw; }
+.stage.pair > figure { flex: 0 0 46.5cqw; }
+.stage.single > figure { flex: 0 0 68cqw; }
 figure { margin: 0; }
 figure img { display: block; width: 100%; height: auto; border: 1px solid var(--muted); }
+figure .crop { position: relative; overflow: hidden; border: 1px solid var(--muted); }
+figure .crop img { position: absolute; max-width: none; border: 0; }
 .pending-box, .slot-box {
   border: 0.25cqw dashed var(--warn-edge);
   background: var(--warn-bg);
@@ -69,7 +72,7 @@ figure img { display: block; width: 100%; height: auto; border: 1px solid var(--
 .links .missing { color: var(--muted); }
 a:focus-visible, button:focus-visible { outline: 0.3cqw solid var(--accent); outline-offset: 2px; }
 
-.notes, #counter, #hint { display: none; }
+.notes, #counter { display: none; }
 
 /* One slide at a time, only when the script has marked the document. */
 html.js-deck body { height: 100vh; overflow: hidden; display: grid; place-items: center; }
