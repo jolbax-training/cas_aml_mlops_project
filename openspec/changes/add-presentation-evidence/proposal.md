@@ -31,7 +31,7 @@ None. `project-delivery`, `prompt-comparison`, and `architecture-diagrams` are c
 
 ## Impact
 
-New files under `presentation/` (evidence summary, chart SVGs, manifest, logo, screenshots, recording and player template), three new scripts under `scripts/`, new offline tests with fixtures under `tests/`, `docs/presentation_evidence.md`, and small edits to `README.md`, `docs/progress.md` and `docs/work_log.toml`. No new runtime or third-party dependency. Source under `src/` is not touched, so evaluator hashes of future runs are unaffected.
+New files under `presentation/` (evidence summary, chart SVGs, manifest, logo, screenshots, recording and player template), three new scripts under `scripts/`, new offline tests with fixtures under `tests/`, `docs/presentation_evidence.md`, and small edits to `README.md` (including the `offline` row of its CI table), `docs/progress.md`, `docs/work_log.toml` and `.github/workflows/ci.yml` (two offline check steps). No new runtime or third-party dependency. Source under `src/` is not touched, so evaluator hashes of future runs are unaffected.
 
 ## Dependencies and milestone
 

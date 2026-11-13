@@ -19,7 +19,7 @@ Source: docs/project_spec.md line 175.
 - **THEN** none are found
 
 ### Requirement: Honest framing travels with the data
-The summary SHALL include the documented limits of the prompt comparison (30 trials per variant, one model and provider, fixed sampling, no repeated runs, benchmark-informed prompt change) and a statement that the comparison is not a measured improvement or breakthrough.
+The summary SHALL include all seven documented limits of the prompt comparison (small n, benchmark-informed tuning, single model and provider, fixed sampling and no repeated runs, provider precision not returned, evaluator revision differs, benchmark reviewed by models only) and a statement that the comparison is not a measured improvement or breakthrough.
 
 Source: accepted user decisions; docs/prompt_comparison.md.
 
@@ -35,13 +35,18 @@ Source: accepted user decisions.
 #### Scenario: CI has no bundles
 - **WHEN** the check runs without bundles
 - **THEN** it validates the committed summary, documents, charts, and manifest and exits zero without silently skipping
+- **AND** the bundle-derived headline numbers in the summary agree with the reviewed comparison document
+
+#### Scenario: A stored value no longer matches its quote
+- **WHEN** a document-derived value is edited while its quote is unchanged
+- **THEN** the check exits non-zero and names the value
 
 #### Scenario: A cited document changed
 - **WHEN** a quoted line no longer occurs in its document
 - **THEN** the check exits non-zero and names the stale quote
 
 ### Requirement: Drift check against retained bundles
-When the retained bundles are supplied, the check SHALL recompute the bundle-derived sections and require equality with the committed summary. It MUST open bundles read-only and MUST NOT read the spending ledger.
+When the retained bundles are supplied, the check SHALL recompute the bundle-derived sections and require equality with the committed summary. It MUST open bundles read-only and MUST NOT read the spending ledger, for which it redirects the ledger location to a non-existent temporary path before loading evaluator code.
 
 Source: accepted user decisions.
 
@@ -63,9 +68,13 @@ Source: accepted user decisions.
 - **THEN** the SVG files are byte-identical and contain no script or external reference
 
 ### Requirement: Accessible, print-legible charts
-Each chart MUST have a title and description naming what is compared and the two variants, an opaque light background, text value labels with counts beside rates, and a pattern or marker difference between variants so it stays legible in greyscale print.
+Each chart MUST have a title and description naming what is compared and the two variants, an opaque light background, text value labels with counts beside rates, and a hatch or marker difference between variants so it stays legible in greyscale print. Every chart MUST use a fixed 960x540 viewBox, text of at least 20 viewBox units, and only the element set the work-log builder accepts.
 
 Source: accepted user decisions.
+
+#### Scenario: Minimum text size
+- **WHEN** a chart is parsed
+- **THEN** every font size is at least 20 units and every element is in the allowed set
 
 #### Scenario: Chart is read by assistive technology
 - **WHEN** a chart is opened in a browser or read by a screen reader
@@ -117,13 +126,17 @@ Source: accepted user decisions.
 - **THEN** the manifest marks it pending with the coordinator as owner and the check does not count it as present
 
 ### Requirement: Scripted credential-free recording
-The project SHALL provide a script that records the credential-free part of `docs/demo.md` as an asciicast v2 file, without voice, from a scripted command list. It MUST run commands with no inherited credentials, call no model API, scrub absolute paths, abort on a secret pattern, and describe grading replay as regrading.
+The project SHALL provide a script that records the credential-free part of `docs/demo.md` as an asciicast v2 file, without voice, from a scripted command list. It MUST run commands exactly as the demo document shows them with no inherited credentials, call no model API, refuse to run against a non-empty bundles directory, scrub the repository root, home, and temporary paths, abort on a secret pattern, and describe grading replay as regrading.
 
 Source: accepted user decisions; docs/demo.md.
 
+#### Scenario: Retained bundles present
+- **WHEN** the bundles directory already holds runs
+- **THEN** the recorder refuses to start
+
 #### Scenario: Recording is reproducible from the script
 - **WHEN** the recorder runs on a prepared laptop
-- **THEN** it writes a valid asciicast v2 file whose commands match the script and whose output has no credential or absolute home path
+- **THEN** it writes a valid asciicast v2 file whose commands match the script and whose output has no credential, home, or repository path
 
 ### Requirement: Self-contained player
 The project SHALL provide a hand-written HTML player needing no network and no third-party library, with the full transcript also present as static text. The recording is kept for interested viewers and is not part of the talk.
@@ -153,13 +166,13 @@ Source: docs/project_spec.md line 175 and the report section.
 - **THEN** it is written under `report/` and not tracked
 
 ### Requirement: Raw evidence and ledger stay out
-Raw bundles, MLflow stores, and the spending ledger MUST stay out of Git, and no script of this change may read the ledger. Ledger totals appear only as values quoted from committed documents.
+Raw bundles, MLflow stores, and the spending ledger MUST stay out of Git, and no script of this change may import the ledger module directly, construct a ledger, or open the ledger path. Ledger totals appear only as values quoted from committed documents.
 
 Source: docs/project_spec.md line 175; accepted user decisions.
 
 #### Scenario: Scripts avoid the ledger
-- **WHEN** the scripts are statically inspected
-- **THEN** none imports the ledger module or opens the ledger path
+- **WHEN** the scripts are statically inspected and `collect` is run against fixtures with file access to the real ledger location made to fail
+- **THEN** no script imports the ledger module directly or names the ledger path, and the run succeeds
 
 ### Requirement: Offline deterministic tests
 The change SHALL be tested with fixtures and no bundles, network, Podman, or credentials, so the tests run in the existing offline CI group.
