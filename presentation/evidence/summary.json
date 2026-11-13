@@ -2065,9 +2065,9 @@
       "count": 14
     },
     "tests": {
-      "commit": "ba4fb25841dc28a6d7a6e9a43113e76df8889a1c",
+      "commit": "a824945f118f81e8f9dffb08757bcca99cfe8a42",
       "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
-      "offline_collected": 1137,
+      "offline_collected": 1140,
       "sandbox_collected": 67
     }
   },
@@ -2113,10 +2113,10 @@
       "PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles <bundles> verify <run_id> (each of the three runs)",
       "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"
     ],
-    "commit": "ba4fb25841dc28a6d7a6e9a43113e76df8889a1c",
+    "commit": "a824945f118f81e8f9dffb08757bcca99cfe8a42",
     "generated_by": {
       "script": "scripts/presentation_evidence.py",
-      "sha256": "f65dba1293b85dbe3f680457a539884641ec9cde80315720b480639fce63cea3"
+      "sha256": "53e4fa5dca2171562dbf001b5344432bfd67647862a6c26c2560de1cc4ad281e"
     },
     "runs": {
       "baseline": {
