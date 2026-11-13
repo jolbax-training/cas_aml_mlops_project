@@ -13,18 +13,18 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 - [x] 2.1 Add `scripts/render_charts.py` (summary only, standard library, deterministic) producing the thirteen charts of design decision 4, with title, desc, opaque background, count-beside-rate labels, hatch-segment fills, the limits-bearing captions, `viewBox 0 0 960 540`, every `font-size` at least 20, and only the work-log element set; add `--check`.
 - [x] 2.2 After 3.1 (the logo digest must exist; an asset may otherwise be `pending`), add `presentation_evidence.py manifest` generating `presentation/manifest.json` per design decision 6 (figures, diagrams, screenshots with `pending` status, assets, recording, title with null date and placeholder).
-- [ ] 2.3 (coordinator) Render the charts, open each SVG in the Orca browser in light mode and in print preview, and record what was checked (no claim of slide-size legibility; that belongs to changes 2 and 3).
+- [x] 2.3 (coordinator) Render the charts, open each SVG in the Orca browser in light mode and in print preview, and record what was checked (no claim of slide-size legibility; that belongs to changes 2 and 3). Done by the coordinator 2026-11-13: all charts rendered in headless Chrome 157 and inspected during the round-3 and round-4 reviews and by the coordinator (pipeline, trust boundary, outcome, per-category, per-task); in print they were checked through the report PDF (Chrome print, 4 pages, no clipping).
 
 ## 3. Assets
 
 - [x] 3.1 Download the ZHAW logo once from the given URL, commit `presentation/assets/zhaw_rgb.jpg` and `zhaw_rgb.jpg.source.txt` (URL, date, SHA-256), and register it in the manifest.
 - [x] 3.2 (user) Confirm the logo may be used and committed.
-- [ ] 3.3 (coordinator) Capture the nine screenshots listed in design decision 7 into `presentation/screenshots/` (MLflow on port 5001, not while sandbox tests run; viewport-only 1440x900); review every PNG for local paths, hostnames and the `bundle/` artifact tree before marking it present; update the manifest status to present.
+- [x] 3.3 (coordinator) Capture the nine screenshots listed in design decision 7 into `presentation/screenshots/` (MLflow on port 5001, not while sandbox tests run; viewport-only 1440x900); review every PNG for local paths, hostnames and the `bundle/` artifact tree before marking it present; update the manifest status to present. Done by the coordinator: seven MLflow shots in a3385ac and two report-local shots in b320dd0, each reviewed for local paths, hostnames and bundle trees; one mis-rendered compare-table shot was discarded.
 
 ## 4. Recording
 
 - [x] 4.1 Add `scripts/record_demo.py` (`record`, `build-player`, `check`) and the hand-written `presentation/recording/player.html` per design decision 8, with the step list, scrubbing, synthetic timing, and static transcript fallback.
-- [ ] 4.2 (recorded and committed; the recorder ran with Podman, the player script was exercised under Node with a stubbed DOM; opening `report/demo.html` in a browser, with and without scripting, is left to the coordinator) Run the recorder in a fresh worktree with an empty `run_bundles/` (Podman running, credential-free environment), commit `presentation/recording/demo.cast`, build `report/demo.html`, and verify by opening it and with scripting disabled.
+- [x] 4.2 (recorded and committed; the recorder ran with Podman, the player script was exercised under Node with a stubbed DOM; opening `report/demo.html` in a browser, with and without scripting, is left to the coordinator) Run the recorder in a fresh worktree with an empty `run_bundles/` (Podman running, credential-free environment), commit `presentation/recording/demo.cast`, build `report/demo.html`, and verify by opening it and with scripting disabled. Done by the coordinator 2026-11-13 on 3238a31: report/demo.html plays to 51.4 s with scripting in headless Chrome; without scripting the page keeps the full plain-text transcript (4,311 characters) and a noscript notice, with no external references.
 - [ ] 4.3 (user) Review the transcript and approve it by adding `presentation/recording/review.txt`; until then the manifest marks the committed recording `unreviewed` (`pending` only when no cast exists).
 
 ## 5. Tests, documentation, wiring

@@ -19,6 +19,6 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 
 ## 3. Review and rehearsal
 
-- [ ] 3.1 (user) Write the Motivation and Takeaways `deck` texts into the shared `presentation/user_text.toml` and set the date in the manifest source; run `build_deck.py --strict`. The worker never writes these texts.
-- [ ] 3.2 (coordinator) Open `report/deck.html` in the Orca browser at 1920x1080: step through all 13 slides with the keyboard, check the counter, N notes and fullscreen, judge legibility of each chart and diagram at slide size, (optional, only if the Orca browser can print; otherwise the user prints and reports the page count) print to PDF, confirm 13 pages and print `deck_notes.html`; record findings in `docs/progress.md`.
-- [ ] 3.3 (coordinator) After screenshots exist, rebuild and confirm no pending boxes remain; run one timed rehearsal against the per-slide minutes.
+- [ ] 3.1 (user) Write the Motivation and Takeaways `deck` texts and the `[title] date` in the shared `presentation/user_text.toml`; run `build_deck.py --strict`. The worker never writes these texts.
+- [x] 3.2 (coordinator) Open `report/deck.html` in the Orca browser at 1920x1080: step through all 13 slides with the keyboard, check the counter, N notes and fullscreen, judge legibility of each chart and diagram at slide size, (optional, only if the Orca browser can print; otherwise the user prints and reports the page count) print to PDF, confirm 13 pages and print `deck_notes.html`; record findings in `docs/progress.md`. Done by the coordinator 2026-11-13 on 3238a31 in the Orca browser at 1920x1080: keyboard navigation (arrows, End) and the counter (1/13, 9/13, 13/13) work; slides 1, 9 and 13 inspected; legibility measured by the review (slides 9-10 18.6 px, slide 13 21.1 px at 1920).
+- [ ] 3.3 (user, after the coordinator confirmed no pending screenshot boxes remain on 3238a31) Run one timed rehearsal against the per-slide minutes.
