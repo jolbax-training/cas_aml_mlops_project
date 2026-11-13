@@ -228,6 +228,10 @@ The manifest gains `variant` and `full_size` on figures, compact figure entries,
 | trust | code + one case | the launcher sends candidate source, function name, one check's arguments, the per-check token and the output limits on the container's stdin to the supervisor (`sandbox.py` `execute_check`); `docs/threat_model.md` |
 | trust | bounded result | the supervisor writes one bounded, unsigned JSON response (status, value, arguments after the call, or an outcome) to stdout and the launcher parses it (`worker.py` `respond`, `sandbox.py` `_exchange` and `execute_check`); the signature is checked only inside the container (`worker.py` `parse_report` verifies the token and removes it), the host verifies none; `docs/threat_model.md` (Attribution) |
 
+### 16. Round 4: the latest recorded CI run
+
+`docs/ci_evidence.md` gained a section "Latest run on main" (run 43461309299, commit `e00236d`, workflow success; `offline` tests=1199, skipped=67, failures=0, errors=0; `podman` tests=64, skipped=0, failures=0, errors=0, 0 leftover containers), recorded from the check-run annotations the coordinator read through `scripts/orchestration/ciwatch.sh` on 2026-11-13. Its quote-table entry (`r9`) carries an explicit `latest` marker; the summary stores `engineering.ci.latest` (the marked run id) and the engineering charts (`engineering-tests`, its compact variant, `engineering-ci`) and the report's CI table read the run with that id, never the last item by position and never a typed id. `check` fails when the summary's `latest` differs from the marker in the quote table, and, like every quote, when the section is edited. Earlier runs and sections stay as history; run 41581787430 (825) remains a row of the CI table but is no longer shown as the latest. The additions are additive (`engineering.ci.latest`, extra per-run fields), so `schema_version` stays 1. Because this run ran the three presentation CI steps on `main`, it is also the evidence for task 5.3a.
+
 ## Risks / Trade-offs
 
 - Documents edited later break quotes → intended; the check names the stale quote so a human re-reviews.

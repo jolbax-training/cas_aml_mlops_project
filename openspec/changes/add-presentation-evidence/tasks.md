@@ -32,7 +32,7 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [x] 5.1 Add offline tests and fixtures under `tests/` as listed in design decision 10; run `.venv/bin/pytest -q` and, once, `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` (foreground) and record the counts.
 - [x] 5.2 Write `docs/presentation_evidence.md` (regeneration commands, interface, Git boundaries, screenshot list) and add a README section and extend the `offline` row of the README CI table with the two new checks; register the document in `docs/work_log.toml`; run `.venv/bin/python scripts/build_work_log.py --check`.
 - [x] 5.3 Add the offline `presentation_evidence.py check` and `render_charts.py --check` steps to the CI `offline` job in `.github/workflows/ci.yml` (no `PYTHONPATH=src` needed).
-- [ ] 5.3a (coordinator) Push, watch the Actions run, and record its run ID and result in `docs/ci_evidence.md`.
+- [x] 5.3a (coordinator) Push, watch the Actions run, and record its run ID and result in `docs/ci_evidence.md`. (Evidenced by run 43461309299 on `main` at `e00236d`, recorded in `docs/ci_evidence.md`; it ran the three presentation CI steps.)
 - [x] 5.4 Run `check` without bundles and `check --bundles <absolute path of the primary checkout's run_bundles>` from this worktree (read-only); record both in `docs/progress.md` as observed results only, leaving interpretation and reflections to the user.
 - [x] 5.5 Run `openspec validate add-presentation-evidence --strict`.
 
@@ -49,3 +49,11 @@ Planned work only; nothing here is implemented. Tasks marked (coordinator) or (u
 - [x] 7.1 Fix the footnote overlap in `outcome-by-category` (full-size and compact) through the generator, and harden the overlap test (ascent, descent, strokes, clearance) with the old chart as a failing fixture.
 - [x] 7.2 Add the pipeline-overview and trust-boundary diagrams (decision 15) to `scripts/render_charts.py`, register them in the manifest (`diagram-pipeline-overview`, `diagram-trust-boundary`), and test the box-to-source mapping, the element set, font size, determinism and the absence of status labels.
 - [x] 7.3 Regenerate the charts, summary and manifest through the scripts, record the results in `docs/progress.md` and `docs/presentation_evidence.md`, and rerun the checks and tests.
+
+## 8. Round 4 (final CI state)
+
+- [x] 8.1 Record the latest run on main in `docs/ci_evidence.md` ("Latest run on main") and add its quote-table entry with an explicit `latest` marker (decision 16).
+- [x] 8.2 Store `engineering.ci.latest`, make the engineering charts and the report's CI table use it, fail the offline check on a mismatch, and test it.
+- [x] 8.3 Regenerate the summary (bundles read-only), charts and manifest at the new commit's tree through the scripts; rerun the deck and report checks (the report's static page estimates are unchanged).
+
+Left for others: 2.3 (coordinator: charts and diagrams opened in a browser and in print preview), 4.2 (coordinator: open `report/demo.html` in a browser with and without scripting) and 4.3 (the user: approve the recording transcript by adding `presentation/recording/review.txt`); 3.3 (screenshots) is the coordinator's and is ticked only when all nine files exist.

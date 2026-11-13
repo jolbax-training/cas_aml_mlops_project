@@ -57,6 +57,10 @@ Read `presentation/manifest.json` (`schema_version` 1). All paths are repository
 
 Ids and `schema_version` do not change without a version bump. The compact variants, `variant`/`full_size`, `user_text`, asset `alt` and the summary's `protocol` section are purely additive, so `schema_version` stays 1. Quote numbers from `summary.json`, never retype them; each chart caption already carries the limits.
 
+## Latest CI run
+
+`docs/ci_evidence.md` section "Latest run on main" records the newest CI run. Its quote-table entry carries an explicit `latest` marker; `summary.json` stores `engineering.ci.latest` and the engineering charts and the report's CI table use that run (never the last row by position). `check` fails if the summary's latest run differs from the marker or the quoted section changes. Earlier runs stay in the table as history.
+
 ## Protocol facts
 
 `summary.json` has a `protocol` section so the deck and the report keep no quote tables of their own: `tasks`, `trials_per_task`, `planned_trials_per_variant`, `planned_trials_total`, `checkpoint_chf`, `ceiling_chf`, `ledger_total_chf`, `probes_passed` and `probe_categories`. Each is read from a verbatim quote of a committed document (`prompt_comparison.md`, `progress.md`, `threat_model.md`) by a declared extraction, checked like every other quote; the ledger file is not read. `probe_categories` are the five protected-asset categories of the threat model, whose probes carry the isolation evidence.

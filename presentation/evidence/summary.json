@@ -1667,6 +1667,126 @@
     },
     {
       "cell": null,
+      "field": "ci.r9.run",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 5,
+      "pattern": "\\[(\\d+)\\]",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": "43461309299"
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.commit",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 5,
+      "pattern": "/ `(\\w+)`",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": "e00236d"
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.conclusion",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 5,
+      "pattern": "Workflow conclusion \\| (\\w+) \\|",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.offline",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 5,
+      "pattern": "`offline` \\| (\\w+):",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.offline_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 5,
+      "pattern": "`offline` \\|[^\\n]*tests=(\\d+)",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": 1199
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.offline_skipped",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 5,
+      "pattern": "`offline` \\|[^\\n]*skipped=(\\d+)",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": 67
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.podman",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "str",
+      "lines": 5,
+      "pattern": "`podman` \\| (\\w+):",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": "success"
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.podman_tests",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 5,
+      "pattern": "`podman` \\|[^\\n]*tests=(\\d+)",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": 64
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.podman_skipped",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 5,
+      "pattern": "`podman` \\|[^\\n]*skipped=(\\d+)",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": 0
+    },
+    {
+      "cell": null,
+      "field": "ci.r9.podman_failed",
+      "file": "docs/ci_evidence.md",
+      "group": 1,
+      "kind": "int",
+      "lines": 5,
+      "pattern": "`podman` \\|[^\\n]*failures=(\\d+)",
+      "quote": "| Run | [43461309299](https://github.com/jolbax-training/cas_aml_mlops_project/actions/runs/43461309299) |\n| Branch / commit | `main` / `e00236d` |\n| Workflow conclusion | success |\n| `offline` | success: pytest totals tests=1199, skipped=67, failures=0, errors=0 |\n| `podman` | success: pytest totals tests=64, skipped=0, failures=0, errors=0; 0 leftover containers |",
+      "start": "| Run | [43461309299]",
+      "value": 0
+    },
+    {
+      "cell": null,
       "field": "ci.r8.run",
       "file": "docs/progress.md",
       "group": 1,
@@ -1803,9 +1923,10 @@
         "2026-11-01": 2,
         "2026-11-02": 1,
         "2026-11-03": 2,
-        "2026-11-06": 5
+        "2026-11-06": 5,
+        "2026-11-13": 1
       },
-      "count": 15,
+      "count": 16,
       "items": [
         {
           "date": "2026-10-30",
@@ -1866,10 +1987,15 @@
         {
           "date": "2026-11-06",
           "name": "prepare-reproducible-demo"
+        },
+        {
+          "date": "2026-11-13",
+          "name": "refresh-architecture-status"
         }
       ]
     },
     "ci": {
+      "latest": "43461309299",
       "runs": [
         {
           "commit": "868410f",
@@ -1919,6 +2045,18 @@
           "podman": "success",
           "podman_tests": 64,
           "run": "41581787430"
+        },
+        {
+          "commit": "e00236d",
+          "conclusion": "success",
+          "offline": "success",
+          "offline_skipped": 67,
+          "offline_tests": 1199,
+          "podman": "success",
+          "podman_failed": 0,
+          "podman_skipped": 0,
+          "podman_tests": 64,
+          "run": "43461309299"
         }
       ],
       "source": "committed documents (see documents)"
@@ -1927,9 +2065,9 @@
       "count": 14
     },
     "tests": {
-      "commit": "17ada6edb1dc18c1876dbd792bdc88dfc400d867",
+      "commit": "349e998c3e5612b233bae70d334bb679d3fa1b58",
       "note": "collected by pytest --collect-only at the recorded commit; not pass counts",
-      "offline_collected": 858,
+      "offline_collected": 1137,
       "sandbox_collected": 67
     }
   },
@@ -1975,10 +2113,10 @@
       "PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles <bundles> verify <run_id> (each of the three runs)",
       "pytest --collect-only -q (-m 'not sandbox' and -m sandbox)"
     ],
-    "commit": "17ada6edb1dc18c1876dbd792bdc88dfc400d867",
+    "commit": "349e998c3e5612b233bae70d334bb679d3fa1b58",
     "generated_by": {
       "script": "scripts/presentation_evidence.py",
-      "sha256": "2fb388a4c6291cc06aa0ada7922f48c9e147cccba5e16b5f9bae27a32fb3e4af"
+      "sha256": "f65dba1293b85dbe3f680457a539884641ec9cde80315720b480639fce63cea3"
     },
     "runs": {
       "baseline": {

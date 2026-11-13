@@ -271,3 +271,16 @@ Source: user decision round 3.
 #### Scenario: No status labels
 - **WHEN** the diagram text is read
 - **THEN** it contains none of the words implemented, pending, partial, or live run
+
+### Requirement: Latest CI run selected by a marker
+The summary SHALL identify the latest recorded CI run through an explicit marker in the document quote table, not by position or a typed id, and the engineering figures MUST show that run's recorded counts. The offline check MUST fail when the summary's latest run differs from the marker or when the quoted section changes.
+
+Source: user decision round 4; docs/ci_evidence.md.
+
+#### Scenario: Summary names another run as latest
+- **WHEN** the summary's latest run id differs from the marked run
+- **THEN** the offline check exits non-zero and names `engineering.ci.latest`
+
+#### Scenario: Engineering charts show the latest run
+- **WHEN** the engineering charts are generated
+- **THEN** they show the offline and podman counts of the marked run
