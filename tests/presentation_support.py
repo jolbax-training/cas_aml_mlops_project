@@ -8,6 +8,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
 FIXTURE = REPO / "tests" / "fixtures" / "presentation" / "live.json"
+# The committed user_text.toml holds the user's own words once written; tests use this unwritten copy.
+BLANK_USER_TEXT = REPO / "tests" / "fixtures" / "presentation" / "user_text_blank.toml"
 
 
 def load_script(name):
@@ -25,4 +27,10 @@ def copy_repo(tmp_path):
     root = tmp_path / "repo"
     shutil.copytree(REPO / "docs", root / "docs")
     shutil.copytree(REPO / "presentation", root / "presentation")
+    blank_user_text(root)
     return root
+
+
+def blank_user_text(root):
+    """Replace the copied user text with the unwritten one, so tests do not depend on what the user wrote."""
+    shutil.copy(BLANK_USER_TEXT, root / "presentation" / "user_text.toml")

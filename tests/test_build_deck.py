@@ -13,7 +13,7 @@ import tomllib
 
 import pytest
 
-from presentation_support import REPO, load_script
+from presentation_support import REPO, blank_user_text, load_script
 
 deck = load_script("build_deck")
 
@@ -22,6 +22,7 @@ deck = load_script("build_deck")
 def root(tmp_path):
     target = tmp_path / "repo"
     shutil.copytree(REPO / "presentation", target / "presentation")
+    blank_user_text(target)
     shutil.copytree(REPO / "docs", target / "docs", ignore=shutil.ignore_patterns("*.md"))
     (target / "scripts").mkdir()
     shutil.copy(REPO / "scripts" / "build_work_log.py", target / "scripts" / "build_work_log.py")

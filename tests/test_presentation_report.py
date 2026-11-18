@@ -19,6 +19,14 @@ report = importlib.util.module_from_spec(spec)
 sys.modules["build_report"] = report
 spec.loader.exec_module(report)
 
+# The committed user_text.toml holds the user's own words once written; tests use this unwritten copy.
+BLANK_USER_TEXT = REPO / "tests" / "fixtures" / "presentation" / "user_text_blank.toml"
+_Inputs = report.Inputs
+
+
+def blank_inputs(root):
+    return _Inputs(root, user_text_path=BLANK_USER_TEXT)
+
 PNG = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
     "0000000d49444154789c6360000002000001e221bc330000000049454e44ae426082"
@@ -36,6 +44,7 @@ def make_inputs(tmp_path: Path, template: str | None = None, css: str | None = N
     if user is not None:
         (tmp_path / "user_text.toml").write_text(user, encoding="utf-8")
         paths["user_text_path"] = tmp_path / "user_text.toml"
+    paths.setdefault("user_text_path", BLANK_USER_TEXT)
     return report.Inputs(REPO, **paths)
 
 
@@ -49,7 +58,7 @@ def page_template(body: str) -> str:
 
 @pytest.fixture(scope="module")
 def real():
-    inputs = report.Inputs(REPO)
+    inputs = blank_inputs(REPO)
     return inputs, report.build_html(inputs)
 
 
@@ -62,7 +71,7 @@ def user_toml(motivation: str = "", takeaways: str = "") -> str:
 
 def test_real_build_is_four_pages_and_deterministic(real):
     inputs, text = real
-    assert text == report.build_html(report.Inputs(REPO))
+    assert text == report.build_html(blank_inputs(REPO))
     root = report.parse(text)
     pages = [n for n in root.walk() if n.tag == "section" and "page" in n.classes()]
     assert [p.attrs["id"] for p in pages] == ["page-1", "page-2", "page-3", "page-4"]
@@ -165,7 +174,8 @@ def test_work_log_and_demo_links_are_non_fatal(real):
     assert 'href="index.html"' in text and 'href="demo.html"' in text
 
 
-def test_release_build_fails_while_anything_is_unfilled(capsys):
+def test_release_build_fails_while_anything_is_unfilled(capsys, monkeypatch):
+    monkeypatch.setattr(report, "Inputs", blank_inputs)
     code = report.main(["--root", str(REPO), "build", "--require-user-text", "--output", str(REPO / "report" / "never_written.html")])
     assert code == 1
     err = capsys.readouterr().err
@@ -296,7 +306,7 @@ def test_logo_uses_manifest_alt_and_verifies_its_digest(tmp_path):
 def test_an_empty_date_shows_the_placeholder_and_a_user_written_date_replaces_it(tmp_path):
     empty = report.build_html(make_inputs(tmp_path, template=page_template("{{title:date}}")))
     assert "DATE: fill in" in empty and 'data-placeholder="date"' in empty
-    real = (REPO / "presentation/user_text.toml").read_text(encoding="utf-8")
+    real = BLANK_USER_TEXT.read_text(encoding="utf-8")
     written = real.replace('[title]\ndate = ""', '[title]\ndate = "2026-12-01 <i>"')
     inputs = make_inputs(tmp_path, template=page_template("{{title:date}}"), user=written)
     text = report.build_html(inputs)
@@ -306,7 +316,7 @@ def test_an_empty_date_shows_the_placeholder_and_a_user_written_date_replaces_it
 
 
 def test_an_invalid_date_is_rejected(tmp_path):
-    real = (REPO / "presentation/user_text.toml").read_text(encoding="utf-8")
+    real = BLANK_USER_TEXT.read_text(encoding="utf-8")
     for bad, message in (("x" * 41, "limit is 40"), ("a\\nb", "control characters")):
         inputs = make_inputs(tmp_path, template=page_template("{{title:date}}"),
                              user=real.replace('[title]\ndate = ""', f'[title]\ndate = "{bad}"'))

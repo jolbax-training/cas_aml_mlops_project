@@ -1,0 +1,25 @@
+# User-written text for the deck and the report.
+#
+# THE USER WRITES THESE SLOTS. No tool, script or agent fills them, and none may be changed
+# to hold generated text. An empty string means "not written yet": the deck and the report
+# show a visible placeholder for every empty slot and create no user-text file of their own.
+#
+#   motivation  why the project was done (the user's own words)
+#   takeaways   the user's takeaways and interpretation of the evidence
+#   deck        short version (one slide)
+#   report      long version (a few sentences in the report)
+
+[motivation]
+deck = ""
+report = ""
+
+[takeaways]
+deck = ""
+report = ""
+
+# The presentation date shown on the title slide and the title of the report.
+# THE USER WRITES IT (for example 2026-12-01, or free text such as "1 December 2026"); at most 40
+# characters, one line. Tools never fill it. Empty means "not written yet": the deck and the
+# report show the placeholder "[DATE: fill in]" and their strict/release builds fail.
+[title]
+date = ""

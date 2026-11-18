@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from presentation_support import FIXTURE, REPO, SCRIPTS, copy_repo, load_script
+from presentation_support import BLANK_USER_TEXT, FIXTURE, REPO, SCRIPTS, copy_repo, load_script
 
 pe = load_script("presentation_evidence")
 
@@ -326,12 +326,24 @@ def test_word_numbers_are_read_for_the_protocol():
         pe.extract_value("many tasks x few trials", None, r"(\w+) tasks", 1, "wordint")
 
 
-def test_user_text_file_has_empty_marked_slots():
+def test_user_text_file_has_marked_slots():
     import tomllib
     text = (REPO / pe.USER_TEXT_REL).read_text(encoding="utf-8")
     assert "THE USER WRITES" in text and "No tool" in text
     data = tomllib.loads(text)
     assert set(data) == {"motivation", "takeaways", "title"}
+    assert set(data["title"]) == {"date"} and isinstance(data["title"]["date"], str)
+    for name in ("motivation", "takeaways"):
+        assert set(data[name]) == {"deck", "report"} and all(isinstance(v, str) for v in data[name].values())
+
+
+def test_blank_user_text_fixture_matches_the_real_file_unwritten():
+    import tomllib
+    real = (REPO / pe.USER_TEXT_REL).read_text(encoding="utf-8")
+    blank = BLANK_USER_TEXT.read_text(encoding="utf-8")
+    comments = lambda text: [line for line in text.splitlines() if line.startswith("#")]
+    assert comments(blank) == comments(real)
+    data = tomllib.loads(blank)
     assert data["title"] == {"date": ""}
     for name in ("motivation", "takeaways"):
         assert data[name] == {"deck": "", "report": ""}
