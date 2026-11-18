@@ -22,4 +22,4 @@ report = ""
 # characters, one line. Tools never fill it. Empty means "not written yet": the deck and the
 # report show the placeholder "[DATE: fill in]" and their strict/release builds fail.
 [title]
-date = ""
+date = "20 November 2026"
