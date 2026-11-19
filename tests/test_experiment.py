@@ -3,6 +3,7 @@ no Podman): fixture clients, a fake transport, and a trusted in-process check ru
 
 import json
 import shutil
+from pathlib import Path
 from decimal import Decimal
 
 import pytest
@@ -96,16 +97,23 @@ def test_attempt_cap_matches_the_agreed_budget_split():
 
 # --- evidence ----------------------------------------------------------------------
 
+def rerecord_probes(directory, counts, **kwargs):
+    """Replace a probe record on purpose: the writer refuses to overwrite an existing one."""
+    for name in ("probes.json", "probes.junit.xml"):
+        (Path(directory) / name).unlink(missing_ok=True)
+    return write_probes_evidence(directory, counts, **kwargs)
+
+
 def test_probe_evidence_must_be_clean_nonempty_and_for_this_code(tmp_path):
     assert "not found" in probes_problems(tmp_path)[0]
     counts = {"tests": 10, "failures": 0, "errors": 0, "skipped": 0}
     write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
     assert probes_problems(tmp_path) == []
-    write_probes_evidence(tmp_path, {**counts, "skipped": 3}, command="x", junit_xml=JUNIT)
+    rerecord_probes(tmp_path, {**counts, "skipped": 3}, command="x", junit_xml=JUNIT)
     assert any("skipped" in p for p in probes_problems(tmp_path))      # a skipped suite proves nothing
-    write_probes_evidence(tmp_path, {**counts, "tests": 0}, command="x", junit_xml=JUNIT)
+    rerecord_probes(tmp_path, {**counts, "tests": 0}, command="x", junit_xml=JUNIT)
     assert any("no tests" in p for p in probes_problems(tmp_path))
-    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
+    rerecord_probes(tmp_path, counts, command="x", junit_xml=JUNIT)
     record = json.loads((tmp_path / "probes.json").read_text())
     record.update(evaluator_code_sha256="0" * 64)
     (tmp_path / "probes.json").write_text(json.dumps(record))
@@ -117,7 +125,7 @@ def test_probe_evidence_needs_its_retained_junit_report(tmp_path):
     write_probes_evidence(tmp_path, counts, command="x")                 # no report kept
     assert any("junit report" in p for p in probes_problems(tmp_path))
 
-    write_probes_evidence(tmp_path, counts, command="x", junit_xml=JUNIT)
+    rerecord_probes(tmp_path, counts, command="x", junit_xml=JUNIT)
     assert probes_problems(tmp_path) == []
     (tmp_path / "probes.junit.xml").write_text(JUNIT.replace("56", "99"))   # edited afterwards
     assert any("junit report" in p for p in probes_problems(tmp_path))
@@ -588,6 +596,7 @@ def test_a_forced_smoke_bundle_passes_the_run_preconditions_but_is_no_experiment
         tmp_path, inprocess_runner):
     env = make_env(tmp_path, inprocess_runner)
     forced = forced_smoke(tmp_path, inprocess_runner)
+    (env.evidence / "settings_freeze.json").unlink()
     write_settings_freeze(env.config, forced, env.evidence)
     options = {**env.options, "smoke_bundle": forced}
 

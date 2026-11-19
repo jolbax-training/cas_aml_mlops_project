@@ -67,6 +67,18 @@ class ExperimentError(Exception):
 
 # --- configuration -----------------------------------------------------------------
 
+def _write_unchanged_only(path: Path, data: bytes) -> None:
+    """Write `data` to a new path; an existing file is left alone when it already holds exactly
+    these bytes and is never replaced otherwise, so a missed `--config` or `--evidence` cannot
+    overwrite an earlier experiment's record. Replacing one is a deliberate act: remove it first."""
+    if path.exists():
+        if path.is_file() and path.read_bytes() == data:
+            return
+        raise ExperimentError(f"refusing to replace {path}: it exists with different content; "
+                              "remove it deliberately if it is to be replaced")
+    atomic_write(path, data)
+
+
 def _canonical(data: Any) -> bytes:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
@@ -114,6 +126,7 @@ def _variant_entry(name: str, prompt_version: str | None) -> dict[str, Any]:
 
 
 def build_config(benchmark_path: str | Path = DEFAULT_BENCHMARK, *,
+                 experiment_id: str = EXPERIMENT_ID, trials_per_task: int = TRIALS_PER_TASK,
                  model_config_version: str = DEFAULT_MODEL_CONFIG,
                  baseline_prompt: str = BASELINE_PROMPT, revised_prompt: str | None = None,
                  agent_limits: AgentLimits = DEFAULT_AGENT_LIMITS,
@@ -132,7 +145,7 @@ def build_config(benchmark_path: str | Path = DEFAULT_BENCHMARK, *,
         relative = path.name
     return {
         "schema_version": CONFIG_SCHEMA_VERSION,
-        "experiment_id": EXPERIMENT_ID,
+        "experiment_id": experiment_id,
         "benchmark": {"file": relative, "version": envelope.get("benchmark_version"),
                       "sha256": sha256_file(path),
                       "freeze_content_hash": freeze_content_hash(path)},
@@ -144,11 +157,11 @@ def build_config(benchmark_path: str | Path = DEFAULT_BENCHMARK, *,
                      "container_image": image_for_platform(container_platform),
                      "settings_hash": settings_hash(model, agent_limits, execution_limits,
                                                     container_platform)},
-        "trials_per_task": TRIALS_PER_TASK,
+        "trials_per_task": trials_per_task,
         "trial_order": TRIAL_ORDER,
         "variants": [_variant_entry(BASELINE, baseline_prompt),
                      _variant_entry(REVISED, revised_prompt)],
-        "schedule": build_schedule(load_benchmark(path)),
+        "schedule": build_schedule(load_benchmark(path), trials_per_task),
     }
 
 
@@ -217,7 +230,8 @@ def write_config(data: Mapping[str, Any], path: str | Path = DEFAULT_CONFIG) -> 
     parse_config(dict(data))
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write(target, json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False).encode("utf-8") + b"\n")
+    _write_unchanged_only(target, json.dumps(data, indent=2, sort_keys=True,
+                                             ensure_ascii=False).encode("utf-8") + b"\n")
     return target
 
 
@@ -229,6 +243,8 @@ def config_drift(config: ExperimentConfig, *, benchmark_path: str | Path = DEFAU
     data = config.data
     try:
         current = build_config(benchmark_path,
+                               experiment_id=data["experiment_id"],
+                               trials_per_task=data["trials_per_task"],
                                container_platform=str(data["settings"].get("container_platform",
                                                                            HOST_PLATFORM)),
                                model_config_version=data["settings"].get("model_config_version",
@@ -266,6 +282,10 @@ def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *
     The junit report is kept beside the record and its SHA-256 stored in it, so the counts
     can be checked against the report afterwards."""
     directory = Path(evidence_dir)
+    for name in (PROBES_FILE, JUNIT_FILE):
+        if (directory / name).exists():
+            raise ExperimentError(f"refusing to replace {directory / name}: probe evidence already "
+                                  "exists; remove it deliberately if it is to be replaced")
     directory.mkdir(parents=True, exist_ok=True)
     record: dict[str, Any] = {
         "schema_version": 1, "recorded_at": utc_now(), "command": command,
@@ -274,10 +294,10 @@ def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *
         **{key: int(counts[key]) for key in ("tests", "failures", "errors", "skipped")}}
     if junit_xml is not None:
         data = junit_xml.encode("utf-8")
-        atomic_write(directory / JUNIT_FILE, data)
+        _write_unchanged_only(directory / JUNIT_FILE, data)
         record["junit_file"], record["junit_sha256"] = JUNIT_FILE, sha256_bytes(data)
     path = directory / PROBES_FILE
-    atomic_write(path, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
+    _write_unchanged_only(path, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
     return path
 
 
@@ -413,6 +433,10 @@ def write_settings_freeze(config: ExperimentConfig, smoke_bundle: str | Path,
                           model: ModelConfig | None = None, note: str = "") -> Path:
     """Record the settings freeze. Refuses unless the smoke bundle calibrates and the
     configuration still matches the repository, so a freeze record always has both behind it."""
+    target = Path(evidence_dir) / FREEZE_RECORD_FILE
+    if target.exists():
+        raise ExperimentError(f"refusing to replace {target}: a settings freeze already exists; "
+                              "remove it deliberately if it is to be replaced")
     model = model or load_model_config(config.data["settings"]["model_config_version"])
     bundle = Path(smoke_bundle).resolve()
     calibration = calibrate(bundle, model)
@@ -430,9 +454,9 @@ def write_settings_freeze(config: ExperimentConfig, smoke_bundle: str | Path,
                         "mode": (load_manifest(bundle).get("identity", {}).get("smoke") or {})
                         .get("mode", "standard")},
               "calibration": calibration.to_dict(), "decision": "pass", "note": note}
-    path = Path(evidence_dir) / FREEZE_RECORD_FILE
+    path = target
     path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write(path, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
+    _write_unchanged_only(path, json.dumps(record, indent=2, sort_keys=True).encode("utf-8") + b"\n")
     return path
 
 

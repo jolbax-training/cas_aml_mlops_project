@@ -26,7 +26,7 @@ from typing import Any, Callable, Mapping, Sequence
 from codegen_eval.bundle import DEFAULT_BUNDLE_ROOT, BundleError, resolve_bundle
 from codegen_eval.comparison import compare_runs, render_comparison
 from codegen_eval.experiment import (
-    DEFAULT_BENCHMARK, DEFAULT_CONFIG, DEFAULT_EVIDENCE_DIR, VARIANTS, ExperimentError,
+    DEFAULT_BENCHMARK, DEFAULT_CONFIG, DEFAULT_EVIDENCE_DIR, EXPERIMENT_ID, TRIALS_PER_TASK, VARIANTS, ExperimentError,
     PreconditionsFailed, build_config, calibrate, check_preconditions, load_config,
     run_variant, write_config, write_probes_evidence, write_settings_freeze, config_drift,
 )
@@ -76,6 +76,10 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
     build = sub.add_parser("build-config", help="write or verify the versioned experiment configuration")
     common(build)
     build.add_argument("--revised-prompt", help="version (file stem) of the revised prompt, once it exists")
+    build.add_argument("--experiment-id", default=EXPERIMENT_ID,
+                       help="experiment identity (default: the first comparison's); give --config too")
+    build.add_argument("--trials-per-task", type=int, default=TRIALS_PER_TASK,
+                       help="trials of each task per run (default: the first comparison's)")
     build.add_argument("--container-platform", choices=("arm64", "amd64"),
                        help="platform the experiment runs on (default: the recorded one, else this host)")
     build.add_argument("--check", action="store_true",
@@ -102,6 +106,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
                        help="required: confirms this command spends real money")
         p.add_argument("--tracking-uri", help="MLflow URI for recording the finished bundle "
                        "(default: $MLFLOW_TRACKING_URI, else http://127.0.0.1:5000)")
+        p.add_argument("--experiment", help="MLflow experiment name for the recorded bundle "
+                       "(default: the standard run experiment)")
         p.add_argument("--no-tracking", action="store_true",
                        help="skip recording; upload later with codegen_eval.mlflow_tracking")
         p.add_argument("--allow-rerun", action="store_true",
@@ -138,6 +144,8 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
             recorded = current.data["settings"].get("container_platform") if current else None
             platform_name = args.container_platform or recorded or HOST_PLATFORM
             path = write_config(build_config(args.benchmark, revised_prompt=revised,
+                                             experiment_id=args.experiment_id,
+                                             trials_per_task=args.trials_per_task,
                                              container_platform=platform_name), args.config)
             print(f"wrote {path}")
             return 0
@@ -183,7 +191,7 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
         model = load_model_config(config.data["settings"]["model_config_version"])
         if record_run is None and not args.no_tracking:
             from codegen_eval.mlflow_tracking import bundle_recorder
-            record_run = bundle_recorder(args.tracking_uri)
+            record_run = bundle_recorder(args.tracking_uri, experiment=args.experiment)
     except (ValueError, KeyError, ImportError) as error:
         print(f"refusing to run: {error}", file=sys.stderr)
         return REFUSED

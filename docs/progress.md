@@ -21,6 +21,15 @@ Updated 2026-11-13. [The specification](project_spec.md) defines the current acc
 
 Runtime observations above cite the dated entries below and the named evidence files; this status refresh ran no new live or container test. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result.
 
+## 2026-11-19 — At-scale comparison prepared (`scale-prompt-comparison`, offline part)
+
+Offline implementation on the worktree branch `jolbax/scale-prompt-comparison`; the three paid runs are scheduled for the coordinator and no result is recorded. Results below are the output of the commands named.
+
+- **Built:** `build-config --experiment-id/--trials-per-task`, `run --experiment`, overwrite guards (`build-config`, `freeze-settings`, `record-probes` refuse to replace any existing file whose content would differ), `src/codegen_eval/scale_analysis.py` (Wilson 95% interval, successes out of n per task, charged CHF per run and total with a CHF 1 limit, baseline against revised and against the repeat), `experiments/prompt_comparison_v2.json` (100 trials per run, settings identical to v1), `experiments/evidence_v2/settings_freeze.json` (frozen read-only against the first comparison's smoke bundle), and the protocol `docs/prompt_comparison_v2.md` with `docs/comparison_evidence_v2.md` (results to be recorded).
+- **First comparison untouched:** sha256 of `experiments/prompt_comparison_v1.json` is `1c82c9f9820949ad5103fbf8220a1c9f231d0fa1a27b9af3b7c89de3f389988a` before and after (a test pins it); the sorted sha256 listing of the 85 files under the primary checkout's `run_bundles/` and `experiments/evidence/` is identical before and after the freeze; `build-config --trials-per-task 10` with the default `--config` is refused and leaves v1's file unchanged; `git diff main` shows no change to `.gitignore`, `docs/prompt_comparison.md`, `docs/comparison_evidence.md` or the archived changes.
+- **Checks:** `.venv/bin/pytest -q` 1182 passed, 67 skipped (34 new tests in `tests/test_scale_config.py` and `tests/test_scale_analysis.py`); `CODEGEN_EVAL_TEST_SECRET=present RUN_SANDBOX_TESTS=1 .venv/bin/pytest -q -m sandbox` 67 passed; `scripts/build_work_log.py --check` passed; `openspec validate --all --strict` 18 passed. `check --variant baseline` against the v2 configuration lists only `cost_acceptance` and `probes` as unmet, so the configuration, settings freeze, smoke trace, calibration, budget projection and prior-run gates already hold.
+- **Left for the coordinator:** `record-probes --evidence experiments/evidence_v2` at the final commit, then the three runs, MLflow recording and the analysis (commands in the OpenSpec change); the student's interpretation.
+
 ## 2026-11-13 — Architecture and run-flow status refreshed (`refresh-architecture-status`)
 
 Documentation and tests only; no `src/` change. Results below are the output of the commands named.

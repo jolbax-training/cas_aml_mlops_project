@@ -106,6 +106,20 @@ label = "reviewed"
 status = "implemented"
 
 [[section]]
+id = "results-at-scale"
+title = "Prompt comparison at scale (protocol; results to be recorded)"
+path = "docs/prompt_comparison_v2.md"
+label = "current"
+status = "incomplete"
+
+[[section]]
+id = "evidence-at-scale"
+title = "At-scale comparison: evidence identifiers (to be recorded)"
+path = "docs/comparison_evidence_v2.md"
+label = "current"
+status = "incomplete"
+
+[[section]]
 id = "ci-evidence"
 title = "Deterministic CI evidence"
 path = "docs/ci_evidence.md"

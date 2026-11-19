@@ -143,6 +143,16 @@ Evidence files under `experiments/evidence/` (probe record and junit, settings f
 
 MLflow: after a variant's bundle is written and checked against the schedule, `run` records it with `mlflow_tracking.record_bundle` (`mlflow_tracking.bundle_recorder`; `--tracking-uri`, default `$MLFLOW_TRACKING_URI` or `http://127.0.0.1:5000`; `--no-tracking` skips it; needs `uv sync --group tracking`). Re-recording the same bundle changes nothing, and an incomplete run is recorded labelled incomplete and not a headline candidate. If the service is down or the client is missing, the run still completes, the bundle's `tracking.json` marker says `not_recorded` with the error, and `python -m codegen_eval.mlflow_tracking record <run>` uploads it later without regenerating anything.
 
+## At-scale comparison (`prompt_comparison_v2`, three runs scheduled)
+
+[`experiments/prompt_comparison_v2.json`](experiments/prompt_comparison_v2.json) is a second configuration with the first one's settings, benchmark and prompts and 10 trials per task (100 per run), for three runs in the order baseline, revised, baseline repeat; the protocol is in [docs/prompt_comparison_v2.md](docs/prompt_comparison_v2.md). It is built with `build-config --experiment-id prompt_comparison_v2 --trials-per-task 10 --revised-prompt baseline_agent_v2 --container-platform arm64 --config experiments/prompt_comparison_v2.json`. The first comparison's files are never written: `build-config`, `freeze-settings` and `record-probes` refuse to replace any existing file whose content would differ. Every command takes `--config`, `--evidence experiments/evidence_v2` and, for bundles, `--bundles <primary checkout>/run_bundles_v2`; run them from the repository root. The repeat of the baseline needs `--allow-rerun` on `check` and `run`. `run --experiment NAME` records into another MLflow experiment (default unchanged). The analysis is offline and opens no ledger:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m codegen_eval.scale_analysis --config experiments/prompt_comparison_v2.json --bundles <dir> --baseline RUN_1 [--revised RUN_2] [--repeat RUN_3] [--json] [--charged-limit-chf 1]
+```
+
+It prints, per run, the usual metrics, the successes out of 10 per task, the charged CHF and a Wilson 95% interval for the overall success rate, then baseline against revised and baseline against the repeat; interval overlap is a descriptive aid, not a significance test. It exits with status 3 when the charged CHF summed over the given runs exceeds the limit (the stop rule between paid runs).
+
 ## Pilot data and scoring boundary
 
 - `data/pilot_tasks.json` contains three tasks and 12 cases. Only each task's instruction and signature are intended for the generator.

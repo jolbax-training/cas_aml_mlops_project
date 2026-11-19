@@ -17,7 +17,8 @@ NAMES = ("logical", "physical")
 # EXTERNAL marks a third-party service (OpenRouter); PARTIAL and PENDING stay reserved vocabulary.
 STATUSES = {"IMPLEMENTED", "PARTIAL: NO LIVE RUN YET", "PENDING", "EXTERNAL"}
 # Files under src/codegen_eval/ that the logical twin does not need to name, with the reason.
-NOT_DRAWN = {"__init__.py": "package marker"}
+NOT_DRAWN = {"__init__.py": "package marker",
+             "scale_analysis.py": "offline reader of retained bundles for the at-scale comparison; outside the run flow"}
 DOCTYPE = re.compile(r"<!DOCTYPE[^>]*>")
 
 

@@ -1,0 +1,33 @@
+{
+  "calibration": {
+    "ascii_chars_per_token": 2.0,
+    "fourth_call_observed": true,
+    "max_bound": 2937,
+    "max_ratio": 2.102,
+    "min_ratio": 2.047,
+    "ok": true,
+    "problems": [],
+    "ratios": [
+      2.102,
+      2.075,
+      2.058,
+      2.047
+    ],
+    "required_min_ratio": 1.1,
+    "sent_attempts": 4
+  },
+  "config_sha256": "5dc5632afbdcb7227c768df3cbd4ebec499a1287978f488aa9e7776c4dce6be7",
+  "decision": "pass",
+  "experiment_id": "prompt_comparison_v2",
+  "frozen_at": "2026-11-19T20:07:49+00:00",
+  "model_config_hash": "4fe5bf3e6d9840e2ae7fdac2add3867698ac64022f962d56c30e49206e9e9908",
+  "note": "v2: model settings and the retained v1 smoke reused; no new smoke",
+  "schema_version": 1,
+  "settings_hash": "4c3b3b351075142e9db945a7eacb64fe47fef689e83f212957dec72efe0d1c9e",
+  "smoke": {
+    "bundle": "/Users/jolbax/Developer/devspace/cas_aml_mlops_project/run_bundles/20261103T050806Z-30949f",
+    "manifest_sha256": "e09cb5b047a22048d25649170da81562b27a45e20250d83b1b7654ff83a5283c",
+    "mode": "exercise_final_only",
+    "run_id": "20261103T050806Z-30949f"
+  }
+}
