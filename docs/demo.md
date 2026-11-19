@@ -105,6 +105,6 @@ The production deadline (10 s) includes container creation and start, so a slow 
 
 One probe is also sensitive to load: `tests/test_isolation_probes.py::test_candidate_induced_container_oom_is_never_infrastructure[oom-score-reset]` failed once in a full group run during review and passed alone and in two further full runs. If it fails under load, rerun it alone and then the group before treating it as a defect.
 
-## At-scale comparison (scheduled)
+## At-scale comparison (completed)
 
-The second comparison, `prompt_comparison_v2` (10 trials per task, baseline then revised then baseline again), is documented in [prompt_comparison_v2.md](prompt_comparison_v2.md); it is a larger run of the same prompts and is not part of the credential-free demo. Its offline analysis (no key, no Podman, no ledger) is `PYTHONPATH=src .venv/bin/python -m codegen_eval.scale_analysis --config experiments/prompt_comparison_v2.json --bundles <dir> --baseline RUN_1 --revised RUN_2 --repeat RUN_3`; see the README section "At-scale comparison" for the experiment commands.
+The second comparison, `prompt_comparison_v2` (10 trials per task, baseline then revised then baseline again), is documented in [prompt_comparison_v2.md](prompt_comparison_v2.md) (runs made on 2026-11-19); it is a larger run of the same prompts and is not part of the credential-free demo. Its offline analysis (no key, no Podman, no ledger) is `PYTHONPATH=src .venv/bin/python -m codegen_eval.scale_analysis --config experiments/prompt_comparison_v2.json --bundles <dir> --baseline RUN_1 --revised RUN_2 --repeat RUN_3`; see the README section "At-scale comparison" for the experiment commands.
