@@ -1,0 +1,31 @@
+# Proposal
+
+## Why
+
+The first comparison (`prompt_comparison_v1`: `baseline_agent_v1` against `baseline_agent_v2`, ten tasks x 3 trials, 27/30 -> 29/30) is too small to say anything about run-to-run variation, and its fixed order (baseline, then revised hours later) cannot separate provider drift from the prompt. The user approved a second, larger comparison, presented as "the pipeline at scale" and not as proof of improvement, to enrich the presentation with a measured spread.
+
+## What Changes
+
+- A new experiment `prompt_comparison_v2`: the same frozen settings, model configuration, benchmark, prompts (`baseline_agent_v1`, `baseline_agent_v2`), agent and execution limits and container image as v1, with 10 trials per task (100 per run) and three runs in the order A-B-A: baseline, revised, baseline repeat (about 300 trials).
+- Small, default-preserving tooling changes so the experiment tooling can describe it: `build-config` gains `--experiment-id` and `--trials-per-task` (defaults are v1's), the drift check rebuilds with the recorded values, and `write_config` / `write_settings_freeze` refuse to overwrite a record that belongs to another experiment.
+- A deterministic, offline analysis command (`codegen_eval.scale_analysis`) that reads the three bundles and reports, per run, the v1 metrics plus per-task successes out of 10 and a Wilson 95% interval for the overall success rate, then baseline vs revised and baseline vs baseline-repeat.
+- Separate, Git-ignored storage for everything v2 writes: bundles in `run_bundles_v2/`, evidence in `experiments/evidence_v2/`, MLflow experiment `codegen-eval-prompt-comparison-v2`. Nothing v1 is modified or deleted.
+- New documents only: `experiments/prompt_comparison_v2.json`, `docs/prompt_comparison_v2.md`, `docs/comparison_evidence_v2.md`. The exact command sequence for the coordinator's three paid runs is fixed in `design.md` and `tasks.md`.
+- Not in this change: the presentation and report (`presentation/*`, `report/*`, `scripts/presentation_evidence.py`); how v2 reaches them is a later change.
+
+## Capabilities
+
+### New Capabilities
+
+(none)
+
+### Modified Capabilities
+
+- `prompt-comparison`: adds requirements for the at-scale A-B-A experiment, preservation of v1 data and ledger, the analysis with Wilson intervals, and the claim limits and stop rules for the paid runs. Existing requirements (v1 protocol) are unchanged.
+
+## Impact
+
+- Code: `src/codegen_eval/experiment.py` (parameterised `build_config`, drift check, overwrite guards), `src/codegen_eval/experiment_cli.py` (two `build-config` options), new `src/codegen_eval/scale_analysis.py`; tests in `tests/test_experiment.py` and a new `tests/test_scale_analysis.py`; `.gitignore` (two entries). Evaluator code changes, so a new probe record is needed for v2 (the v1 probe record is untouched).
+- Data: only new directories and files; v1 config, evidence, documents, bundles and the spend ledger are never written by this change.
+- Cost: paid runs by the coordinator only; projection in `design.md`.
+- Milestone: extends the completed comparison phase (optional enrichment, beyond the 32-hour scope's required evidence); no dependency of any required deliverable on it.
