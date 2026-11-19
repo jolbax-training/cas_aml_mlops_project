@@ -1,0 +1,5 @@
+1 codegen-eval-runs 930a188254d34d279a88a7613ea55518 20261103T053309Z-280182 FINISHED success_rate=0.9
+1 codegen-eval-runs bcddf5c9561c43129504555b020a7557 20261103T095324Z-d25905 FINISHED success_rate=0.9666666666666667
+2 codegen-eval-prompt-comparison-v2 b636ac51b2ad4dc4843ac3e7c7e39318 20261119T203431Z-380dc9 FINISHED success_rate=0.99
+2 codegen-eval-prompt-comparison-v2 231af88fd6ae4472a800b5f742a5b7b1 20261119T204755Z-60994f FINISHED success_rate=0.99
+2 codegen-eval-prompt-comparison-v2 8c06dec73f1341ab8b936c11736bc209 20261119T210148Z-43a702 FINISHED success_rate=0.97
