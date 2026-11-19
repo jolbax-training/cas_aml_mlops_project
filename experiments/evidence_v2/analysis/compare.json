@@ -1,0 +1,336 @@
+{
+  "caveats": [],
+  "delta": {
+    "gained_tasks": [
+      "lists_02"
+    ],
+    "primary_rate": 0.0,
+    "primary_successes": 0,
+    "regressed_tasks": [
+      "strings_01"
+    ],
+    "unchanged_tasks": [
+      "dictionaries_01",
+      "dictionaries_02",
+      "lists_01",
+      "numeric_logic_01",
+      "numeric_logic_02",
+      "parsing_formatting_01",
+      "parsing_formatting_02",
+      "strings_02"
+    ]
+  },
+  "experiment_id": "prompt_comparison_v2",
+  "headline_comparison": true,
+  "reasons_not_headline": [],
+  "runs": {
+    "baseline": {
+      "bundle": "/Users/jolbax/Developer/devspace/cas_aml_mlops_project/run_bundles_v2/20261119T203431Z-380dc9",
+      "classification": {
+        "classes": [],
+        "complete": true,
+        "infrastructure_statuses": []
+      },
+      "metrics": {
+        "attempts": {
+          "physical": 218,
+          "retries": 0,
+          "without_reported_cost": 0
+        },
+        "categories": {
+          "dictionaries": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "lists": {
+            "count": 19,
+            "of": 20,
+            "rate": 0.95
+          },
+          "numeric_logic": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "parsing_formatting": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "strings": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          }
+        },
+        "cost": {
+          "charged_chf": 0.0177685344375,
+          "reported_usd": 0.021676874999999998,
+          "reserved_before_send_chf": 0.1786946
+        },
+        "edge_cases": {
+          "count": 198,
+          "of": 200,
+          "rate": 0.99
+        },
+        "failure_labels": {
+          "syntax_error": 1
+        },
+        "headline_eligible": true,
+        "hidden_checks": {
+          "count": 396,
+          "executed": 396,
+          "of": 400,
+          "rate": 0.99
+        },
+        "model_calls": 218,
+        "model_latency_ms": {
+          "mean_per_trial": 4114.05,
+          "total": 411405,
+          "trials_measured": 100
+        },
+        "per_task": {
+          "dictionaries_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "dictionaries_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "lists_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "lists_02": {
+            "succeeded": 9,
+            "trials": 10
+          },
+          "numeric_logic_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "numeric_logic_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "parsing_formatting_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "parsing_formatting_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "strings_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "strings_02": {
+            "succeeded": 10,
+            "trials": 10
+          }
+        },
+        "primary": {
+          "count": 99,
+          "of": 100,
+          "rate": 0.99
+        },
+        "recovery": {
+          "of_which_final_success": 4,
+          "trials_with_failed_development_check": 5
+        },
+        "revisions": 1,
+        "tasks_passing_at_least_one_trial": {
+          "count": 10,
+          "of": 10,
+          "rate": 1.0
+        },
+        "tasks_passing_every_trial": {
+          "count": 9,
+          "of": 10,
+          "rate": 0.9
+        },
+        "tokens": {
+          "completion_tokens": 36704,
+          "prompt_tokens": 166594,
+          "total_tokens": 203298
+        },
+        "tool_attempts": 118,
+        "trial_wall_clock_ms": {
+          "mean_per_trial": 7930.0,
+          "total": 793000.0,
+          "trials_measured": 100
+        },
+        "trials_incomplete": 0,
+        "trials_measured": 100,
+        "trials_per_task": [
+          10
+        ],
+        "trials_ungraded": 0
+      },
+      "prompt": {
+        "sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+        "version": "baseline_agent_v1"
+      },
+      "run_id": "20261119T203431Z-380dc9",
+      "schedule_complete": true,
+      "schedule_problems": []
+    },
+    "revised": {
+      "bundle": "/Users/jolbax/Developer/devspace/cas_aml_mlops_project/run_bundles_v2/20261119T204755Z-60994f",
+      "classification": {
+        "classes": [],
+        "complete": true,
+        "infrastructure_statuses": []
+      },
+      "metrics": {
+        "attempts": {
+          "physical": 217,
+          "retries": 0,
+          "without_reported_cost": 0
+        },
+        "categories": {
+          "dictionaries": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "lists": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "numeric_logic": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "parsing_formatting": {
+            "count": 20,
+            "of": 20,
+            "rate": 1.0
+          },
+          "strings": {
+            "count": 19,
+            "of": 20,
+            "rate": 0.95
+          }
+        },
+        "cost": {
+          "charged_chf": 0.01469861449,
+          "reported_usd": 0.017931700000000002,
+          "reserved_before_send_chf": 0.1778749
+        },
+        "edge_cases": {
+          "count": 199,
+          "of": 200,
+          "rate": 0.995
+        },
+        "failure_labels": {
+          "wrong_answer": 1
+        },
+        "headline_eligible": true,
+        "hidden_checks": {
+          "count": 399,
+          "executed": 400,
+          "of": 400,
+          "rate": 0.9975
+        },
+        "model_calls": 217,
+        "model_latency_ms": {
+          "mean_per_trial": 4410.89,
+          "total": 441089,
+          "trials_measured": 100
+        },
+        "per_task": {
+          "dictionaries_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "dictionaries_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "lists_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "lists_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "numeric_logic_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "numeric_logic_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "parsing_formatting_01": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "parsing_formatting_02": {
+            "succeeded": 10,
+            "trials": 10
+          },
+          "strings_01": {
+            "succeeded": 9,
+            "trials": 10
+          },
+          "strings_02": {
+            "succeeded": 10,
+            "trials": 10
+          }
+        },
+        "primary": {
+          "count": 99,
+          "of": 100,
+          "rate": 0.99
+        },
+        "recovery": {
+          "of_which_final_success": 7,
+          "trials_with_failed_development_check": 8
+        },
+        "revisions": 7,
+        "tasks_passing_at_least_one_trial": {
+          "count": 10,
+          "of": 10,
+          "rate": 1.0
+        },
+        "tasks_passing_every_trial": {
+          "count": 9,
+          "of": 10,
+          "rate": 0.9
+        },
+        "tokens": {
+          "completion_tokens": 27855,
+          "prompt_tokens": 178725,
+          "total_tokens": 206580
+        },
+        "tool_attempts": 117,
+        "trial_wall_clock_ms": {
+          "mean_per_trial": 8170.0,
+          "total": 817000.0,
+          "trials_measured": 100
+        },
+        "trials_incomplete": 0,
+        "trials_measured": 100,
+        "trials_per_task": [
+          10
+        ],
+        "trials_ungraded": 0
+      },
+      "prompt": {
+        "sha256": "f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b",
+        "version": "baseline_agent_v2"
+      },
+      "run_id": "20261119T204755Z-60994f",
+      "schedule_complete": true,
+      "schedule_problems": []
+    }
+  }
+}

@@ -1,0 +1,6 @@
+completeness: COMPLETE — 100 of 100 planned trials have intact records
+bundle digest (sha256 of manifest.json): 233fb0e8d7a61fb13ee18b6ce2c1064c7ebc058868b019238b8b35af77bef6f3
+completeness: COMPLETE — 100 of 100 planned trials have intact records
+bundle digest (sha256 of manifest.json): 5e2882e43d8bbe1f021a78b848287d5bcd72492b95056b1a6250758a71adf8e0
+completeness: COMPLETE — 100 of 100 planned trials have intact records
+bundle digest (sha256 of manifest.json): b61b5243d870948b8e4c3204cbdfddd4659e61c2a5e7af40968e2f26f031d1a6

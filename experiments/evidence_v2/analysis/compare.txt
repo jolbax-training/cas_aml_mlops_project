@@ -1,0 +1,23 @@
+experiment prompt_comparison_v2: headline comparison
+baseline: run 20261119T203431Z-380dc9 prompt baseline_agent_v1
+  primary (successful task trials / planned): 99/100 (99.0%); incomplete trials 0, ungraded 0
+  hidden checks passed: 396/400 (99.0%); edge cases: 198/200 (99.0%)
+  tasks passing >=1 trial: 10/10 (100.0%); every trial: 9/10 (90.0%)
+  categories: dictionaries 20/20 (100.0%), lists 19/20 (95.0%), numeric_logic 20/20 (100.0%), parsing_formatting 20/20 (100.0%), strings 20/20 (100.0%)
+  failure labels: {'syntax_error': 1}
+  model calls 218, tool attempts 118, revisions 1, recovery {'trials_with_failed_development_check': 5, 'of_which_final_success': 4}
+  model latency ms {'total': 411405, 'trials_measured': 100, 'mean_per_trial': 4114.05}; trial wall clock ms {'total': 793000.0, 'trials_measured': 100, 'mean_per_trial': 7930.0}; tokens {'prompt_tokens': 166594, 'completion_tokens': 36704, 'total_tokens': 203298}
+  attempts {'physical': 218, 'retries': 0, 'without_reported_cost': 0}; cost {'reported_usd': 0.021676874999999998, 'charged_chf': 0.0177685344375, 'reserved_before_send_chf': 0.1786946}
+revised: run 20261119T204755Z-60994f prompt baseline_agent_v2
+  primary (successful task trials / planned): 99/100 (99.0%); incomplete trials 0, ungraded 0
+  hidden checks passed: 399/400 (99.8%); edge cases: 199/200 (99.5%)
+  tasks passing >=1 trial: 10/10 (100.0%); every trial: 9/10 (90.0%)
+  categories: dictionaries 20/20 (100.0%), lists 20/20 (100.0%), numeric_logic 20/20 (100.0%), parsing_formatting 20/20 (100.0%), strings 19/20 (95.0%)
+  failure labels: {'wrong_answer': 1}
+  model calls 217, tool attempts 117, revisions 7, recovery {'trials_with_failed_development_check': 8, 'of_which_final_success': 7}
+  model latency ms {'total': 441089, 'trials_measured': 100, 'mean_per_trial': 4410.89}; trial wall clock ms {'total': 817000.0, 'trials_measured': 100, 'mean_per_trial': 8170.0}; tokens {'prompt_tokens': 178725, 'completion_tokens': 27855, 'total_tokens': 206580}
+  attempts {'physical': 217, 'retries': 0, 'without_reported_cost': 0}; cost {'reported_usd': 0.017931700000000002, 'charged_chf': 0.01469861449, 'reserved_before_send_chf': 0.1778749}
+difference (revised - baseline): +0 successful trials (+0.0%)
+  gained tasks: ['lists_02']
+  regressed tasks: ['strings_01']
+  unchanged tasks: 8

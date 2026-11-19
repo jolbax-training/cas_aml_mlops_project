@@ -1,0 +1,29 @@
+experiment prompt_comparison_v2: at-scale analysis (descriptive; no significance claim)
+baseline (baseline): run 20261119T203431Z-380dc9 prompt baseline_agent_v1
+  primary: 99/100 (99.0%); Wilson 95% interval [0.9455, 0.9982] (trials treated as independent)
+  per task: dictionaries_01 10/10, dictionaries_02 10/10, lists_01 10/10, lists_02 9/10, numeric_logic_01 10/10, numeric_logic_02 10/10, parsing_formatting_01 10/10, parsing_formatting_02 10/10, strings_01 10/10, strings_02 10/10
+  hidden checks: 396/400 (99.0%); edge cases: 198/200 (99.0%); tasks passing every trial: 9/10 (90.0%)
+  failure labels: {'syntax_error': 1}
+  model calls 218, tool attempts 118, revisions 1; tokens {'prompt_tokens': 166594, 'completion_tokens': 36704, 'total_tokens': 203298}
+  charged CHF 0.01776853; cost {'reported_usd': 0.021676874999999998, 'charged_chf': 0.0177685344375, 'reserved_before_send_chf': 0.1786946}
+revised (revised): run 20261119T204755Z-60994f prompt baseline_agent_v2
+  primary: 99/100 (99.0%); Wilson 95% interval [0.9455, 0.9982] (trials treated as independent)
+  per task: dictionaries_01 10/10, dictionaries_02 10/10, lists_01 10/10, lists_02 10/10, numeric_logic_01 10/10, numeric_logic_02 10/10, parsing_formatting_01 10/10, parsing_formatting_02 10/10, strings_01 9/10, strings_02 10/10
+  hidden checks: 399/400 (99.8%); edge cases: 199/200 (99.5%); tasks passing every trial: 9/10 (90.0%)
+  failure labels: {'wrong_answer': 1}
+  model calls 217, tool attempts 117, revisions 7; tokens {'prompt_tokens': 178725, 'completion_tokens': 27855, 'total_tokens': 206580}
+  charged CHF 0.01469861; cost {'reported_usd': 0.017931700000000002, 'charged_chf': 0.01469861449, 'reserved_before_send_chf': 0.1778749}
+repeat (baseline): run 20261119T210148Z-43a702 prompt baseline_agent_v1
+  primary: 97/100 (97.0%); Wilson 95% interval [0.9155, 0.9897] (trials treated as independent)
+  per task: dictionaries_01 10/10, dictionaries_02 10/10, lists_01 10/10, lists_02 9/10, numeric_logic_01 9/10, numeric_logic_02 10/10, parsing_formatting_01 10/10, parsing_formatting_02 10/10, strings_01 9/10, strings_02 10/10
+  hidden checks: 388/400 (97.0%); edge cases: 194/200 (97.0%); tasks passing every trial: 7/10 (70.0%)
+  failure labels: {'contract_error': 1, 'syntax_error': 2}
+  model calls 222, tool attempts 122, revisions 3; tokens {'prompt_tokens': 171236, 'completion_tokens': 39809, 'total_tokens': 211045}
+  charged CHF 0.01886906; cost {'reported_usd': 0.023019475, 'charged_chf': 0.0188690636575, 'reserved_before_send_chf': 0.1819734}
+baseline_vs_revised (revised - baseline): comparable
+  difference: +0 successful trials (+0.0%); intervals overlap: True (descriptive aid, not a test)
+  gained tasks: ['lists_02']; regressed tasks: ['strings_01']; unchanged: 8
+baseline_vs_repeat (repeat - baseline): comparable
+  difference: -2 successful trials (-2.0%); intervals overlap: True (descriptive aid, not a test)
+  gained tasks: none; regressed tasks: ['numeric_logic_01', 'strings_01']; unchanged: 8
+charged CHF over these runs: 0.05133620 (limit CHF 1: not exceeded)
