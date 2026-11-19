@@ -1,0 +1,14 @@
+{
+  "command": "python -m pytest -q -m sandbox",
+  "container_image": "docker.io/library/python@sha256:950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5",
+  "container_platform": "arm64",
+  "errors": 0,
+  "evaluator_code_sha256": "313c67e9e3d9611e7dc58ba8ab4190e66573a5c75ae415695d684de2c69f4c48",
+  "failures": 0,
+  "junit_file": "probes.junit.xml",
+  "junit_sha256": "2ee6612964321a912680782d7f93f7f0ccde9e98480ca3ad3f189e76394025b4",
+  "recorded_at": "2026-11-19T20:34:15+00:00",
+  "schema_version": 1,
+  "skipped": 0,
+  "tests": 67
+}
