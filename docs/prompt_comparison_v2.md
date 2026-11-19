@@ -20,7 +20,7 @@ Per run: the metrics of the first comparison, the successes out of 10 for each t
 
 ## Stop rules for the paid runs
 
-Stop and ask the user if the actual charged spend of the v2 runs (summed from the bundles) exceeds CHF 1, if any run ends incomplete, or if the ledger's CHF 10 checkpoint is reached. The worst-case reservation checked before a run (CHF 0.0008197 per attempt, at most 600 attempts per run; about CHF 1.4755 for all three runs) is accepted: it is below the checkpoint and the CHF 15 ceiling. The first comparison charged CHF 0.00275 and CHF 0.00297 for 30 trials each, so about CHF 0.03 is expected for 300 trials.
+Stop and ask the user if the actual charged spend of the v2 runs (summed from the bundles) exceeds CHF 1, if any run ends incomplete, or if the ledger's CHF 10 checkpoint is reached. The worst-case reservation checked before a run (CHF 0.0008197 per attempt, at most 600 attempts per run; about CHF 1.4755 for all three runs) is accepted: it is below the checkpoint and the CHF 15 ceiling. The first comparison charged CHF 0.00275 and CHF 0.00297 for 30 trials each, so about CHF 0.03 was expected for 300 trials. The actual charge was CHF 0.0513362 for the 300 trials (about CHF 0.000171 per trial, against about CHF 0.0000953 per trial in the first comparison, roughly 1.8 times): above the expectation made before the runs and far below the CHF 1 limit. The bundles do not separate pricing, token counts and provider, so no cause is stated.
 
 ## Evidence references
 
@@ -120,7 +120,7 @@ Not examined for this document: the failed trials were not inspected with `trace
 - **Correlated trials.** The ten trials of one task are not independent, and the ten tasks are not a random sample. The Wilson intervals treat the 100 trials of a run as independent and are therefore narrower than the uncertainty about other tasks.
 - **One repeat.** A single repeat of the baseline measures run-to-run variation only roughly.
 - **Single model and provider.** One model (`z-ai/glm-5.3-flash`) through one provider tag with fallbacks off; nothing transfers to other models. A fixed model identifier does not guarantee immutable upstream weights, and the provider returned no precision field in the first comparison.
-- **Sampling.** Temperature 0.2, top_p 1.0, no seed; the runs are sequential over hours, and provider drift remains possible within and between them.
+- **Sampling.** Temperature 0.2, top_p 1.0, no seed; the three runs were sequential over about 41 minutes (20:34 to 21:15 UTC on 2026-11-19), and provider drift remains possible within and between them.
 - **Benchmark reviewed by models only**, no human review (see [benchmark_review.md](benchmark_review.md)).
 
 ## Decision
