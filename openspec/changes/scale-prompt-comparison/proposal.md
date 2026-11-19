@@ -25,7 +25,7 @@ The first comparison (`prompt_comparison_v1`: `baseline_agent_v1` against `basel
 
 ## Impact
 
-- Code: `src/codegen_eval/experiment.py` (parameterised `build_config`, drift check, overwrite guards), `src/codegen_eval/experiment_cli.py` (`build-config` and `run` options), new `src/codegen_eval/scale_analysis.py`; tests in `tests/test_experiment.py` and a new `tests/test_scale_analysis.py`. Appended sections only, no existing text changed: `README.md`, `docs/demo.md`, `docs/work_log.toml`, `docs/progress.md`. Evaluator code changes, so a new probe record is needed for v2 (the v1 probe record is untouched).
+- Code: `src/codegen_eval/experiment.py` (parameterised `build_config`, drift check, overwrite guards), `src/codegen_eval/experiment_cli.py` (`build-config` and `run` options), new `src/codegen_eval/scale_analysis.py`; tests in `tests/test_experiment.py` (adapted), `tests/test_architecture_diagrams.py` (module list) and new `tests/test_scale_config.py` and `tests/test_scale_analysis.py`. Appended sections only, no existing text changed: `README.md`, `docs/demo.md`, `docs/work_log.toml`, `docs/progress.md`. Evaluator code changes, so a new probe record is needed for v2 (the v1 probe record is untouched).
 - Data: only new files; v1 config, evidence, documents, bundles and the spend ledger are never written by this change (the paid commands append to the ledger through their normal budget path).
 - Cost: paid runs by the coordinator only; projection in `design.md`.
 - Milestone: extends the completed comparison phase (optional enrichment, beyond the 32-hour scope's required evidence); no dependency of any required deliverable on it.

@@ -275,6 +275,14 @@ def _read_evidence(path: Path, what: str) -> dict[str, Any]:
     return data
 
 
+def refuse_existing_probes(evidence_dir: str | Path) -> None:
+    """Probe evidence is never replaced; checked before the suite runs so a refusal costs nothing."""
+    for name in (PROBES_FILE, JUNIT_FILE):
+        if (Path(evidence_dir) / name).exists():
+            raise ExperimentError(f"refusing to replace {Path(evidence_dir) / name}: probe evidence "
+                                  "already exists; remove it deliberately if it is to be replaced")
+
+
 def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *,
                           command: str, junit_xml: str | None = None,
                           container_platform: str = HOST_PLATFORM) -> Path:
@@ -282,10 +290,7 @@ def write_probes_evidence(evidence_dir: str | Path, counts: Mapping[str, int], *
     The junit report is kept beside the record and its SHA-256 stored in it, so the counts
     can be checked against the report afterwards."""
     directory = Path(evidence_dir)
-    for name in (PROBES_FILE, JUNIT_FILE):
-        if (directory / name).exists():
-            raise ExperimentError(f"refusing to replace {directory / name}: probe evidence already "
-                                  "exists; remove it deliberately if it is to be replaced")
+    refuse_existing_probes(directory)
     directory.mkdir(parents=True, exist_ok=True)
     record: dict[str, Any] = {
         "schema_version": 1, "recorded_at": utc_now(), "command": command,

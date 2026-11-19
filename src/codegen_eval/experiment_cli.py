@@ -27,7 +27,7 @@ from codegen_eval.bundle import DEFAULT_BUNDLE_ROOT, BundleError, resolve_bundle
 from codegen_eval.comparison import compare_runs, render_comparison
 from codegen_eval.experiment import (
     DEFAULT_BENCHMARK, DEFAULT_CONFIG, DEFAULT_EVIDENCE_DIR, EXPERIMENT_ID, TRIALS_PER_TASK, VARIANTS, ExperimentError,
-    PreconditionsFailed, build_config, calibrate, check_preconditions, load_config,
+    PreconditionsFailed, build_config, refuse_existing_probes, calibrate, check_preconditions, load_config,
     run_variant, write_config, write_probes_evidence, write_settings_freeze, config_drift,
 )
 from codegen_eval.ledger import Ledger, default_ledger_path
@@ -122,6 +122,7 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
 
     try:
         if args.command == "record-probes":
+            refuse_existing_probes(args.evidence)
             suite = probe_suite()
             path = write_probes_evidence(args.evidence, suite, junit_xml=suite.get("junit_xml"),
                                          command="python " + " ".join(PROBE_COMMAND))
@@ -143,11 +144,12 @@ def main(argv: Sequence[str] | None = None, *, env: Mapping[str, str] | None = N
             # host must not silently change what the experiment is for.
             recorded = current.data["settings"].get("container_platform") if current else None
             platform_name = args.container_platform or recorded or HOST_PLATFORM
+            existed = Path(args.config).is_file()
             path = write_config(build_config(args.benchmark, revised_prompt=revised,
                                              experiment_id=args.experiment_id,
                                              trials_per_task=args.trials_per_task,
                                              container_platform=platform_name), args.config)
-            print(f"wrote {path}")
+            print(f"{'unchanged' if existed else 'wrote'} {path}")   # an existing file is only ever identical
             return 0
         config = load_config(args.config)
         if args.command == "calibrate":

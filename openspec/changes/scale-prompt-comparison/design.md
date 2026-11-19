@@ -10,7 +10,7 @@ Findings from reading the code (not assumptions):
 - `check` gates (all recomputed on each start): `cost_acceptance`, `api_key`, `variant_prompt`, `config_current` (configuration against the repository), `container_host`, `benchmark_freeze`, `probes` (probe record bound to the evaluator code hash, which hashes every `*.py` under `src/codegen_eval/`, so any code change in this change invalidates earlier probe records), `settings_frozen` (freeze record must name this experiment id and settings hash), `smoke_trace` and `calibration` (recomputed from the retained smoke bundle named in the freeze record), `budget_projection`, `prior_run`.
 - Evidence is read from `--evidence` (default `DEFAULT_EVIDENCE_DIR`, `experiments/evidence/` under the package root, so this worktree's directory, which does not exist here; v1's real evidence is in the primary checkout), where `record-probes` and `freeze-settings` write `probes.json`, `probes.junit.xml` and `settings_freeze.json` with fixed names and replace them without question. Run from the primary checkout without `--evidence`, they would overwrite v1's record. `write_config` likewise rewrites the file at `--config` (default `experiments/prompt_comparison_v1.json`) unconditionally, and `build-config --trials-per-task 10` with no `--config` would turn v1's file into a 100-entry schedule.
 - `compare` and `compare_runs` take the variant names from their position (`--baseline`, `--revised`) and verify each bundle against that variant's prompt, so they cannot compare a baseline with a baseline repeat. `_identity_differences` already encodes "only the prompt may differ" and requires equal `schedule_sha256`, `settings_hash` and `evaluator_code_sha256`.
-- `record_bundle` (MLflow) takes `experiment=` (default `codegen-eval-runs`, used by v1); `experiment_cli run` offers only `--tracking-uri`/`--no-tracking`, so v2 runs use `--no-tracking` and `mlflow_tracking record --experiment <name>` afterwards, as v1 did.
+- `record_bundle` (MLflow) takes `experiment=` (default `codegen-eval-runs`, used by v1); `experiment_cli run` offered (before this change) only `--tracking-uri`/`--no-tracking`; `run --experiment` is added here, and the sequence still uses `--no-tracking` and `mlflow_tracking record --experiment <name>` afterwards, as v1 did.
 - The budget projection in `check` is the ledger total plus the worst case of every variant still to run: attempts = trials x (4 model calls + 2 retries per trial) at the pre-send reservation per attempt. It prints nothing unless it fails.
 
 See proposal.md for motivation.
@@ -39,7 +39,7 @@ See proposal.md for motivation.
 - MLflow: same service, experiment `codegen-eval-prompt-comparison-v2` (`mlflow_tracking record --experiment ...`), so the v1 runs in `codegen-eval-runs` are not touched. `run` also gets `--experiment` (default unchanged) so a forgotten `--no-tracking` cannot record v2 into the v1 experiment.
 - Retained smoke evidence is reused read-only: `freeze-settings --smoke-bundle $SMOKE` (the v1 smoke bundle `$P/run_bundles/20261103T050806Z-30949f`; `calibrate` only reads it and checks model-config hash and image). The settings and model are identical, so no new paid smoke is needed.
 
-**4. Overwrite guards (the only changes to existing commands).** `write_config`, `write_settings_freeze` and `write_probes_evidence` refuse to replace an existing file (and the junit file beside the probe record) whose content differs from what would be written; writing identical bytes is a no-op. The message names the path and says to remove it deliberately to replace it. This covers every missed-flag case: a `--config` or `--evidence` left at its default, with or without `--experiment-id` or `--trials-per-task`, cannot change v1's configuration or any evidence file. Consequence: regenerating a configuration (for example setting the revised prompt later, as v1 did) or re-recording probes after a code change needs the old file removed on purpose; for v2 that is the coordinator's own file under `experiments/evidence_v2/`. Alternatives: a guard keyed on experiment id only, which a missed `--experiment-id` defeats; deriving the evidence directory from the experiment id, a larger change. Tests prove: defaults unchanged (`build_config()` without arguments equals the recorded v1 sections; `build-config --check` passes on v1; default `--bundles` is `run_bundles`), each refusal leaves its target byte-identical, and the v1 configuration's sha256 is the same before and after the whole change.
+**4. Overwrite guards (the only changes to existing commands).** `write_config`, `write_settings_freeze` and `write_probes_evidence` refuse to replace an existing file (and the junit file beside the probe record) whose content differs from what would be written; for the configuration, writing identical bytes is a no-op (`build-config` then says `unchanged`); a settings freeze or probe record is refused whenever any file exists, whatever its content (a probe record always differs by its timestamp). `record-probes` checks before running the suite, so a refusal costs nothing. The message names the path and says to remove it deliberately to replace it. This covers every missed-flag case: a `--config` or `--evidence` left at its default, with or without `--experiment-id` or `--trials-per-task`, cannot change v1's configuration or any evidence file. Consequence: regenerating a configuration (for example setting the revised prompt later, as v1 did) or re-recording probes after a code change needs the old file removed on purpose; for v2 that is the coordinator's own file under `experiments/evidence_v2/`. Alternatives: a guard keyed on experiment id only, which a missed `--experiment-id` defeats; deriving the evidence directory from the experiment id, a larger change. Tests prove: defaults unchanged (`build_config()` without the new arguments, built for v1's recorded platform, equals the recorded v1 sections (the default platform is the host's, and CI is amd64); `build-config --check` passes on v1; default `--bundles` is `run_bundles`), each refusal leaves its target byte-identical, and the v1 configuration's sha256 is the same before and after the whole change.
 
 **5. Analysis: `codegen_eval.scale_analysis`, offline, no model client, no ledger, no sandbox.** `python -m codegen_eval.scale_analysis --config C --bundles B --baseline RUN_A --revised RUN_B --repeat RUN_C [--json]`. For each run it calls the existing `summarize_bundle`, `verify_schedule(bundle, config, variant)` (A and C as baseline, B as revised) and `variant_metrics`, so the figures are the same as `compare`'s; adds per-task `k/10` and the Wilson 95% interval for `primary.count / primary.of`:
 
@@ -51,26 +51,53 @@ reported to four decimals, `[max(0, centre - half), min(1, centre + half)]`. Eac
 
 **7. v1 documents.** v1 files are not edited. If the user wants a pointer from `docs/prompt_comparison.md` to the v2 comparison, only one dated note line is added at the end of the document in the follow-up that writes the v2 results; this change adds none now and says so in its report.
 
-**8. Command sequence for the coordinator** (all from the worktree root of the branch carrying the implementation, at its final commit; `src/codegen_eval/*.py` must not change between `record-probes` and the last run, because the evaluator code hash is compared across the three runs and with the probe record; record that commit with the results). Shell variables:
+**8. Command sequence for the coordinator.** All commands run from the worktree root of the branch carrying the implementation, at its final commit; `src/codegen_eval/*.py` must not change between `record-probes` and the last run, because the evaluator code hash is compared across the three runs and with the probe record (record that commit with the results). Commands are written out literally, with no command variable; the plain path variables below work in zsh and bash, and every use is double-quoted. `PYTHONPATH=src` is exported once (the package is not installed in the venv).
 
+    export PYTHONPATH=src
     P=/Users/jolbax/Developer/devspace/cas_aml_mlops_project
     CFG=experiments/prompt_comparison_v2.json
-    B=$P/run_bundles_v2
+    B="$P/run_bundles_v2"
     EV=experiments/evidence_v2
-    SMOKE=$P/run_bundles/20261103T050806Z-30949f
-    PR=~/.codegen_eval/pricing_2026-11-03.json
-    X="PYTHONPATH=src .venv/bin/python -m codegen_eval.experiment_cli"
+    SMOKE="$P/run_bundles/20261103T050806Z-30949f"
+    PR="$HOME/.codegen_eval/pricing_2026-11-03.json"
 
-Once (no key; Podman only for the probes): `$X build-config --check --config $CFG` must say "configuration matches the repository"; `$X record-probes --config $CFG --evidence $EV` (Podman probe suite; skipped must be 0); the settings freeze is committed with this change, so `$X freeze-settings --config $CFG --evidence $EV --smoke-bundle $SMOKE --note ...` is only needed if `$EV/settings_freeze.json` is absent.
+Once (no key; Podman only for the probes). `build-config --check` must say "configuration matches the repository"; `record-probes` runs the Podman probe suite (skipped must be 0) and is refused, before the suite runs, if a probe record already exists; the settings freeze is committed with this change, so `freeze-settings` is only needed if `experiments/evidence_v2/settings_freeze.json` is absent. Commit `probes.json` and `probes.junit.xml` afterwards.
 
-Per run N (1 baseline, 2 revised, 3 baseline with `--allow-rerun`), in this order, waiting for each to finish:
-1. `$X check --variant V [--allow-rerun for run 3] --config $CFG --evidence $EV --bundles $B --pricing $PR --smoke-bundle $SMOKE --i-accept-cost` must print `all preconditions hold` (the key is read from the environment by the CLI, as in v1). For run 3, the same command without `--allow-rerun` must print exactly one unmet precondition, `prior_run`, naming run 1: a confirmation that run 1's marker is seen.
-2. `$X run --variant V [--allow-rerun for run 3] --config $CFG --evidence $EV --bundles $B --pricing $PR --smoke-bundle $SMOKE --i-accept-cost --no-tracking`; note the printed `bundle:` and run ID.
-3. `PYTHONPATH=src .venv/bin/python -m codegen_eval.trace_inspect --bundles $B verify RUN_N` must say COMPLETE, 100 of 100.
-4. `PYTHONPATH=src .venv/bin/python -m codegen_eval.scale_analysis --config $CFG --bundles $B --baseline RUN_1 [--revised RUN_2] [--repeat RUN_3]` with the runs finished so far; it prints the charged CHF per run and the total.
-5. Stop and ask the user if the run printed `complete=False` or exited non-zero, if the printed `CHF 10 checkpoint reached` is `True`, or if the charged total exceeds CHF 1 (`scale_analysis` exits 3). No stop exists inside a run below the CHF 15 ceiling; the rule is applied between runs only.
+    .venv/bin/python -m codegen_eval.experiment_cli build-config --check --config "$CFG"
+    .venv/bin/python -m codegen_eval.experiment_cli record-probes --config "$CFG" --evidence "$EV"
 
-After the three runs: `mlflow_tracking record RUN_N --bundles $B --tracking-uri http://127.0.0.1:5001 --experiment codegen-eval-prompt-comparison-v2` for each (service up, free), then `$X compare --config $CFG --bundles $B --baseline RUN_1 --revised RUN_2` and `scale_analysis` with all three runs (text and `--json`), saved under `$EV/analysis/`.
+Per run, in this order, waiting for each command to finish. The `check` must print `all preconditions hold` (the key is read from the environment by the CLI, as in v1). The `run` prints the `bundle:` and the run ID to note. The `verify` must say COMPLETE, 100 of 100. The `scale_analysis` prints the charged CHF per run and the total.
+
+Run 1, baseline:
+
+    .venv/bin/python -m codegen_eval.experiment_cli check --variant baseline --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost
+    .venv/bin/python -m codegen_eval.experiment_cli run --variant baseline --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost --no-tracking
+    .venv/bin/python -m codegen_eval.trace_inspect --bundles "$B" verify RUN_1
+    .venv/bin/python -m codegen_eval.scale_analysis --config "$CFG" --bundles "$B" --baseline RUN_1
+
+Run 2, revised:
+
+    .venv/bin/python -m codegen_eval.experiment_cli check --variant revised --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost
+    .venv/bin/python -m codegen_eval.experiment_cli run --variant revised --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost --no-tracking
+    .venv/bin/python -m codegen_eval.trace_inspect --bundles "$B" verify RUN_2
+    .venv/bin/python -m codegen_eval.scale_analysis --config "$CFG" --bundles "$B" --baseline RUN_1 --revised RUN_2
+
+Run 3, baseline repeat. The first command (the `check` without `--allow-rerun`) must print exactly one unmet precondition, `prior_run`, naming run 1, which confirms that run 1's marker is seen; the second and third carry `--allow-rerun`:
+
+    .venv/bin/python -m codegen_eval.experiment_cli check --variant baseline --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost
+    .venv/bin/python -m codegen_eval.experiment_cli check --variant baseline --allow-rerun --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost
+    .venv/bin/python -m codegen_eval.experiment_cli run --variant baseline --allow-rerun --config "$CFG" --evidence "$EV" --bundles "$B" --pricing "$PR" --smoke-bundle "$SMOKE" --i-accept-cost --no-tracking
+    .venv/bin/python -m codegen_eval.trace_inspect --bundles "$B" verify RUN_3
+    .venv/bin/python -m codegen_eval.scale_analysis --config "$CFG" --bundles "$B" --baseline RUN_1 --revised RUN_2 --repeat RUN_3
+
+After each run, stop and ask the user if the run printed `complete=False` or exited non-zero, if the printed `CHF 10 checkpoint reached` is `True`, or if the charged total exceeds CHF 1 (`scale_analysis` exits 3). No stop exists inside a run below the CHF 15 ceiling; the rule is applied between runs only.
+
+After the three runs (MLflow service up, free): the `record` command once for each of RUN_1, RUN_2 and RUN_3 (replace RUN_N), then the comparison and the analysis in text and JSON, saved under `experiments/evidence_v2/analysis/`:
+
+    .venv/bin/python -m codegen_eval.mlflow_tracking record RUN_N --bundles "$B" --tracking-uri http://127.0.0.1:5001 --experiment codegen-eval-prompt-comparison-v2
+    .venv/bin/python -m codegen_eval.experiment_cli compare --config "$CFG" --bundles "$B" --baseline RUN_1 --revised RUN_2
+    .venv/bin/python -m codegen_eval.scale_analysis --config "$CFG" --bundles "$B" --baseline RUN_1 --revised RUN_2 --repeat RUN_3
+    .venv/bin/python -m codegen_eval.scale_analysis --config "$CFG" --bundles "$B" --baseline RUN_1 --revised RUN_2 --repeat RUN_3 --json
 
 **9. Projected cost** (offline, `PriceInputs.reservation_chf` with `~/.codegen_eval/pricing_2026-11-03.json` and the model configuration `openrouter_glm_v1`: 12,000 input and 2,000 output tokens per attempt, margin 0.25): CHF 0.0008197 per attempt. A run is at most 100 x (4 + 2) = 600 physical attempts. What `check` compares with the CHF 15 ceiling is the ledger total (read by the CLI, not by this change; about CHF 0.0068 after v1 according to the v1 write-up) plus, for run 1, the worst case of both variants not yet done (1,200 attempts, CHF 0.9836), for run 2 the revised variant (600 attempts, CHF 0.4918), for run 3 the repeat (600 attempts, CHF 0.4918). Worst case for all three runs: 1,800 attempts, CHF 1.4755 (v1's equivalent was 360 attempts, CHF 0.2951 plus the ledger total, the CHF 0.2962 recorded). Expected spend is far lower: v1 charged CHF 0.00275 and 0.00297 for 30 trials, so about CHF 0.009 to 0.010 per 100-trial run, about CHF 0.03 for all three. Decision of the user: the CHF 1 stop rule is on actual charged spend of the v2 runs (sum of `cost.charged_chf` over the v2 bundles, checked between runs), and the worst-case reservation (CHF 1.4755 for three runs) is accepted: it is under the CHF 10 checkpoint and the CHF 15 ceiling.
 

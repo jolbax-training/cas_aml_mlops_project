@@ -119,7 +119,7 @@ def compare_pair(first: Mapping[str, Any], second: Mapping[str, Any]) -> dict[st
 
 def analyse(config: ExperimentConfig, bundles: str | Path, runs: Mapping[str, str],
             benchmark_path: str | Path = DEFAULT_BENCHMARK,
-            charged_limit_chf: str = CHARGED_LIMIT_CHF) -> dict[str, Any]:
+            charged_limit_chf: str | Decimal = CHARGED_LIMIT_CHF) -> dict[str, Any]:
     """`runs` maps a label (baseline, revised, repeat) to a run id under `bundles`."""
     analysed = {label: analyse_run(label, resolve_bundle(bundles, run), benchmark_path, config)
                 for label, run in runs.items()}
@@ -178,6 +178,13 @@ def render(result: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _decimal(text: str) -> Decimal:
+    try:
+        return Decimal(text)
+    except ArithmeticError:
+        raise argparse.ArgumentTypeError(f"not a number: {text!r}") from None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Offline analysis of the at-scale prompt comparison.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
@@ -186,7 +193,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--baseline", required=True, help="run id of the first baseline run")
     parser.add_argument("--revised", help="run id of the revised run")
     parser.add_argument("--repeat", help="run id of the baseline repeat")
-    parser.add_argument("--charged-limit-chf", default=CHARGED_LIMIT_CHF)
+    parser.add_argument("--charged-limit-chf", type=_decimal, default=Decimal(CHARGED_LIMIT_CHF))
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     runs = {label: run for label, run in (("baseline", args.baseline), ("revised", args.revised),

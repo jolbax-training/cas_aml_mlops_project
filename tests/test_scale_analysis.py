@@ -228,3 +228,9 @@ def test_the_analysis_opens_no_ledger_and_no_network_and_writes_nothing(
 
     assert status == 0 and capsys.readouterr().out
     assert snapshot(env.bundles) == before
+
+
+def test_a_non_numeric_charged_limit_is_a_usage_error(capsys):
+    with pytest.raises(SystemExit) as exit_:
+        main(["--baseline", "x", "--charged-limit-chf", "one"])
+    assert exit_.value.code == 2 and "not a number" in capsys.readouterr().err

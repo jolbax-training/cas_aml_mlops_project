@@ -31,8 +31,13 @@ def test_the_first_configuration_is_byte_identical_to_the_recorded_one():
 
 def test_defaults_still_build_the_first_experiment():
     data = json.loads(V1.read_text())
-    built = build_config(BENCHMARK, revised_prompt="baseline_agent_v2")
+    # Built for v1's recorded platform: the default platform is this host's, and CI is amd64.
+    built = build_config(BENCHMARK, revised_prompt="baseline_agent_v2",
+                         container_platform=data["settings"]["container_platform"])
     assert built == data
+    default = build_config(BENCHMARK)
+    assert default["experiment_id"] == data["experiment_id"] == "prompt_comparison_v1"
+    assert default["trials_per_task"] == 3 and default["schedule"] == data["schedule"]
     assert main(["build-config", "--check"], env={}) == 0
 
 
@@ -155,3 +160,25 @@ def test_run_records_into_the_named_experiment_and_by_default_into_the_standard_
         cli_main(["run", "--variant", BASELINE, "--ledger", str(tmp_path / "ledger.jsonl"),
                   "--bundles", str(tmp_path / "bundles"), *extra], env={})
         assert seen == [expected]
+
+
+# --- review fixes ----------------------------------------------------------------------
+
+def test_build_config_says_unchanged_when_nothing_is_written(tmp_path, capsys):
+    target = tmp_path / "c.json"
+    args = ["build-config", "--experiment-id", "other_v1", "--trials-per-task", "1",
+            "--revised-prompt", "baseline_agent_v2", "--container-platform", "arm64",
+            "--config", str(target)]
+    assert main(args, env={}) == 0 and capsys.readouterr().out.startswith("wrote ")
+    assert main(args, env={}) == 0 and capsys.readouterr().out.startswith("unchanged ")
+
+
+def test_record_probes_refuses_before_running_the_suite(tmp_path, capsys):
+    (tmp_path / "probes.json").write_text("{}")
+
+    def suite():
+        raise AssertionError("the probe suite must not run when the record would be refused")
+
+    assert main(["record-probes", "--evidence", str(tmp_path)], env={}, probe_suite=suite) == 1
+    assert "refusing to replace" in capsys.readouterr().err
+    assert (tmp_path / "probes.json").read_text() == "{}"
