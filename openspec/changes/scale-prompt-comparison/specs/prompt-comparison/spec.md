@@ -95,14 +95,14 @@ The first comparison's counts SHALL enter the page only through a committed extr
 - **AND** the extract holds 27/30 and 29/30
 
 ### Requirement: Backup slide content
-The page SHALL show a headline built from the data, a chart of the five runs with Wilson 95% intervals and `k/n` labels, a per-task grid of ten tasks by five runs, failure counts split into formatting and other failures, and a limits strip, and MUST state facts only.
+The page SHALL show a headline built from the data, a chart of the five runs with Wilson 95% intervals and `k/n` labels, a per-task grid of ten tasks by five runs, failure counts split into formatting and other failures, and a limits strip, and MUST state facts only, apart from the user's framing words "Small samples mislead" at the start of the headline; the headline MUST give all three second-experiment counts.
 
 #### Scenario: Headline facts no longer hold
 - **WHEN** the data no longer shows what the headline template states
 - **THEN** the build fails with the reason and writes no page
 
 ### Requirement: Backup slide failure-type labels
-Failures SHALL be counted as formatting (`syntax_error`, `contract_error`) or other, shown with `f/n` per run and labelled as a small signal; the build MUST fail when the labels do not add up to the failed trials.
+Failures SHALL be counted as formatting (`syntax_error`, `contract_error`) or other, shown with `f/n` per run and labelled as a small signal; the build MUST fail when the labels do not add up to the failed, completed trials.
 
 #### Scenario: Labels do not add up
 - **WHEN** the failure labels of a run sum to a different number than its failed trials
@@ -116,9 +116,13 @@ The takeaway SHALL come from a user-written TOML file with a limit of 180 charac
 - **THEN** it exits non-zero and writes no page
 
 ### Requirement: Backup slide layout and print
-The page SHALL be a self-contained 16:9 landscape page with inline SVG, no script and no external request, deterministic, fitting 1920x1080 without scrolling with text of at least 20px, and printing to one landscape A4 page.
+The page SHALL be a self-contained 16:9 landscape page with inline SVG, no script and no external request, deterministic, fitting 1920x1080 without scrolling with slide text of at least 20px, sentences of at least 28px (the limits strip excepted) and chart text of at least 18px, and printing to one landscape A4 page (explicit `@page` and slide size).
 
 #### Scenario: Two builds
 - **WHEN** the page is built twice from the same inputs
 - **THEN** the files are byte-identical
+
+#### Scenario: Interval below the chart axis
+- **WHEN** a Wilson bound lies below the axis start
+- **THEN** the build fails with the reason
 
