@@ -1,0 +1,11 @@
+# User-written text for the backup slide.
+#
+# THE USER WRITES THIS SLOT. No tool, script or agent fills it, and it must never be changed to
+# hold generated text. An empty string means "not written yet": the page shows a visible
+# placeholder, and `scripts/build_backup_slide.py --require-user-text` fails.
+#
+#   takeaway   one or two lines, at most 180 characters
+#
+# After writing it, rebuild and commit the page: .venv/bin/python scripts/build_backup_slide.py
+
+takeaway = ""

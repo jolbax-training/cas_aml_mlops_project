@@ -1,6 +1,7 @@
 """The at-scale analysis (Wilson intervals, per-task counts, baseline/revised and
 baseline/repeat, charged CHF), offline over fixture bundles."""
 
+import hashlib
 import json
 import socket
 from decimal import Decimal
@@ -197,7 +198,8 @@ def test_charged_total_above_the_limit_exits_three(env, grader, inprocess_runner
 # --- the analysis only reads the bundles ----------------------------------------------
 
 def snapshot(root):
-    return sorted((str(p.relative_to(root)), p.stat().st_size, p.stat().st_mtime_ns)
+    return sorted((str(p.relative_to(root)), p.stat().st_size, p.stat().st_mtime_ns,
+                   hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else "")
                   for p in root.rglob("*"))
 
 

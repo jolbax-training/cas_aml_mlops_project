@@ -1,0 +1,21 @@
+experiment prompt_comparison_v1: at-scale analysis (descriptive; no significance claim)
+baseline (baseline): run 20261103T053309Z-280182 prompt baseline_agent_v1
+  primary: 27/30 (90.0%); Wilson 95% interval [0.7438, 0.9654] (trials treated as independent)
+  per task: dictionaries_01 3/3, dictionaries_02 3/3, lists_01 3/3, lists_02 0/3, numeric_logic_01 3/3, numeric_logic_02 3/3, parsing_formatting_01 3/3, parsing_formatting_02 3/3, strings_01 3/3, strings_02 3/3
+  hidden checks: 108/120 (90.0%); edge cases: 54/60 (90.0%); tasks passing every trial: 9/10 (90.0%)
+  failure labels: {'contract_error': 1, 'syntax_error': 2}
+  model calls 65, tool attempts 35, revisions 1; tokens {'prompt_tokens': 49947, 'completion_tokens': 9664, 'total_tokens': 59611}
+  charged CHF 0.00275298; cost {'reported_usd': 0.00335852, 'charged_chf': 0.0027529788439999998, 'reserved_before_send_chf': 0.0532805}
+revised (revised): run 20261103T095324Z-d25905 prompt baseline_agent_v2
+  primary: 29/30 (96.7%); Wilson 95% interval [0.8333, 0.9941] (trials treated as independent)
+  per task: dictionaries_01 3/3, dictionaries_02 3/3, lists_01 3/3, lists_02 3/3, numeric_logic_01 3/3, numeric_logic_02 3/3, parsing_formatting_01 3/3, parsing_formatting_02 3/3, strings_01 2/3, strings_02 3/3
+  hidden checks: 119/120 (99.2%); edge cases: 59/60 (98.3%); tasks passing every trial: 9/10 (90.0%)
+  failure labels: {'wrong_answer': 1}
+  model calls 60, tool attempts 30, revisions 0; tokens {'prompt_tokens': 47820, 'completion_tokens': 9865, 'total_tokens': 57685}
+  charged CHF 0.00297059; cost {'reported_usd': 0.003624001, 'charged_chf': 0.0029705936197, 'reserved_before_send_chf': 0.049182000000000003}
+baseline_vs_revised (revised - baseline): comparable
+  note: evaluator_revision differs (4f96e17ca2ab59a8172b7f2dea1412831671cf53 vs afb19fc510b3613cf721816f8d426ab2047d2f93); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added
+  note: evaluator_source_sha256 differs (4567eb9f1dc4e7647b51c5a7a3b91d5420e25ecd1629bf0f875f2af369d5d6f6 vs 763ce0091e6af9a85e571512da331dd677d8c1a62559d414089191ce5fe44d4c); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added
+  difference: +2 successful trials (+6.7%); intervals overlap: True (descriptive aid, not a test)
+  gained tasks: ['lists_02']; regressed tasks: ['strings_01']; unchanged: 8
+charged CHF over these runs: 0.00572357 (limit CHF 1: not exceeded)

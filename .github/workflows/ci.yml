@@ -66,6 +66,8 @@ jobs:
         run: .venv/bin/python scripts/record_demo.py check
       - name: Four-page report check (no browser)
         run: .venv/bin/python scripts/build_report.py check
+      - name: Backup slide check (committed page equals a fresh build)
+        run: .venv/bin/python scripts/build_backup_slide.py --check
 
   podman:
     name: podman

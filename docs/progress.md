@@ -1,6 +1,6 @@
 # Project progress and decisions
 
-Updated 2026-11-19. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
+Updated 2026-11-20. [The specification](project_spec.md) defines the current acceptance plan. [The Wayfinder map](../.scratch/revise-project-spec/map.md) retains Q1–Q42 and their resolutions; personal reflections remain in the [learning journal](learning_journal.md).
 
 ## Current status
 
@@ -20,6 +20,15 @@ Updated 2026-11-19. [The specification](project_spec.md) defines the current acc
 | Transfer design | Coordinator/worker/verifier/final-check scope agreed | Guide and six-scenario example drafted (design only, not executed); registered as work-log sources 2026-10-30 |
 
 Runtime observations above cite the dated entries below and the named evidence files; this status refresh ran no new live or container test. Historical eight-test failures were recorded in October 16 planning; they have not been rerun or treated as a new result.
+
+## 2026-11-20 — Backup slide for the second experiment (`scale-prompt-comparison`)
+
+Offline implementation on the same branch; no paid call, no key, no `src/` change (the recorded v2 probes stay valid).
+
+- **Built:** `scripts/build_backup_slide.py` (page, `--check`, `--require-user-text`), `backup_slide/user_text.toml` (takeaway empty, written by the student) and the committed `backup_slide/backup_slide.html`, generated from `experiments/evidence_v2/analysis/scale_analysis.json` and the new `scale_analysis_v1.json`/`.txt` only; a CI step runs `--check`. Nothing under `presentation/` or `report/` and none of the deck, report, evidence, chart or demo scripts is changed (`git diff main...HEAD --stat` lists none).
+- **First comparison untouched:** the v1 extract was made by `scale_analysis` read-only on the primary `run_bundles/`; the sorted sha256 listing of the 88 files (`run_bundles/`, `experiments/`, `docs/prompt_comparison.md`, `docs/comparison_evidence.md`) is identical before and after, and equal to `v1_checksums_before.txt`.
+- **Checks:** `.venv/bin/pytest -q` 1210 passed, 67 skipped (25 new tests in `tests/test_build_backup_slide.py`); sandbox group `-m "sandbox and not mlflow_service"` 64 passed; the three `mlflow_service` tests (local only, deselected in CI) failed in this environment at starting the MLflow container ("did not become healthy"), unrelated to the changed files.
+- **Left:** the browser check at 1920x1080 and the print check (coordinator), the takeaway text and the approval of the page (user).
 
 ## 2026-11-19 — At-scale comparison prepared and run (`scale-prompt-comparison`)
 

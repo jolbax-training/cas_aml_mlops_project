@@ -1,0 +1,499 @@
+{
+  "charged_chf_total": "0.00572357",
+  "charged_limit_chf": "1",
+  "charged_limit_exceeded": false,
+  "experiment_id": "prompt_comparison_v1",
+  "pairs": {
+    "baseline_vs_revised": {
+      "caveats": [
+        "evaluator_revision differs (4f96e17ca2ab59a8172b7f2dea1412831671cf53 vs afb19fc510b3613cf721816f8d426ab2047d2f93); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added",
+        "evaluator_source_sha256 differs (4567eb9f1dc4e7647b51c5a7a3b91d5420e25ecd1629bf0f875f2af369d5d6f6 vs 763ce0091e6af9a85e571512da331dd677d8c1a62559d414089191ce5fe44d4c); the evaluator code and prompt files are otherwise identical, so this is the revised prompt being added"
+      ],
+      "comparable": true,
+      "delta": {
+        "gained_tasks": [
+          "lists_02"
+        ],
+        "interval_note": "overlap is a descriptive aid, not a test",
+        "intervals_overlap": true,
+        "per_task": {
+          "dictionaries_01": {
+            "first": 3,
+            "second": 3
+          },
+          "dictionaries_02": {
+            "first": 3,
+            "second": 3
+          },
+          "lists_01": {
+            "first": 3,
+            "second": 3
+          },
+          "lists_02": {
+            "first": 0,
+            "second": 3
+          },
+          "numeric_logic_01": {
+            "first": 3,
+            "second": 3
+          },
+          "numeric_logic_02": {
+            "first": 3,
+            "second": 3
+          },
+          "parsing_formatting_01": {
+            "first": 3,
+            "second": 3
+          },
+          "parsing_formatting_02": {
+            "first": 3,
+            "second": 3
+          },
+          "strings_01": {
+            "first": 3,
+            "second": 2
+          },
+          "strings_02": {
+            "first": 3,
+            "second": 3
+          }
+        },
+        "primary_rate": 0.066667,
+        "primary_successes": 2,
+        "regressed_tasks": [
+          "strings_01"
+        ],
+        "unchanged_tasks": [
+          "dictionaries_01",
+          "dictionaries_02",
+          "lists_01",
+          "numeric_logic_01",
+          "numeric_logic_02",
+          "parsing_formatting_01",
+          "parsing_formatting_02",
+          "strings_02"
+        ]
+      },
+      "first": "baseline",
+      "reasons": [],
+      "second": "revised"
+    }
+  },
+  "runs": {
+    "baseline": {
+      "bundle": "/Users/jolbax/Developer/devspace/cas_aml_mlops_project/run_bundles/20261103T053309Z-280182",
+      "charged_chf": 0.00275298,
+      "headline_eligible": true,
+      "label": "baseline",
+      "metrics": {
+        "attempts": {
+          "physical": 65,
+          "retries": 0,
+          "without_reported_cost": 0
+        },
+        "categories": {
+          "dictionaries": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "lists": {
+            "count": 3,
+            "of": 6,
+            "rate": 0.5
+          },
+          "numeric_logic": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "parsing_formatting": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "strings": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          }
+        },
+        "cost": {
+          "charged_chf": 0.0027529788439999998,
+          "reported_usd": 0.00335852,
+          "reserved_before_send_chf": 0.0532805
+        },
+        "edge_cases": {
+          "count": 54,
+          "of": 60,
+          "rate": 0.9
+        },
+        "failure_labels": {
+          "contract_error": 1,
+          "syntax_error": 2
+        },
+        "headline_eligible": true,
+        "hidden_checks": {
+          "count": 108,
+          "executed": 108,
+          "of": 120,
+          "rate": 0.9
+        },
+        "model_calls": 65,
+        "model_latency_ms": {
+          "mean_per_trial": 15698.966666666667,
+          "total": 470969,
+          "trials_measured": 30
+        },
+        "per_task": {
+          "dictionaries_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "dictionaries_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "lists_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "lists_02": {
+            "succeeded": 0,
+            "trials": 3
+          },
+          "numeric_logic_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "numeric_logic_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "parsing_formatting_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "parsing_formatting_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "strings_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "strings_02": {
+            "succeeded": 3,
+            "trials": 3
+          }
+        },
+        "primary": {
+          "count": 27,
+          "of": 30,
+          "rate": 0.9
+        },
+        "recovery": {
+          "of_which_final_success": 1,
+          "trials_with_failed_development_check": 4
+        },
+        "revisions": 1,
+        "tasks_passing_at_least_one_trial": {
+          "count": 9,
+          "of": 10,
+          "rate": 0.9
+        },
+        "tasks_passing_every_trial": {
+          "count": 9,
+          "of": 10,
+          "rate": 0.9
+        },
+        "tokens": {
+          "completion_tokens": 9664,
+          "prompt_tokens": 49947,
+          "total_tokens": 59611
+        },
+        "tool_attempts": 35,
+        "trial_wall_clock_ms": {
+          "mean_per_trial": 19133.333333333332,
+          "total": 574000.0,
+          "trials_measured": 30
+        },
+        "trials_incomplete": 0,
+        "trials_measured": 30,
+        "trials_per_task": [
+          3
+        ],
+        "trials_ungraded": 0
+      },
+      "per_task": {
+        "dictionaries_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "dictionaries_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_02": {
+          "succeeded": 0,
+          "trials": 3
+        },
+        "numeric_logic_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_02": {
+          "succeeded": 3,
+          "trials": 3
+        }
+      },
+      "primary": {
+        "count": 27,
+        "of": 30,
+        "rate": 0.9
+      },
+      "prompt": {
+        "sha256": "bcf5e70c8d951e53440e140bf971e72ed8769ce5ad4307668e9ac7cb82d31c51",
+        "version": "baseline_agent_v1"
+      },
+      "run_id": "20261103T053309Z-280182",
+      "schedule_problems": [],
+      "started_at": null,
+      "variant": "baseline",
+      "wilson_95": {
+        "lower": 0.7438,
+        "method": "wilson",
+        "note": "trials treated as independent",
+        "upper": 0.9654,
+        "z": 1.959964
+      }
+    },
+    "revised": {
+      "bundle": "/Users/jolbax/Developer/devspace/cas_aml_mlops_project/run_bundles/20261103T095324Z-d25905",
+      "charged_chf": 0.00297059,
+      "headline_eligible": true,
+      "label": "revised",
+      "metrics": {
+        "attempts": {
+          "physical": 60,
+          "retries": 0,
+          "without_reported_cost": 0
+        },
+        "categories": {
+          "dictionaries": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "lists": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "numeric_logic": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "parsing_formatting": {
+            "count": 6,
+            "of": 6,
+            "rate": 1.0
+          },
+          "strings": {
+            "count": 5,
+            "of": 6,
+            "rate": 0.8333333333333334
+          }
+        },
+        "cost": {
+          "charged_chf": 0.0029705936197,
+          "reported_usd": 0.003624001,
+          "reserved_before_send_chf": 0.049182000000000003
+        },
+        "edge_cases": {
+          "count": 59,
+          "of": 60,
+          "rate": 0.9833333333333333
+        },
+        "failure_labels": {
+          "wrong_answer": 1
+        },
+        "headline_eligible": true,
+        "hidden_checks": {
+          "count": 119,
+          "executed": 120,
+          "of": 120,
+          "rate": 0.9916666666666667
+        },
+        "model_calls": 60,
+        "model_latency_ms": {
+          "mean_per_trial": 21674.633333333335,
+          "total": 650239,
+          "trials_measured": 30
+        },
+        "per_task": {
+          "dictionaries_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "dictionaries_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "lists_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "lists_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "numeric_logic_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "numeric_logic_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "parsing_formatting_01": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "parsing_formatting_02": {
+            "succeeded": 3,
+            "trials": 3
+          },
+          "strings_01": {
+            "succeeded": 2,
+            "trials": 3
+          },
+          "strings_02": {
+            "succeeded": 3,
+            "trials": 3
+          }
+        },
+        "primary": {
+          "count": 29,
+          "of": 30,
+          "rate": 0.9666666666666667
+        },
+        "recovery": {
+          "of_which_final_success": 0,
+          "trials_with_failed_development_check": 0
+        },
+        "revisions": 0,
+        "tasks_passing_at_least_one_trial": {
+          "count": 10,
+          "of": 10,
+          "rate": 1.0
+        },
+        "tasks_passing_every_trial": {
+          "count": 9,
+          "of": 10,
+          "rate": 0.9
+        },
+        "tokens": {
+          "completion_tokens": 9865,
+          "prompt_tokens": 47820,
+          "total_tokens": 57685
+        },
+        "tool_attempts": 30,
+        "trial_wall_clock_ms": {
+          "mean_per_trial": 25000.0,
+          "total": 750000.0,
+          "trials_measured": 30
+        },
+        "trials_incomplete": 0,
+        "trials_measured": 30,
+        "trials_per_task": [
+          3
+        ],
+        "trials_ungraded": 0
+      },
+      "per_task": {
+        "dictionaries_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "dictionaries_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "lists_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "numeric_logic_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_01": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "parsing_formatting_02": {
+          "succeeded": 3,
+          "trials": 3
+        },
+        "strings_01": {
+          "succeeded": 2,
+          "trials": 3
+        },
+        "strings_02": {
+          "succeeded": 3,
+          "trials": 3
+        }
+      },
+      "primary": {
+        "count": 29,
+        "of": 30,
+        "rate": 0.9666666666666667
+      },
+      "prompt": {
+        "sha256": "f7f797ed4215ea63df4deddaa867a30c6d554467a3d641a0330efa7c26905c1b",
+        "version": "baseline_agent_v2"
+      },
+      "run_id": "20261103T095324Z-d25905",
+      "schedule_problems": [],
+      "started_at": null,
+      "variant": "revised",
+      "wilson_95": {
+        "lower": 0.8333,
+        "method": "wilson",
+        "note": "trials treated as independent",
+        "upper": 0.9941,
+        "z": 1.959964
+      }
+    }
+  }
+}
