@@ -71,3 +71,54 @@ The paid runs SHALL stop and ask the user when the actual charged spend of the s
 #### Scenario: Charged spend above the limit after a run
 - **WHEN** the charged CHF summed over the finished runs of the second experiment exceeds 1
 - **THEN** no further run starts until the user decides
+
+### Requirement: Backup slide from committed evidence
+The system SHALL provide a script that generates a one-page backup slide from committed evidence files only (no bundle, ledger, key or network) and a `check` mode that fails when the committed page differs from a fresh build.
+
+#### Scenario: Page drifts from the evidence
+- **WHEN** the committed page differs from a build from the committed evidence
+- **THEN** `check` exits non-zero
+
+### Requirement: Backup slide leaves the presentation untouched
+The backup slide SHALL live outside `presentation/` and `report/`, and its change MUST NOT modify anything under those folders or the deck, report, evidence, chart and demo scripts; it MAY read the deck's CSS values and the committed logo.
+
+#### Scenario: Files changed by the backup slide
+- **WHEN** the change's files are listed
+- **THEN** none is under `presentation/` or `report/` or is one of the five presentation scripts
+
+### Requirement: First-comparison extract by read-only analysis
+The first comparison's counts SHALL enter the page only through a committed extract made by running `scale_analysis` on the retained v1 bundles, and the v1 bundle files MUST be byte-identical before and after that run.
+
+#### Scenario: Extract made
+- **WHEN** the extract is produced
+- **THEN** the checksum listing of the v1 files is identical before and after
+- **AND** the extract holds 27/30 and 29/30
+
+### Requirement: Backup slide content
+The page SHALL show a headline built from the data, a chart of the five runs with Wilson 95% intervals and `k/n` labels, a per-task grid of ten tasks by five runs, failure counts split into formatting and other failures, and a limits strip, and MUST state facts only.
+
+#### Scenario: Headline facts no longer hold
+- **WHEN** the data no longer shows what the headline template states
+- **THEN** the build fails with the reason and writes no page
+
+### Requirement: Backup slide failure-type labels
+Failures SHALL be counted as formatting (`syntax_error`, `contract_error`) or other, shown with `f/n` per run and labelled as a small signal; the build MUST fail when the labels do not add up to the failed trials.
+
+#### Scenario: Labels do not add up
+- **WHEN** the failure labels of a run sum to a different number than its failed trials
+- **THEN** the build fails
+
+### Requirement: Backup slide user text slot
+The takeaway SHALL come from a user-written TOML file with a limit of 180 characters that no tool writes. An empty slot MUST show a visible placeholder, and the release flag `--require-user-text` MUST fail while it is empty.
+
+#### Scenario: Release with an empty slot
+- **WHEN** the build runs with `--require-user-text` and the takeaway is empty
+- **THEN** it exits non-zero and writes no page
+
+### Requirement: Backup slide layout and print
+The page SHALL be a self-contained 16:9 landscape page with inline SVG, no script and no external request, deterministic, fitting 1920x1080 without scrolling with text of at least 20px, and printing to one landscape A4 page.
+
+#### Scenario: Two builds
+- **WHEN** the page is built twice from the same inputs
+- **THEN** the files are byte-identical
+
