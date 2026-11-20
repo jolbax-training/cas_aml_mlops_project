@@ -3,6 +3,7 @@
 import copy
 import json
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -35,13 +36,14 @@ def page(**kw) -> str:
 
 
 def test_headline_names_all_three_v2_results_and_the_users_framing():
-    first, sub = slide.headline(slide.collect())
-    assert first.startswith("Small samples mislead: ")
-    assert ("at 30 trials per prompt the revised prompt was ahead by 2 trials (27/30 vs 29/30); "
+    framing, first, sub = slide.headline(slide.collect())
+    assert framing == "Small samples mislead"
+    assert ("At 30 trials per prompt the revised prompt was ahead by 2 trials (27/30 vs 29/30); "
             "at 100 trials per run: baseline 99/100, revised 99/100, baseline repeated 97/100.") in first
     assert sub == ("Repeating the same baseline prompt moved the result by 2 trials (99 -> 97); "
                    "changing the prompt moved it by 0.")
-    assert not re.search(r"\b(better|worse|improv|prove|win)", first + sub, re.I)
+    assert not re.search(r"\b(better|worse|improv|prove|win)", framing + first + sub, re.I)
+    assert slide.trials(1) == "1 trial" and slide.trials(2) == "2 trials"
 
 
 def test_headline_fails_when_the_facts_do_not_hold(inputs):
@@ -147,13 +149,13 @@ def test_wrong_experiment_file_is_refused(inputs):
         slide.collect(paths["v2"], paths["v1"])
 
 
-def test_empty_takeaway_shows_a_placeholder_and_release_flag_fails(inputs):
+def test_empty_takeaway_shows_a_placeholder_and_release_flag_fails(inputs, tmp_path):
     paths = inputs(takeaway="   ")
     text = page(**paths)
     assert 'class="takeaway unset"' in text and "to be written by the student" in text
     with pytest.raises(slide.SlideError, match="takeaway is empty"):
         page(**paths, require_user_text=True)
-    out = REPO / "backup_slide" / "never_written.html"
+    out = tmp_path / "never_written.html"
     assert slide.main(["--v1", str(paths["v1"]), "--v2", str(paths["v2"]), "--user-text",
                        str(paths["user_text"]), "--output", str(out), "--require-user-text"]) == 1
     assert not out.exists()
@@ -207,7 +209,7 @@ def test_check_fails_on_drift_and_when_missing(tmp_path, inputs):
 
 
 def test_page_is_self_contained():
-    text = slide.OUTPUT.read_text(encoding="utf-8")
+    text = re.sub(r"data:image/jpeg;base64,[A-Za-z0-9+/=]+", "data:", slide.OUTPUT.read_text(encoding="utf-8"))
     for needle in ("<script", "<link", "@import", "url(", "http", "xmlns"):
         assert needle not in text, needle
     assert not re.search(r'(?:src|href)="(?!data:)', text)
@@ -232,7 +234,7 @@ def test_font_floors_at_1920():
         if match:
             sizes[selectors.strip()] = float(match.group(1)) * 19.2
     assert min(sizes.values()) >= 20 - 1e-9
-    for sentence in (".headline", ".subline", ".takeaway"):
+    for sentence in (".headline", ".facts", ".subline", ".takeaway"):
         assert sizes[sentence] >= 28 - 1e-9, sentence
     assert sizes[".limits"] >= 24 - 1e-9          # the deck's footnote size, exempt from the 28px floor
     vb = re.search(r'viewBox="0 0 (\d+) \d+"', text)
@@ -261,5 +263,7 @@ def test_logo_hash_matches_the_manifest_and_a_wrong_logo_is_refused(tmp_path):
         slide._logo_uri(wrong)
 
 
-def test_the_committed_user_text_is_only_read_by_the_builder():
-    assert slide.USER_TEXT.is_file() and slide.USER_TEXT.parent == REPO / "backup_slide"
+def test_the_committed_user_text_exists_and_is_unwritten_until_the_user_writes_it():
+    assert slide.USER_TEXT.parent == REPO / "backup_slide"
+    data = tomllib.loads(slide.USER_TEXT.read_text(encoding="utf-8"))
+    assert isinstance(data["takeaway"], str)   # empty until task 7.8; the user writes it, no tool does

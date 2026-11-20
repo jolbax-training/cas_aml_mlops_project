@@ -57,7 +57,7 @@ COLUMNS = (
 )
 EXPERIMENT_IDS = {"v1": "prompt_comparison_v1", "v2": "prompt_comparison_v2"}
 
-CHART_VB_W, CHART_VB_H, CHART_CQW = 768, 440, 40
+CHART_VB_W, CHART_VB_H, CHART_CQW = 768, 612, 40
 
 
 class SlideError(Exception):
@@ -133,21 +133,27 @@ def facts(columns: list[dict]) -> dict:
     return {"v1_gain": v1_gain, "v2_change": v2_change, "v2_repeat": v2_repeat, "by": by}
 
 
-def headline(columns: list[dict]) -> tuple[str, str]:
+def trials(n: int) -> str:
+    return f"{n} trial" + ("" if n == 1 else "s")
+
+
+def headline(columns: list[dict]) -> tuple[str, str, str]:
+    """The framing (the user's words), the facts line and the sub-line; numbers come from `facts`."""
     f = facts(columns)
     by = f["by"]
 
     def kn(key: str) -> str:
         return f"{by[key]['count']}/{by[key]['of']}"
 
-    first = (f"Small samples mislead: at {by['v1_baseline']['of']} trials per prompt the revised prompt "
-             f"was ahead by {f['v1_gain']} trials ({kn('v1_baseline')} vs {kn('v1_revised')}); at "
+    framing = "Small samples mislead"
+    first = (f"At {by['v1_baseline']['of']} trials per prompt the revised prompt was ahead by "
+             f"{trials(f['v1_gain'])} ({kn('v1_baseline')} vs {kn('v1_revised')}); at "
              f"{by['v2_baseline']['of']} trials per run: baseline {kn('v2_baseline')}, revised "
              f"{kn('v2_revised')}, baseline repeated {kn('v2_repeat')}.")
-    sub = (f"Repeating the same baseline prompt moved the result by {abs(f['v2_repeat'])} trials "
+    sub = (f"Repeating the same baseline prompt moved the result by {trials(abs(f['v2_repeat']))} "
            f"({by['v2_baseline']['count']} -> {by['v2_repeat']['count']}); changing the prompt moved it "
            f"by {abs(f['v2_change'])}.")
-    return first, sub
+    return framing, first, sub
 
 
 def read_takeaway(path: Path = USER_TEXT) -> str:
@@ -177,7 +183,7 @@ def esc(text: object) -> str:
 
 def chart_svg(columns: list[dict]) -> str:
     left, right = 215, 610            # plot x range (0.70 .. 1.00); k/n labels start at 622
-    top, pitch = 6, 70
+    top, pitch = 6, 104
 
     def x(value: float) -> float:
         return left + (value - AXIS_START) / (1.0 - AXIS_START) * (right - left)
@@ -206,7 +212,7 @@ def chart_svg(columns: list[dict]) -> str:
             f'class="bar {css}"/>'
             f'<line x1="{x(c["upper"]):.1f}" y1="{mid - 9:.1f}" x2="{x(c["upper"]):.1f}" y2="{mid + 9:.1f}" '
             f'class="bar {css}"/>'
-            f'<circle cx="{x(rate):.1f}" cy="{mid:.1f}" r="8" class="dot {css}"/>'
+            f'<circle cx="{x(rate):.1f}" cy="{mid:.1f}" r="9" class="dot {css}"/>'
             f'<text x="622" y="{mid + 7:.1f}" font-size="22" class="kn">{c["count"]}/{c["of"]}</text>')
     parts.append(f'<text x="{(left + right) / 2:.0f}" y="{axis_y + 50}" text-anchor="middle" font-size="18" '
                  f'class="axis">success rate, axis starts at 0.70</text>')
@@ -248,7 +254,8 @@ body { margin: 0; color: var(--ink); font-family: system-ui, sans-serif; }
 .frame { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1cqw; padding: 1.8cqw 2.5cqw 1.2cqw; }
 .logo { position: absolute; top: 1.4cqw; right: 2.5cqw; width: 5cqw; height: auto; }
 header { padding-right: 6.5cqw; }
-.headline { margin: 0; font-size: 2.2cqw; line-height: 1.15; color: var(--accent); }
+.headline { margin: 0; font-size: 2.9cqw; line-height: 1.15; color: var(--accent); }
+.facts { margin: 0.4cqw 0 0; font-size: 1.5cqw; line-height: 1.2; }
 .subline { margin: 0.5cqw 0 0; font-size: 1.5cqw; line-height: 1.2; color: var(--muted); }
 .main { display: flex; gap: 2cqw; align-items: flex-start; }
 .chart { flex: 0 0 %(cqw)dcqw; width: %(cqw)dcqw; height: auto; }
@@ -257,15 +264,15 @@ header { padding-right: 6.5cqw; }
 .chart .divider { stroke-dasharray: 6 5; }
 .chart .axis, .chart .rowdate { fill: var(--muted); }
 .chart .rowlabel, .chart .kn { fill: var(--ink); font-weight: 700; }
-.chart .bar { stroke-width: 4; }
+.chart .bar { stroke-width: 5; }
 .chart .dot { stroke: var(--paper); stroke-width: 2; }
 .chart .v1 { stroke: var(--muted); fill: var(--muted); }
 .chart .v2 { stroke: var(--accent); fill: var(--accent); }
 .chart .dot.v1, .chart .dot.v2 { stroke: var(--paper); }
-.grid-table { flex: 1; border-collapse: collapse; font-size: 1.05cqw; line-height: 1.2; }
+.grid-table { flex: 1; border-collapse: collapse; font-size: 1.2cqw; line-height: 1.2; }
 .grid-table th, .grid-table td { border: 1px solid var(--muted); padding: 0.28cqw 0.5cqw; text-align: center; }
 .grid-table th.task { text-align: left; font-weight: 700; }
-.grid-table thead th, .grid-table tr:first-child th[scope="col"] { color: var(--accent); }
+.grid-table tr:first-child th[scope="col"] { color: var(--accent); }
 .grid-table td.miss { background: var(--warn-bg); color: var(--warn-ink); font-weight: 700; border-color: var(--warn-edge); }
 .grid-table tr.focus th, .grid-table tr.focus td { border-top: 0.2cqw solid var(--accent); border-bottom: 0.2cqw solid var(--accent); }
 .grid-table tr.section th { text-align: left; font-weight: 700; background: #ececec; }
@@ -282,7 +289,7 @@ header { padding-right: 6.5cqw; }
 
 
 def render(columns: list[dict], takeaway: str, logo_uri: str) -> str:
-    first, sub = headline(columns)
+    framing, first, sub = headline(columns)
     by = {c["key"]: c for c in columns}
     if takeaway:
         slot = f'<p class="takeaway"><strong>Takeaway</strong>{esc(takeaway)}</p>'
@@ -299,7 +306,7 @@ def render(columns: list[dict], takeaway: str, logo_uri: str) -> str:
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
         "<title>Backup slide: prompt comparison at scale</title>\n"
         f"<style>\n{css}</style>\n</head>\n<body>\n<main class=\"slide\">\n<div class=\"frame\">\n"
-        f"<header><h1 class=\"headline\">{esc(first)}</h1><p class=\"subline\">{esc(sub)}</p></header>\n"
+        f"<header><h1 class=\"headline\">{esc(framing)}</h1><p class=\"facts\">{esc(first)}</p><p class=\"subline\">{esc(sub)}</p></header>\n"
         f"<img class=\"logo\" src=\"{logo_uri}\" alt=\"{esc(LOGO_ALT)}\">\n"
         f"<div class=\"main\">{chart_svg(columns)}{grid_html(columns)}</div>\n"
         f"{slot}\n<p class=\"limits\">{esc(limits)}</p>\n</div>\n</main>\n</body>\n</html>\n"

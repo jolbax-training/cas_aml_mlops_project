@@ -52,7 +52,7 @@
 
 ## 8. Coordinator checks of the backup slide
 
-- [ ] 8.1 Open `backup_slide/backup_slide.html` in the Orca browser at 1920x1080: no scrolling, nothing cut off, all text readable (legibility from a distance), chart, grid with the `lists_02` row, failure panel, limits strip and corner logo visible; take a screenshot. Reason unchecked: needs a browser.
-- [ ] 8.2 Print the page (or print to PDF): exactly one landscape A4 page, colours and logo kept; on paper 20px text is about 8.4 pt and chart text about 7.6 pt (legible but small; say if a handout needs larger text). Reason unchecked: needs a print dialog.
+- [ ] 8.1 Open `backup_slide/backup_slide.html` in the Orca browser, fullscreen or kiosk with a viewport of 1920x1080: no scrolling, nothing cut off, all text readable (legibility from a distance), chart, grid with the `lists_02` row, failure panel, limits strip and corner logo visible; take a screenshot. Reason unchecked: needs a browser.
+- [ ] 8.2 Print the page (or print to PDF): exactly one landscape A4 page, colours and logo kept; on paper 20px text is about 8.4 pt and chart text about 7.6 pt (legible but small; say if a handout needs larger text); the lower part of the sheet stays empty because the 16:9 box is scaled to the page width (accepted, not changed). Reason unchecked: needs a print dialog.
 - [ ] 8.3 User approves the page (and may override the headline wording and the 180-character limit, defaults in design.md). Reason unchecked: user judgment.
 

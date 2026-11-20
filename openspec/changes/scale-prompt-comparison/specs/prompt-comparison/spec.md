@@ -95,7 +95,7 @@ The first comparison's counts SHALL enter the page only through a committed extr
 - **AND** the extract holds 27/30 and 29/30
 
 ### Requirement: Backup slide content
-The page SHALL show a headline built from the data, a chart of the five runs with Wilson 95% intervals and `k/n` labels, a per-task grid of ten tasks by five runs, failure counts split into formatting and other failures, and a limits strip, and MUST state facts only, apart from the user's framing words "Small samples mislead" at the start of the headline; the headline MUST give all three second-experiment counts.
+The page SHALL show a headline built from the data, a chart of the five runs with Wilson 95% intervals and `k/n` labels, a per-task grid of ten tasks by five runs, failure counts split into formatting and other failures, and a limits strip, and MUST state facts only, apart from the user's framing words "Small samples mislead" at the start of the headline; the header (headline and facts line) MUST give all three second-experiment counts.
 
 #### Scenario: Headline facts no longer hold
 - **WHEN** the data no longer shows what the headline template states
